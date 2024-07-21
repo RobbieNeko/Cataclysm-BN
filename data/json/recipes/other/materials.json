@@ -1280,7 +1280,7 @@
   },
   {
     "result": "steel_lump",
-    "id_suffix": "smelt",
+    "id_suffix": "smelt_bog_iron",
     "type": "recipe",
     "category": "CC_OTHER",
     "subcategory": "CSC_OTHER_MATERIALS",
