@@ -405,6 +405,13 @@ class Creature
                                    bool bypass_med = false ) = 0;
 
         /**
+         * Attempts to pull the target at point p towards this creature.
+         * @param name Name of the implement used to pull the target.
+         * @param p Position of the target creature.
+        */
+        void longpull( const std::string &name, const tripoint &p );
+        
+        /**
          * This creature just dodged an attack - possibly special/ranged attack - from source.
          * Players should train dodge, monsters may use some special defenses.
          */

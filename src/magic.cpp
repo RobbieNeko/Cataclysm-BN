@@ -214,6 +214,7 @@ void spell_type::load( const JsonObject &jo, const std::string & )
         { "ter_transform", spell_effect::transform_blast },
         { "noise", spell_effect::noise },
         { "vomit", spell_effect::vomit },
+        { "pull_target", spell_effect::pull_to_caster },
         { "explosion", spell_effect::explosion },
         { "flashbang", spell_effect::flashbang },
         { "mod_moves", spell_effect::mod_moves },
