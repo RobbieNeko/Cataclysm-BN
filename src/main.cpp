@@ -63,6 +63,14 @@ class ui_adaptor;
 #   endif
 #endif
 
+#if defined(SDL_SOUND)
+#   if defined(_MSC_VER) && defined(USE_VCPKG)
+#       include <SDL2/SDL_mixer.h>
+#   else
+#       include <SDL_mixer.h>
+#   endif
+#endif
+
 #if defined(__ANDROID__)
 #include <SDL_filesystem.h>
 #include <SDL_keyboard.h>
