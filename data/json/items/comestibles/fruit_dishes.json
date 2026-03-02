@@ -1,25 +1,6 @@
 [
   {
     "type": "COMESTIBLE",
-    "id": "strawberries_cooked",
-    "name": { "str": "cooked strawberry", "str_pl": "cooked strawberries" },
-    "copy-from": "strawberries",
-    "color": "red",
-    "spoils_in": "3 days 18 hours",
-    "container": "jar_3l_glass_sealed",
-    "comestible_type": "DRINK",
-    "symbol": "~",
-    "description": "It's like strawberry jam, only without sugar.",
-    "price": "50 cent",
-    "price_postapoc": "50 cent",
-    "//": "Cheap for three liters of spread!",
-    "material": "fruit",
-    "phase": "liquid",
-    "fun": 2,
-    "flags": [ "USE_EAT_VERB", "EATEN_COLD" ]
-  },
-  {
-    "type": "COMESTIBLE",
     "id": "fruit_leather",
     "name": "fruit leather",
     "conditional_names": [
@@ -52,37 +33,19 @@
     ],
     "weight": "34 g",
     "color": "pink",
-    "container": "bag_plastic",
+    "container": "bag_zipper",
     "comestible_type": "FOOD",
     "symbol": "%",
     "calories": 122,
     "description": "Dried strips of sugary fruit paste.",
     "price": "160 cent",
     "price_postapoc": "250 cent",
-    "material": "fruit",
+    "material": [ "fruit" ],
     "primary_material": "dried_vegetable",
     "volume": "250 ml",
     "charges": 5,
-    "vitamins": [ [ "vitC", 21 ], [ "calcium", 2 ], [ "iron", 4 ] ],
+    "vitamins": [ [ "vitC", 21 ], [ "calcium", 2 ], [ "iron", 4 ], [ "fruit_allergen", 1 ] ],
     "fun": 3
-  },
-  {
-    "type": "COMESTIBLE",
-    "id": "blueberries_cooked",
-    "name": { "str": "cooked blueberry", "str_pl": "cooked blueberries" },
-    "copy-from": "blueberries",
-    "color": "blue",
-    "spoils_in": "3 days 18 hours",
-    "container": "jar_3l_glass_sealed",
-    "comestible_type": "DRINK",
-    "symbol": "~",
-    "description": "It's like blueberry jam, only without sugar.",
-    "price": "50 cent",
-    "price_postapoc": "50 cent",
-    "material": "fruit",
-    "phase": "liquid",
-    "fun": 3,
-    "flags": [ "USE_EAT_VERB", "EATEN_COLD" ]
   },
   {
     "type": "COMESTIBLE",
@@ -99,10 +62,10 @@
     "description": "Yellow cling peach slices packed in light syrup.",
     "price": "140 cent",
     "price_postapoc": "150 cent",
-    "material": "fruit",
+    "material": [ "fruit" ],
     "volume": "250 ml",
     "fun": 5,
-    "vitamins": [ [ "vitA", 4 ], [ "vitC", 9 ], [ "iron", 4 ] ]
+    "vitamins": [ [ "vitA", 4 ], [ "vitC", 9 ], [ "iron", 4 ], [ "fruit_allergen", 1 ] ]
   },
   {
     "type": "COMESTIBLE",
@@ -120,15 +83,16 @@
     "description": "Canned pineapple rings in water.  Quite tasty.",
     "price": "4 USD",
     "price_postapoc": "150 cent",
-    "material": "fruit",
+    "material": [ "fruit" ],
     "volume": "500 ml",
     "fun": 7,
     "charges": 2,
-    "vitamins": [ [ "vitC", 26 ], [ "calcium", 4 ], [ "iron", 6 ] ]
+    "vitamins": [ [ "vitC", 26 ], [ "calcium", 4 ], [ "iron", 6 ], [ "fruit_allergen", 1 ] ]
   },
   {
     "type": "COMESTIBLE",
     "id": "lemonade_powder",
+    "category": "cooking_ingredients",
     "name": { "str_sp": "lemonade drink mix" },
     "weight": "19 g",
     "color": "yellow",
@@ -144,7 +108,7 @@
     "primary_material": "powder",
     "volume": "250 ml",
     "charges": 10,
-    "vitamins": [ [ "vitC", 7 ] ],
+    "vitamins": [ [ "vitC", 7 ], [ "fruit_allergen", 1 ] ],
     "fun": 1
   },
   {
@@ -189,12 +153,12 @@
     "description": "It's like fruit jam, only without sugar.",
     "price": "50 cent",
     "price_postapoc": "50 cent",
-    "material": "fruit",
+    "material": [ "fruit" ],
     "volume": "250 ml",
     "phase": "liquid",
     "fun": 2,
     "//": "this item is intended to generally be inherited from the fruit that was cooked.",
-    "vitamins": [ [ "vitC", 20 ] ],
+    "vitamins": [ [ "vitC", 20 ], [ "fruit_allergen", 1 ] ],
     "flags": [ "USE_EAT_VERB", "EATEN_COLD" ]
   },
   {
@@ -239,12 +203,13 @@
     "description": "Fresh fruit, cooked with sugar to make them last longer.",
     "price": "80 cent",
     "price_postapoc": "75 cent",
-    "material": "fruit",
+    "material": [ "fruit" ],
     "volume": "250 ml",
     "phase": "liquid",
     "charges": 8,
     "fun": 10,
-    "flags": [ "USE_EAT_VERB" ]
+    "flags": [ "USE_EAT_VERB", "NO_COOKING_BUFF" ],
+    "vitamins": [ [ "fruit_allergen", 1 ] ]
   },
   {
     "type": "COMESTIBLE",
@@ -257,14 +222,16 @@
     "quench": -2,
     "healthy": 1,
     "calories": 100,
+    "flags": [ "NO_COOKING_BUFF", "SMOKED" ],
     "description": "Dehydrated fruit flakes.  With proper storage, this dried food will remain edible for an incredibly long time.  They are useful for several cooking recipes.",
     "price": "9 USD",
     "price_postapoc": "1 USD",
-    "material": "fruit",
+    "material": [ "fruit" ],
     "primary_material": "dried_vegetable",
     "//": "most of the water weight and volume is lost",
     "volume": "100 ml",
-    "fun": 2
+    "fun": 2,
+    "vitamins": [ [ "fruit_allergen", 1 ] ]
   },
   {
     "type": "COMESTIBLE",
@@ -278,12 +245,14 @@
     "quench": 1,
     "healthy": 1,
     "calories": 100,
+    "flags": [ "NO_COOKING_BUFF" ],
     "description": "Reconstituted fruit flakes, which are much more enjoyable to eat now that they have been rehydrated.",
     "price": "9 USD",
     "price_postapoc": "50 cent",
-    "material": "fruit",
+    "material": [ "fruit" ],
     "volume": "250 ml",
-    "fun": 4
+    "fun": 4,
+    "vitamins": [ [ "fruit_allergen", 1 ] ]
   },
   {
     "type": "COMESTIBLE",
@@ -326,13 +295,14 @@
     "quench": 3,
     "healthy": 1,
     "calories": 82,
+    "flags": [ "NO_COOKING_BUFF" ],
     "description": "Fruit slices soaked in a sugar syrup, to preserve freshness and appearance.",
     "price": "450 cent",
-    "material": "fruit",
+    "material": [ "fruit" ],
     "volume": "250 ml",
     "charges": 4,
     "fun": 3,
-    "vitamins": [ [ "iron", 2 ] ]
+    "vitamins": [ [ "iron", 2 ], [ "fruit_allergen", 1 ] ]
   },
   {
     "type": "COMESTIBLE",
@@ -375,22 +345,23 @@
     "quench": 3,
     "healthy": 1,
     "calories": 100,
+    "flags": [ "NO_COOKING_BUFF" ],
     "description": "This sodden mass of preserved fruit was boiled and canned in an earlier life.  Bland, mushy and losing color, likely due to the lack of added sugar.",
     "price": "220 cent",
     "price_postapoc": "50 cent",
-    "material": "fruit",
+    "material": [ "fruit" ],
     "volume": "250 ml",
     "charges": 2,
     "fun": 1,
-    "vitamins": [ [ "vitC", 3 ], [ "calcium", 2 ], [ "iron", 10 ] ]
+    "vitamins": [ [ "vitC", 3 ], [ "calcium", 2 ], [ "iron", 10 ], [ "fruit_allergen", 1 ] ]
   },
   {
     "type": "COMESTIBLE",
     "id": "cacao_nibs",
     "looks_like": "choco_coffee_beans",
     "price": "50 cent",
-    "container": "bag_plastic",
-    "material": "fruit",
+    "container": "bag_zipper",
+    "material": [ "fruit" ],
     "name": { "str_sp": "cacao nib" },
     "symbol": "%",
     "color": "brown",
@@ -402,8 +373,8 @@
     "healthy": 1,
     "calories": 53,
     "volume": "200 ml",
-    "vitamins": [ [ "calcium", 4 ], [ "iron", 8 ] ],
-    "flags": [  ],
+    "vitamins": [ [ "calcium", 4 ], [ "iron", 8 ], [ "fruit_allergen", 1 ] ],
+    "flags": [ "NO_COOKING_BUFF" ],
     "charges": 50,
     "stack_size": 100,
     "weight": "1 g"

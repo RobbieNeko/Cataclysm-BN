@@ -1,6 +1,4 @@
 #pragma once
-#ifndef CATA_SRC_RNG_H
-#define CATA_SRC_RNG_H
 
 #include <array>
 #include <functional>
@@ -27,6 +25,19 @@ void rng_set_engine_seed( unsigned int seed );
 using cata_default_random_engine = std::minstd_rand0;
 cata_default_random_engine &rng_get_engine();
 unsigned int rng_bits();
+
+/**
+ * Thread-local RNG support for worker threads.
+ *
+ * Call rng_set_worker_seed() once on each worker thread before dispatching
+ * compute_plan() work.  All subsequent rng()/one_in()/x_in_y() calls on that
+ * thread will use an independent per-thread engine, leaving the main thread's
+ * engine state undisturbed.
+ *
+ * The main thread must never call rng_set_worker_seed(); it always uses the
+ * global engine returned by rng_get_engine().
+ */
+void rng_set_worker_seed( unsigned int seed );
 
 int rng( int lo, int hi );
 double rng_float( double lo, double hi );
@@ -202,4 +213,4 @@ std::optional<tripoint> random_point( const tripoint_range<tripoint> &range,
 std::optional<tripoint> random_point( const map &m,
                                       const std::function<bool( const tripoint & )> &predicate );
 
-#endif // CATA_SRC_RNG_H
+

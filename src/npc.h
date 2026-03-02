@@ -1,6 +1,4 @@
 #pragma once
-#ifndef CATA_SRC_NPC_H
-#define CATA_SRC_NPC_H
 
 #include <algorithm>
 #include <array>
@@ -285,24 +283,25 @@ const std::unordered_map<std::string, cbm_reserve_rule> cbm_reserve_strs = { {
     }
 };
 
-enum class ally_rule {
+enum class ally_rule : int {
     DEFAULT = 0,
-    use_guns = 1,
-    use_grenades = 2,
-    use_silent = 4,
-    avoid_friendly_fire = 8,
-    allow_pick_up = 16,
-    allow_bash = 32,
-    allow_sleep = 64,
-    allow_complain = 128,
-    allow_pulp = 256,
-    close_doors = 512,
-    follow_close = 1024,
-    avoid_doors = 2048,
-    hold_the_line = 4096,
-    ignore_noise = 8192,
-    forbid_engage = 16384,
-    follow_distance_2 = 32768
+    use_guns = 1 << 0,
+    use_grenades = 1 << 1,
+    use_silent = 1 << 2,
+    avoid_friendly_fire = 1 << 3,
+    allow_pick_up = 1 << 4,
+    allow_bash = 1 << 5,
+    allow_sleep = 1 << 6,
+    allow_complain = 1 << 7,
+    allow_pulp = 1 << 8,
+    close_doors = 1 << 9,
+    follow_close = 1 << 10,
+    avoid_doors = 1 << 11,
+    hold_the_line = 1 << 12,
+    ignore_noise = 1 << 13,
+    forbid_engage = 1 << 14,
+    follow_distance_2 = 1 << 15,
+    move_own_pace = 1 << 16,
 };
 
 struct ally_rule_data {
@@ -422,6 +421,13 @@ const std::unordered_map<std::string, ally_rule_data> ally_rule_strs = { {
                 ally_rule::follow_distance_2,
                 "<ally_rule_follow_distance_2_true_text>",
                 "<ally_rule_follow_distance_2_false_text>"
+            }
+        },
+        {
+            "move_own_pace", {
+                ally_rule::move_own_pace,
+                "<ally_rule_move_own_pace_true_text>",
+                "<ally_rule_move_own_pace_false_text>"
             }
         }
     }
@@ -737,7 +743,7 @@ class npc : public player
         npc( const npc & ) = delete;
         npc( npc && ) = delete;
         npc &operator=( const npc & ) = delete;
-        npc &operator=( npc && ) = delete;
+        npc &operator=( npc && ) noexcept;
         ~npc() override;
 
         bool is_player() const override {
@@ -763,7 +769,7 @@ class npc : public player
         // Faction version number
         int get_faction_ver() const;
         void set_faction_ver( int new_version );
-        bool has_faction_relationship( const player &p,
+        bool has_faction_relationship( const Character &p,
                                        npc_factions::relationship flag ) const;
         void set_fac( const faction_id &id );
         faction *get_faction() const override;
@@ -805,8 +811,8 @@ class npc : public player
         int faction_display( const catacurses::window &fac_w, int width ) const;
 
         // Interaction with the player
-        void form_opinion( const player &u );
-        std::string pick_talk_topic( const player &u );
+        void form_opinion( const Character &u );
+        std::string pick_talk_topic( const Character &u );
         float character_danger( const Character &u ) const;
         float vehicle_danger( int radius ) const;
         void pretend_fire( npc *source, int shots, item &gun ); // fake ranged attack for hallucination
@@ -827,11 +833,11 @@ class npc : public player
          * @return Skills of which this NPC has a higher level than the given player. In other
          * words: skills this NPC could teach the player.
          */
-        std::vector<skill_id> skills_offered_to( const player &p ) const;
+        std::vector<skill_id> skills_offered_to( const Character &p ) const;
         /**
          * Martial art styles that we known, but the player p doesn't.
          */
-        std::vector<matype_id> styles_offered_to( const player &p ) const;
+        std::vector<matype_id> styles_offered_to( const Character &p ) const;
         // State checks
         // We want to kill/mug/etc the player
         bool is_enemy() const;
@@ -875,9 +881,11 @@ class npc : public player
         int follow_distance() const;
 
         // Dialogue and bartering--see npctalk.cpp
-        void talk_to_u( bool radio_contact = false );
+        void talk_to_u( bool radio_contact = false, bool enforce_first_topic = false );
         // Re-roll the inventory of a shopkeeper
         void shop_restock();
+        std::string get_restock_interval() const;
+        bool is_shopkeeper() const;
         // Use and assessment of items
         // The minimum value to want to pick up an item
         int minimum_item_value() const;
@@ -886,10 +894,10 @@ class npc : public player
         int value( const item &it ) const;
         int value( const item &it, int market_price ) const;
         detached_ptr<item> wear_if_wanted( detached_ptr<item> &&it, std::string &reason );
-        void start_read( item &it, player *pl );
+        void start_read( item &it, Character *pl );
         void finish_read( item *it );
         bool can_read( const item &book, std::vector<std::string> &fail_reasons );
-        int time_to_read( const item &book, const player &reader ) const;
+        int time_to_read( const item &book, const Character &reader ) const;
         void do_npc_read();
         void stow_weapon( );
         bool wield( item &it ) override;
@@ -945,6 +953,10 @@ class npc : public player
         void decide_needs();
         void reboot();
         void die( Creature *killer ) override;
+        /**
+        * Deletes the npc without any death notifications.
+        */
+        void erase();
         bool is_dead() const;
         // How well we smash terrain (not corpses!)
         int smash_ability() const;
@@ -1060,7 +1072,7 @@ class npc : public player
 
         bool dispose_item( item &obj, const std::string &prompt = std::string() ) override;
 
-        void aim();
+        bool aim();
         void do_reload( item &it );
 
         // Physical movement from one tile to the next
@@ -1091,9 +1103,12 @@ class npc : public player
 
         void set_movement_mode( character_movemode mode ) override;
 
-        const pathfinding_settings &get_pathfinding_settings() const override;
-        const pathfinding_settings &get_pathfinding_settings( bool no_bashing ) const;
-        std::set<tripoint> get_path_avoid() const override;
+        const pathfinding_settings &get_legacy_pathfinding_settings() const override;
+        const pathfinding_settings &get_legacy_pathfinding_settings( bool no_bashing ) const;
+        std::set<tripoint> get_legacy_path_avoid() const override;
+
+        std::pair<PathfindingSettings, RouteSettings> get_pathfinding_pair() const override;
+        std::pair<PathfindingSettings, RouteSettings> get_pathfinding_pair( bool no_bashing ) const;
 
         // Item discovery and fetching
 
@@ -1123,9 +1138,9 @@ class npc : public player
         // Combat functions and player interaction functions
         // Returns true if did something
         bool alt_attack();
-        void heal_player( player &patient );
+        void heal_player( Character &patient );
         void heal_self();
-        void pretend_heal( player &patient, item &used ); // healing action of hallucinations
+        void pretend_heal( Character &patient, item &used ); // healing action of hallucinations
         void mug_player( Character &mark );
         void look_for_player( const Character &sought );
         // Do we have an idea of where u are?
@@ -1181,6 +1196,7 @@ class npc : public player
          * Do not use when placing a NPC in mapgen.
          */
         void setpos( const tripoint &pos ) override;
+        void onswapsetpos( const tripoint &pos );
         void travel_overmap( const tripoint &pos );
         npc_attitude get_attitude() const;
         void set_attitude( npc_attitude new_attitude );
@@ -1407,4 +1423,4 @@ static constexpr int density_search_radius = 120;
 double spawn_chance_in_hour( int current_npc_count, double density );
 } // namespace npc_overmap
 
-#endif // CATA_SRC_NPC_H
+

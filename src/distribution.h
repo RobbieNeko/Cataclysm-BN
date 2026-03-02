@@ -1,6 +1,6 @@
-#ifndef CATA_SRC_DISTRIBUTION_H
-#define CATA_SRC_DISTRIBUTION_H
+#pragma once
 
+#include <string>
 #include "memory_fast.h"
 
 class JsonIn;
@@ -24,4 +24,4 @@ class int_distribution
         shared_ptr_fast<int_distribution_impl> impl_;
 };
 
-#endif // CATA_SRC_DISTRIBUTION_H
+

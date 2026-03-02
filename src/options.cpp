@@ -1,5 +1,6 @@
 #include "options.h"
 
+#include <algorithm>
 #include <locale>
 #include <cfloat>
 #include <climits>
@@ -7,6 +8,7 @@
 #include <stdexcept>
 
 #include "calendar.h"
+#include "cached_options.h"
 #include "cached_item_options.h"
 #include "cata_utility.h"
 #include "catacharset.h"
@@ -153,6 +155,7 @@ options_manager &get_options()
 constexpr auto general = "general";
 constexpr auto interface = "interface";
 constexpr auto graphics = "graphics";
+constexpr auto performance = "performance";
 constexpr auto world_default = "world_default";
 constexpr auto debug = "debug";
 #if defined(__ANDROID__)
@@ -164,6 +167,7 @@ options_manager::options_manager()
     pages_.emplace_back( general, to_translation( "General" ) );
     pages_.emplace_back( interface, to_translation( "Interface" ) );
     pages_.emplace_back( graphics, to_translation( "Graphics" ) );
+    pages_.emplace_back( performance, to_translation( "Performance" ) );
     // when sharing maps only admin is allowed to change these.
     if( !MAP_SHARING::isCompetitive() || MAP_SHARING::isAdmin() ) {
         pages_.emplace_back( world_default, to_translation( "World Defaults" ) );
@@ -289,7 +293,7 @@ void options_manager::add_external( const std::string &sNameIn, const std::strin
             thisOpt.iSet = 0;
             break;
         case cOpt::CVT_FLOAT:
-            thisOpt.fMin = FLT_MIN;
+            thisOpt.fMin = -FLT_MAX;
             thisOpt.fMax = FLT_MAX;
             thisOpt.fDefault = 0;
             thisOpt.fSet = 0;
@@ -763,8 +767,8 @@ int options_manager::cOpt::value_as<int>() const
 std::string options_manager::cOpt::getValueName() const
 {
     if( sType == "string_select" ) {
-        const auto iter = std::find_if( vItems.begin(),
-        vItems.end(), [&]( const id_and_option & e ) {
+        const auto iter = std::ranges::find_if( vItems,
+        [&]( const id_and_option & e ) {
             return e.first == sSet;
         } );
         if( iter != vItems.end() ) {
@@ -789,7 +793,7 @@ std::string options_manager::cOpt::getValueName() const
 std::string options_manager::cOpt::getDefaultText( const bool bTranslated ) const
 {
     if( sType == "string_select" ) {
-        const auto iter = std::find_if( vItems.begin(), vItems.end(),
+        const auto iter = std::ranges::find_if( vItems,
         [this]( const id_and_option & elem ) {
             return elem.first == sDefault;
         } );
@@ -1108,7 +1112,7 @@ std::vector<options_manager::id_and_option> options_manager::build_tilesets_list
     std::vector<options_manager::id_and_option> user_tilesets = load_tilesets_from(
                 PATH_INFO::user_gfx() );
     for( const options_manager::id_and_option &id : user_tilesets ) {
-        if( std::find( result.begin(), result.end(), id ) == result.end() ) {
+        if( std::ranges::find( result, id ) == result.end() ) {
             result.emplace_back( id );
         }
     }
@@ -1204,6 +1208,7 @@ void options_manager::init()
     add_options_general();
     add_options_interface();
     add_options_graphics();
+    add_options_performance();
     add_options_debug();
     add_options_world_default();
     add_options_android();
@@ -1222,7 +1227,7 @@ void options_manager::add_options_general()
     };
 
     add( "PROMPT_ON_CHARACTER_DEATH", general, translate_marker( "Prompt on character death" ),
-         translate_marker( "If enabled, when your character dies, the player is given a prompt that gives the option to cancel savefile deletion and other death effects, returning to the main menu without saving instead." ),
+         translate_marker( "If enabled, when your character dies, the player is given a prompt that gives the option to reload the last saved game instead of dying." ),
          false
        );
 
@@ -1330,7 +1335,7 @@ void options_manager::add_options_general()
 
     add( "AUTO_FORAGING", general, translate_marker( "Auto foraging" ),
          translate_marker( "Action to perform when 'Auto foraging' is enabled.  Bushes: Only forage bushes.  - Trees: Only forage trees.  - Everything: Forage bushes, trees, and everything else including flowers, cattails etc." ),
-    { { "off", to_translation( "options", "Disabled" ) }, { "bushes", translate_marker( "Bushes" ) }, { "trees", translate_marker( "Trees" ) }, { "both", translate_marker( "Everything" ) } },
+    { { "off", to_translation( "options", "Disabled" ) }, { "bushes", translate_marker( "Bushes" ) }, { "trees", translate_marker( "Trees" ) }, { "flowers", translate_marker( "Flowers" ) }, { "both", translate_marker( "Everything" ) } },
     "off"
        );
 
@@ -1393,6 +1398,31 @@ void options_manager::add_options_general()
          translate_marker( "If true, you will be prompted to confirm before attacking neutral or fleeing monsters that you have yet to engage in combat with." ),
          true
        );
+
+    add_empty_line();
+
+    add_option_group( general, Group( "clothing_destruction_popup",
+                                      to_translation( "Clothing destruction popup" ),
+                                      to_translation( "Configure when popups appear due to clothing being destroyed." ) ),
+    [&]( auto & page_id ) {
+        add( "CLOTHING_DESTRUCTION_POPUP", page_id, translate_marker( "Enable popup" ),
+             translate_marker( "If true, a popup will display when a piece of the player/NPC's worn clothing is destroyed." ),
+             true );
+
+        add( "CLOTHING_DESTRUCTION_POPUP_CONTENTS", page_id, translate_marker( "Only if contents present" ),
+             translate_marker( "Only show popup if destroyed clothing has contents." ),
+             false );
+
+        add( "CLOTHING_DESTRUCTION_POPUP_MIN_WEIGHT", page_id,
+             translate_marker( "Min weight for popup (g)" ),
+             translate_marker( "Minimum weight of the item for the popup to trigger." ),
+             0, 1000000, 0 );
+
+        add( "CLOTHING_DESTRUCTION_POPUP_MIN_VOLUME", page_id,
+             translate_marker( "Min volume for popup (ml)" ),
+             translate_marker( "Minimum volume of the item for the popup to trigger." ),
+             0, 1000000, 0 );
+    } );
 
     add_empty_line();
 
@@ -1524,6 +1554,29 @@ void options_manager::add_options_interface()
 
     add_empty_line();
 
+    add( "HEALTH_STYLE", interface, translate_marker( "Health Display Style" ),
+    translate_marker( "Switch health-related display styling such as HP and hunger" ), {
+        {"number", translate_marker( "Numerical" ) },
+        {"bar", translate_marker( "Bar" ) },
+        {"bar_alt", translate_marker( "Bar (Alt)" ) },
+        {"bar_ascii", translate_marker( "Bar (Old)" ) },
+    },
+    "bar" );
+
+    add_empty_line();
+
+    add( "WIKI_DOC_URL", interface, translate_marker( "Wiki URL" ),
+         translate_marker( "The URL opened by pressing the open wiki keybind." ),
+         "https://docs.cataclysmbn.org", 60
+       );
+
+    add( "HHG_URL", interface, translate_marker( "Hitchhiker's Guide URL" ),
+         translate_marker( "The URL opened by pressing the open HHG keybind." ),
+         "https://cataclysmbn-guide.com", 60
+       );
+
+    add_empty_line();
+
     add( "USE_CELSIUS", interface, translate_marker( "Temperature units" ),
          translate_marker( "Switch between Celsius, Fahrenheit and Kelvin." ),
     { { "celsius", translate_marker( "Celsius" ) }, { "fahrenheit", translate_marker( "Fahrenheit" ) }, { "kelvin", translate_marker( "Kelvin" ) } },
@@ -1614,6 +1667,12 @@ void options_manager::add_options_interface()
          true
        );
 
+    add( "VERBOSE_CRAFTING_SPEED_MODIFIERS", interface,
+         translate_marker( "Verbose crafting/construction speed modifiers" ),
+         translate_marker( "If true, show 100% crafting/construction speed modifiers in the info panels." ),
+         false
+       );
+
     add( "AUTOSELECT_SINGLE_VALID_TARGET", interface,
          translate_marker( "Autoselect if exactly one valid target" ),
          translate_marker( "If true, directional actions ( like \"Examine\", \"Open\", \"Pickup\" ) "
@@ -1662,6 +1721,12 @@ void options_manager::add_options_interface()
          */
     translate_marker( "Allows diagonal movement with cursor keys using CTRL and SHIFT modifiers.  Diagonal movement action keys are taken from keybindings, so you need these to be configured." ), { { "none", translate_marker( "None" ) }, { "mode1", translate_marker( "Mode 1: Numpad Emulation" ) }, { "mode2", translate_marker( "Mode 2: CW/CCW" ) }, { "mode3", translate_marker( "Mode 3: L/R Tilt" ) } },
     "none", COPT_CURSES_HIDE );
+
+
+    add( "SUGGEST_AUTOWALK_STAIRCASE", interface, translate_marker( "Suggest autowalk to staircases" ),
+         translate_marker( "If true, upon pressing Ascend Stairs or Descend Stairs, the player will be prompted with an option to walk to the nearest visible staircase." ),
+         true
+       );
 
     add_empty_line();
 
@@ -1802,6 +1867,14 @@ void options_manager::add_options_interface()
          translate_marker( "If true, show item symbols in inventory and pick up menu." ),
          false
        );
+    add( "HIGHLIGHT_UNREAD_RECIPES", interface, translate_marker( "Highlight unread recipes" ),
+         translate_marker( "Highlight unread recipes to allow tracking of newly learned recipes." ),
+         true
+       );
+    add( "HIGHLIGHT_UNREAD_ITEMS", interface, translate_marker( "Highlight unread items" ),
+         translate_marker( "Highlight unread items to allow tracking of newly discovered items." ),
+         true
+       );
     add( "AMMO_IN_NAMES", interface, translate_marker( "Add ammo to weapon/magazine names" ),
          translate_marker( "If true, the default ammo is added to weapon and magazine names.  For example \"Mosin-Nagant M44 (4/5)\" becomes \"Mosin-Nagant M44 (4/5 7.62x54mm)\"." ),
          true
@@ -1882,9 +1955,17 @@ void options_manager::add_options_graphics()
 
     get_option( "ANIMATION_DELAY" ).setPrerequisite( "ANIMATIONS" );
 
+    add( "SKIP_EXPLOSION_ANIMATION_AFTER", graphics,
+         translate_marker( "Maximum rendered explosions per turn" ),
+         translate_marker( "Skip rendering explosions after this many count per turn to prevent softlocks from chain reactions. Set to 0 to disable." ),
+         0, 100, 10
+       );
+
+    get_option( "SKIP_EXPLOSION_ANIMATION_AFTER" ).setPrerequisite( "ANIMATIONS" );
+
     add( "BULLETS_AS_LASERS", graphics, translate_marker( "Draw bullets as lines" ),
          translate_marker( "If true, bullets are drawn as lines of images, and the animation lasts only one frame." ),
-         false
+         true
        );
 
     add( "BLINK_SPEED", graphics, translate_marker( "Blinking effects speed" ),
@@ -1896,6 +1977,19 @@ void options_manager::add_options_graphics()
          translate_marker( "If true, forces the game to redraw at least once per turn." ),
          true
        );
+
+    add( "NIGHT_VISION_DEFAULT_COLOR", graphics, translate_marker( "Night Vision Default Colors" ),
+    translate_marker( "Choose from default night vision colors." ), {
+        { "#2eab01", translate_marker( "Green" ) },
+        { "#ff141c", translate_marker( "Red" ) },
+        { "#888888", translate_marker( "Gray" ) },
+        { "custom", translate_marker( "Custom" ) }
+    }, "#2eab01" );
+
+    add( "NIGHT_VISION_COLOR", graphics, translate_marker( "Night Vision Color" ),
+         translate_marker( "Sets custom night vision color." ), "#2eab01", 60 );
+
+    get_option( "NIGHT_VISION_COLOR" ).setPrerequisite( "NIGHT_VISION_DEFAULT_COLOR", "custom" );
 
     add_empty_line();
 
@@ -1971,6 +2065,20 @@ void options_manager::add_options_graphics()
 
     get_option( "USE_TILES_OVERMAP" ).setPrerequisite( "USE_TILES" );
 
+    add( "OVERMAP_TILES", graphics, translate_marker( "Choose overmap tileset" ),
+         translate_marker( "Choose the overmap tileset you want to use." ),
+         build_tilesets_list(), "UNDEAD_PEOPLE_BASE", COPT_CURSES_HIDE
+       ); // populate the options dynamically
+
+    get_option( "OVERMAP_TILES" ).setPrerequisite( "USE_TILES_OVERMAP" );
+
+    add( "VEHICLE_EDIT_TILES", graphics, translate_marker( "Graphical vehicle display" ),
+         translate_marker( "If true, the vehicle interaction screen will display vehicle parts using graphical tiles instead of ASCII symbols." ),
+         true, COPT_CURSES_HIDE
+       );
+
+    get_option( "VEHICLE_EDIT_TILES" ).setPrerequisite( "USE_TILES" );
+
     add( "USE_CHARACTER_PREVIEW", graphics, translate_marker( "Enable character preview window" ),
          translate_marker( "If true, shows character preview window in traits tab on character creation.  "
                            "While having a window press 'z'/'Z' to perform zoom-in/zoom-out.  "
@@ -1993,6 +2101,18 @@ void options_manager::add_options_graphics()
          translate_marker( "If true, lower z levels will look the same no matter how far down they are.  Increases rendering performance." ),
          false, COPT_CURSES_HIDE
        );
+
+    add( "OVERMAP_TRANSPARENCY", graphics, translate_marker( "Overmap air transparent" ),
+         translate_marker( "If true, overmap z levels with air are transparent, lower layers are rendered. Decreases rendering perfomance." ),
+         true, COPT_CURSES_HIDE
+       );
+
+    add( "STATE_MODIFIERS", graphics, translate_marker( "Character state modifiers" ),
+         translate_marker( "If true, enables tileset-defined character sprite modifications based on movement state (crouching, running, etc.)." ),
+         true, COPT_CURSES_HIDE
+       );
+
+    get_option( "STATE_MODIFIERS" ).setPrerequisite( "USE_TILES" );
 
     add_empty_line();
 
@@ -2053,6 +2173,10 @@ void options_manager::add_options_graphics()
        );
 
     get_option( "PIXEL_MINIMAP_BLINK" ).setPrerequisite( "PIXEL_MINIMAP" );
+
+    add( "ZOOM_STEP_COUNT", graphics, translate_marker( "Zoom steps" ),
+         translate_marker( "Number of steps between zoom levels." ),
+         1, 7, 1, COPT_CURSES_HIDE );
 
     add_empty_line();
 
@@ -2146,6 +2270,172 @@ void options_manager::add_options_graphics()
     "1", COPT_CURSES_HIDE );
 #endif
 
+}
+
+void options_manager::add_options_performance()
+{
+    const auto add_empty_line = [&]() {
+        this->add_empty_line( performance );
+    };
+
+    add_option_group( performance, Group( "rem_act_perf", to_translation( "Sleep Boost" ),
+                                          to_translation( "Skip expensive processing while the player sleeps." ) ),
+    [&]( auto & page_id ) {
+        add( "SLEEP_SKIP_VEH", page_id, translate_marker( "Skip Vehicle Movement" ),
+             translate_marker( "Turns off vehicle movement and autodrive while sleeping" ),
+             true );
+        add( "SLEEP_SKIP_SOUND", page_id, translate_marker( "Skip Sound Processing On Sleep" ),
+             translate_marker( "Sounds are not processed while sleeping" ),
+             false );
+        add( "SLEEP_SKIP_MON", page_id, translate_marker( "Skip Monster Movement" ),
+             translate_marker( "Monsters do not move while the player is sleeping" ),
+             false );
+        add( "SLEEP_SKIP_NPC", page_id, translate_marker( "Skip NPC Movement" ),
+             translate_marker( "NPCs are forced to sleep alongside the player, skipping movement "
+                               "but still processing rest recovery (fatigue reduction, healing, etc.).  "
+                               "NPCs with non-interruptible activities (e.g. surgery) are frozen "
+                               "for the turn instead." ),
+             false );
+#if defined(__ANDROID__)
+        add( "LOAD_FROM_EXTERNAL", page_id, translate_marker( "External Storage Saving" ),
+             translate_marker( "Save in data/catalcysm... instead of Documents/..." ),
+             false );
+#endif
+    } );
+
+    add_empty_line();
+
+    add_option_group( performance, Group( "lod_monster", to_translation( "Monster LOD" ),
+                                          to_translation( "Configure level-of-detail thresholds for monster AI." ) ),
+    [&]( auto & page_id ) {
+        add( "MONSTER_LOD_ENABLED", page_id,
+             translate_marker( "Enable Monster LOD" ),
+             translate_marker( "Enable level-of-detail processing for monsters.  "
+                               "When enabled, distant or wandering monsters are assigned reduced-fidelity "
+                               "AI tiers (coarse path reuse or a simple macro step) to save CPU.  "
+                               "When disabled, every monster runs full AI every turn regardless of distance." ),
+             true );
+        add( "LOD_ACTION_BUDGET", page_id,
+             translate_marker( "Action Budget" ),
+             translate_marker( "Minimum number of monsters that enter the move loop per turn.  "
+                               "The actual budget is the larger of this value and the current Tier-0 "
+                               "(full-AI) monster count, so full-AI monsters are never skipped.  "
+                               "Higher values process more distant monsters each turn at a CPU cost.  "
+                               "0 means only Tier-0 monsters run (no extra Tier-1 budget)." ),
+             32, 2048, 128 );
+        add( "LOD_MACRO_INTERVAL", page_id,
+             translate_marker( "Macro Step Interval" ),
+             translate_marker( "How many turns elapse between movement steps for Tier-2 (distant wandering) "
+                               "monsters.  At 1 they step every turn; at 3 (default) they step once every "
+                               "3 turns.  Higher values reduce CPU cost for distant hordes." ),
+             1, 8, 3 );
+        add( "LOD_TIER_FULL_DIST", page_id,
+             translate_marker( "Full AI Radius" ),
+             translate_marker( "Chebyshev distance threshold for full-AI (Tier 0) monsters.  "
+                               "Monsters within this radius run the complete AI every turn.  "
+                               "Must be less than the Coarse AI Radius." ),
+             5, 100, 20 );
+        add( "LOD_TIER_COARSE_DIST", page_id,
+             translate_marker( "Coarse AI Radius" ),
+             translate_marker( "Chebyshev distance threshold for coarse-AI (Tier 1) monsters.  "
+                               "Monsters between the Full AI Radius and this distance use cached "
+                               "paths and skip expensive faction queries.  Monsters beyond this "
+                               "distance are Tier-2 (macro step only)." ),
+             10, 200, 40 );
+        add( "LOD_DEMOTION_COOLDOWN", page_id,
+             translate_marker( "Demotion Cooldown" ),
+             translate_marker( "Turns a monster must wait after being promoted to a higher-fidelity "
+                               "tier before it can be demoted again.  Prevents rapid tier oscillation "
+                               "at distance boundaries.  0 disables the cooldown." ),
+             0, 10, 3 );
+        add( "LOD_COARSE_SCENT_INTERVAL", page_id,
+             translate_marker( "Coarse Scent Check Interval" ),
+             translate_marker( "How many turns elapse between scent-tracking checks for Tier-1 (coarse) "
+                               "monsters.  At 1 they check scent every turn (full fidelity); at 3 (default) "
+                               "only once every 3 turns.  Higher values reduce CPU cost for mid-range hordes." ),
+             1, 5, 3 );
+        add( "LOD_GROUP_MORALE_MAX_TIER", page_id,
+             translate_marker( "Group Morale Max Tier" ),
+             translate_marker( "Highest LOD tier that participates in group-morale and swarming calculations.  "
+                               "0 = Tier-0 only (default, cheapest).  1 = Tier-0 and Tier-1 monsters also "
+                               "run group-morale/swarm checks at the cost of the extra O(M²) faction scan "
+                               "for mid-range monsters." ),
+             0, 1, 0 );
+    } );
+
+    get_option( "LOD_ACTION_BUDGET" ).setPrerequisite( "MONSTER_LOD_ENABLED" );
+    get_option( "LOD_MACRO_INTERVAL" ).setPrerequisite( "MONSTER_LOD_ENABLED" );
+    get_option( "LOD_TIER_FULL_DIST" ).setPrerequisite( "MONSTER_LOD_ENABLED" );
+    get_option( "LOD_TIER_COARSE_DIST" ).setPrerequisite( "MONSTER_LOD_ENABLED" );
+    get_option( "LOD_DEMOTION_COOLDOWN" ).setPrerequisite( "MONSTER_LOD_ENABLED" );
+    get_option( "LOD_COARSE_SCENT_INTERVAL" ).setPrerequisite( "MONSTER_LOD_ENABLED" );
+    get_option( "LOD_GROUP_MORALE_MAX_TIER" ).setPrerequisite( "MONSTER_LOD_ENABLED" );
+
+    add_empty_line();
+
+    add( "SKEW_VISION_CACHE_SIZE", performance,
+         translate_marker( "LOS Cache Size" ),
+         translate_marker( "Maximum number of line-of-sight results kept in the skew-vision LRU cache.  "
+                           "Higher values reduce redundant ray traces at the cost of more RAM.  "
+                           "Reduce if memory is tight; increase on machines with spare RAM and many "
+                           "on-screen creatures." ),
+         1000, 500000, 100000 );
+
+    add_empty_line();
+
+    add_option_group( performance, Group( "multithreading", to_translation( "Multithreading" ),
+                                          to_translation( "Configure worker-thread parallelism for expensive per-turn computations." ) ),
+    [&]( auto & page_id ) {
+        add( "MULTITHREADING_ENABLED", page_id,
+             translate_marker( "Enable Multithreading" ),
+             translate_marker( "Enable worker-thread parallelism for expensive per-turn computations "
+                               "(monster planning, map-cache building, scent map updates).  "
+                               "Disable to run everything on the main thread — useful for debugging, "
+                               "reproducibility testing, or machines where thread overhead exceeds gain.  "
+                               "Requires restart." ),
+             true );
+        add( "THREAD_POOL_WORKERS", page_id,
+             translate_marker( "Thread Pool Worker Count" ),
+             translate_marker( "Number of worker threads in the persistent thread pool.  "
+                               "0 means automatic (hardware concurrency minus 1, leaving one core for "
+                               "the main/SDL thread).  Set to a lower value to cap CPU usage, e.g. when "
+                               "streaming or running other CPU-heavy applications alongside the game.  "
+                               "Requires restart." ),
+             0, 64, 0 );
+        add( "PARALLEL_MONSTER_PLANNING", page_id,
+             translate_marker( "Parallel Monster Planning" ),
+             translate_marker( "Compute monster AI plans (pathfinding target selection, LOS queries) in "
+                               "parallel across worker threads each turn.  Disable if monsters behave "
+                               "unexpectedly or for reproducible save-file testing.  Requires restart." ),
+             true );
+        add( "MONSTER_PLAN_CHUNK_SIZE", page_id,
+             translate_marker( "Monster Plan Chunk Size" ),
+             translate_marker( "Number of monsters batched into a single worker-thread task during the "
+                               "parallel planning pass.  Smaller values improve load balancing when "
+                               "planning cost varies widely (large hordes with mixed sight ranges); "
+                               "larger values reduce task-dispatch overhead.  Requires restart." ),
+             1, 64, 8 );
+        add( "PARALLEL_MAP_CACHE", page_id,
+             translate_marker( "Parallel Map Cache Build" ),
+             translate_marker( "Build per-z-level map caches (transparency, outside, floor, "
+                               "vehicle-obscured) in parallel across worker threads.  Disable on "
+                               "machines where the thread-dispatch overhead exceeds the benefit "
+                               "(typically dual-core systems or when z-levels are disabled).  "
+                               "Requires restart." ),
+             true );
+        add( "PARALLEL_SCENT_UPDATE", page_id,
+             translate_marker( "Parallel Scent Update" ),
+             translate_marker( "Compute the scent-diffusion Y-pass and X-pass across worker threads.  "
+                               "Disable on machines where the ~70 k-cell work unit is too small to "
+                               "amortize dispatch latency.  Requires restart." ),
+             true );
+    } );
+
+    get_option( "THREAD_POOL_WORKERS" ).setPrerequisite( "MULTITHREADING_ENABLED" );
+    get_option( "PARALLEL_MONSTER_PLANNING" ).setPrerequisite( "MULTITHREADING_ENABLED" );
+    get_option( "MONSTER_PLAN_CHUNK_SIZE" ).setPrerequisite( "MULTITHREADING_ENABLED" );
+    get_option( "PARALLEL_MAP_CACHE" ).setPrerequisite( "MULTITHREADING_ENABLED" );
+    get_option( "PARALLEL_SCENT_UPDATE" ).setPrerequisite( "MULTITHREADING_ENABLED" );
 }
 
 void options_manager::add_options_debug()
@@ -2274,12 +2564,19 @@ void options_manager::add_options_debug()
     add( "MADE_OF_EXPLODIUM", debug, translate_marker( "Made of explodium" ),
          translate_marker( "Explosive items and traps will detonate when hit by damage exceeding the threshold.  A higher number means more damage is required to detonate.  Set to 0 to disable." ),
          0, 1000, 30 );
+    add( "ITEM_DAMAGE_ON_FLYING_IMPACT", debug, translate_marker( "Item damage on flying impact" ),
+         translate_marker( "If true, items flung by explosions will deal (lethal) damage to whatever they hit." ),
+         true );
 
     add( "OLD_EXPLOSIONS", debug, translate_marker( "Old explosions system" ),
          translate_marker( "If true, disables new raycasting based explosive system in favor of old system.  With new system obstacles (impassable terrain, furniture or vehicle parts) will block shrapnel, while blast will bash obstacles and throw creatures outward.  If obstacles are destroyed, blast continues outward." ),
          false );
 
     get_option( "MADE_OF_EXPLODIUM" ).setPrerequisite( "OLD_EXPLOSIONS", "false" );
+    get_option( "ITEM_DAMAGE_ON_FLYING_IMPACT" ).setPrerequisite( "OLD_EXPLOSIONS", "false" );
+
+    add( "CHRONIC_PAIN", debug, translate_marker( "Chronic pain" ),
+         translate_marker( "If true, injuries cause persistent pain until they are healed." ), false );
 
     add_empty_line();
 
@@ -2293,6 +2590,13 @@ void options_manager::add_options_debug()
 
     add( "LIMITED_BAYONETS", debug, translate_marker( "New bayonet system" ),
          translate_marker( "If true, bayonets replace weapon attack instead of adding to it.  WIP feature, weakens bayonets heavily at the moment." ),
+         false );
+
+    add_empty_line();
+
+    add( "USE_LEGACY_PATHFINDING", debug,
+         translate_marker( "Use legacy pathfinding" ),
+         translate_marker( "If true, opt out of new pathfinding in favor of legacy one. This makes pathfinding mods not work." ),
          false );
 }
 
@@ -2323,19 +2627,28 @@ void options_manager::add_options_world_default()
          0, 8, 4
        );
 
-    add( "SPECIALS_DENSITY", world_default, translate_marker( "Overmap specials density" ),
+    add( "SPECIALS_DENSITY", world_default, translate_marker( "Overmap specials density factor" ),
          translate_marker( "A scaling factor that determines density of overmap specials." ),
-         0.0, 10.0, 1, 0.1
+         0.01, 10.0, 1, 0.1
        );
 
     add( "SPECIALS_SPACING", world_default, translate_marker( "Overmap specials spacing" ),
          translate_marker( "A number determing minimum distance between overmap specials.  -1 allows intersections of specials." ),
-         -1, 18, 6
+         -1, 72, 6
        );
 
-    add( "VEHICLE_DAMAGE", world_default, translate_marker( "Vehicle damage modifier" ),
+    add( "VEHICLE_DAMAGE", world_default, translate_marker( "Vehicle damage scaling factor" ),
          translate_marker( "A scaling factor that determines how damaged vehicles are." ),
          0.0, 10.0, 1, 0.1
+       );
+
+    add( "VEHICLE_LOCKS", world_default, translate_marker( "Vehicle door locks" ),
+         translate_marker( "Determines if new vehicles can spawn with locked doors." ), true
+       );
+
+    add( "VEHICLE_SPAWNRATE", world_default, translate_marker( "Vehicle spawn rate scaling factor" ),
+         translate_marker( "A scaling factor that determines density of vehicle spawns." ),
+         0.0, 5.0, 1.0, 0.01
        );
 
     add( "SPAWN_DENSITY", world_default, translate_marker( "Spawn rate scaling factor" ),
@@ -2352,11 +2665,6 @@ void options_manager::add_options_world_default()
          0.0, 10.0, 1.0, 0.01, COPT_NO_HIDE
        );
 
-    add( "ITEM_SPAWNRATE", world_default, translate_marker( "Item spawn scaling factor" ),
-         translate_marker( "A scaling factor that determines density of item spawns." ),
-         0.01, 10.0, 1.0, 0.01
-       );
-
     add( "NPC_DENSITY", world_default, translate_marker( "NPC spawn rate scaling factor" ),
          translate_marker( "A scaling factor that determines density of dynamic NPC spawns." ),
          0.0, 100.0, 0.1, 0.01
@@ -2370,12 +2678,241 @@ void options_manager::add_options_world_default()
 
     add_empty_line();
 
-    add( "MONSTER_SPEED", world_default, translate_marker( "Monster speed" ),
+    add( "RESTOCK_DELAY_MULT", world_default, translate_marker( "Merchant restock scaling factor" ),
+         translate_marker( "A scaling factor that determines restock rate of merchants." ),
+         0.01, 10.0, 1.0, 0.01
+       );
+
+    add_empty_line();
+
+    add_option_group( world_default, Group( "skill_buff_category",
+                                            to_translation( "Enabled Skill Buffs" ),
+                                            to_translation( "Enable or disable major skill buffs" ) ),
+    [&]( const std::string & page_id ) {
+        add( "cooking_kcal_buff", page_id, "Cooking Calories Buff",
+             "Include the scaling calories from cooking buff?",
+             true );
+        add( "althletics_encumbrance_buff", page_id, "Althletics Encumbrance Buff",
+             "Include the reduce all encumbrance per level of althletics buff?",
+             true );
+    }
+                    );
+
+    add_empty_line();
+
+    add( "canmutprofmut", world_default, "Starting Trait Cancelling",
+         "Allow starting traits to be cancelled and effected by purifiers?",
+         false );
+
+    add_empty_line();
+
+    add( "ITEM_SPAWNRATE", world_default,
+         "Item spawn scaling factor",
+         "A scaling factor that determines density of item spawns. A higher number means more items. Affects both map generation and monster death drops.",
+         0.01, 10.0, 1.0, 0.01 );
+
+    add_option_group( world_default, Group( "item_category_spawn_rate",
+                                            to_translation( "Item category scaling factors" ),
+                                            to_translation( "Spawn rate for item categories. For map generation: values ≤ 1.0 represent a chance to spawn, >1.0 means extra spawns. For monster drops: values >1.0 increase spawn probability (capped at 100%). Set to 0.0 to disable spawning items from that category." ) ),
+    [&]( const std::string & page_id ) {
+
+        add( "SPAWN_RATE_ammo", page_id, "AMMO",
+             "Spawn rate for items from AMMO category.",
+             0.0, 20.0, 1.0, 0.01 );
+
+        add( "SPAWN_RATE_artifacts", page_id, "ARTIFACTS",
+             "Spawn rate for items from ARTIFACTS category.",
+             0.0, 20.0, 1.0, 0.01 );
+
+        add( "SPAWN_RATE_battery", page_id, "BATTERIES",
+             "Spawn rate for items from BATTERIES category.",
+             0.0, 20.0, 1.0, 0.01 );
+
+        add( "SPAWN_RATE_bionics", page_id, "BIONICS",
+             "Spawn rate for items from BIONICS category.",
+             0.0, 20.0, 1.0, 0.01 );
+
+        add( "SPAWN_RATE_books", page_id, "BOOKS",
+             "Spawn rate for items from BOOKS category.",
+             0.0, 20.0, 1.0, 0.01 );
+
+        add( "SPAWN_RATE_perishables_canned", page_id, "CANNED PERISHABLES",
+             "Spawn rate for items from CANNED PERISHABLES category.",
+             0.0, 20.0, 1.0, 0.01 );
+
+        add( "SPAWN_RATE_scrap_ceramics", page_id, "CERAMIC SCRAP",
+             "Spawn rate for items from CERAMIC SCRAP category.",
+             0.0, 20.0, 1.0, 0.01 );
+
+        add( "SPAWN_RATE_chems", page_id, "CHEMICAL STUFF",
+             "Spawn rate for items from CHEMICAL STUFF category.",
+             0.0, 20.0, 1.0, 0.01 );
+
+        add( "SPAWN_RATE_tools_chemistry", page_id, "CHEMISTRY TOOLS",
+             "Spawn rate for items from CHEMISTRY TOOLS category.",
+             0.0, 20.0, 1.0, 0.01 );
+
+        add( "SPAWN_RATE_clothing", page_id, "CLOTHING",
+             "Spawn rate for items from CLOTHING category.",
+             0.0, 20.0, 1.0, 0.01 );
+
+        add( "SPAWN_RATE_container", page_id, "CONTAINER",
+             "Spawn rate for items from CONTAINER category.",
+             0.0, 20.0, 1.0, 0.01 );
+
+        add( "SPAWN_RATE_cooking_ingredients", page_id, "COOKING INGREDIENTS",
+             "Spawn rate for items from COOKING INGREDIENTS category.",
+             0.0, 20.0, 1.0, 0.01 );
+
+        add( "SPAWN_RATE_tools_cooking", page_id, "COOKING TOOLS",
+             "Spawn rate for items from COOKING TOOLS category.",
+             0.0, 20.0, 1.0, 0.01 );
+
+        add( "SPAWN_RATE_deployables", page_id, "DEPLOYABLES",
+             "Spawn rate for items from DEPLOYABLES category.",
+             0.0, 20.0, 1.0, 0.01 );
+
+        add( "SPAWN_RATE_drugs", page_id, "DRUGS",
+             "Spawn rate for items from DRUGS category.",
+             0.0, 20.0, 1.0, 0.01 );
+
+        add( "SPAWN_RATE_scrap_electronics", page_id, "ELECTRONIC SCRAP",
+             "Spawn rate for items from ELECTRONIC SCRAP category.",
+             0.0, 20.0, 1.0, 0.01 );
+
+        add( "SPAWN_RATE_electronics", page_id, "ELECTRONICS",
+             "Spawn rate for items from ELECTRONICS category.",
+             0.0, 20.0, 1.0, 0.01 );
+
+        add( "SPAWN_RATE_tools_entry", page_id, "ENTRY TOOLS",
+             "Spawn rate for items from ENTRY TOOLS category.",
+             0.0, 20.0, 1.0, 0.01 );
+
+        add( "SPAWN_RATE_scrap_fabric", page_id, "FABRICS",
+             "Spawn rate for items from FABRICS category.",
+             0.0, 20.0, 1.0, 0.01 );
+
+        add( "SPAWN_RATE_tools_farming", page_id, "FARM TOOLS",
+             "Spawn rate for items from FARM TOOLS category.",
+             0.0, 20.0, 1.0, 0.01 );
+
+        add( "SPAWN_RATE_food", page_id, "FOOD",
+             "Spawn rate for items from FOOD category.",
+             0.0, 20.0, 1.0, 0.01 );
+
+        add( "SPAWN_RATE_fuel", page_id, "FUEL",
+             "Spawn rate for items from FUEL category.",
+             0.0, 20.0, 1.0, 0.01 );
+
+        add( "SPAWN_RATE_scrap_glass", page_id, "GLASS SCRAP",
+             "Spawn rate for items from GLASS SCRAP category.",
+             0.0, 20.0, 1.0, 0.01 );
+
+        add( "SPAWN_RATE_guns", page_id, "GUNS",
+             "Spawn rate for items from GUNS category.",
+             0.0, 20.0, 1.0, 0.01 );
+
+        add( "SPAWN_RATE_scrap_leather", page_id, "LEATHER SCRAP",
+             "Spawn rate for items from LEATHER SCRAP category.",
+             0.0, 20.0, 1.0, 0.01 );
+
+        add( "SPAWN_RATE_magazines", page_id, "MAGAZINES",
+             "Spawn rate for items from MAGAZINES category.",
+             0.0, 20.0, 1.0, 0.01 );
+
+        add( "SPAWN_RATE_maps", page_id, "MAPS",
+             "Spawn rate for items from MAPS category.",
+             0.0, 20.0, 1.0, 0.01 );
+
+        add( "SPAWN_RATE_scrap_metal", page_id, "METAL SCRAP",
+             "Spawn rate for items from METAL SCRAP category.",
+             0.0, 20.0, 1.0, 0.01 );
+
+        add( "SPAWN_RATE_scrap_misc", page_id, "MISC SCRAP",
+             "Spawn rate for items from MISC SCRAP category.",
+             0.0, 20.0, 1.0, 0.01 );
+
+        add( "SPAWN_RATE_mods", page_id, "MODS",
+             "Spawn rate for items from MODS category.",
+             0.0, 20.0, 1.0, 0.01 );
+
+        add( "SPAWN_RATE_mutagen", page_id, "MUTAGENS",
+             "Spawn rate for items from MUTAGENS category.",
+             0.0, 20.0, 1.0, 0.01 );
+
+        add( "SPAWN_RATE_other", page_id, "OTHER",
+             "Spawn rate for items from OTHER category.",
+             0.0, 20.0, 1.0, 0.01 );
+
+        add( "SPAWN_RATE_tools", page_id, "OTHER TOOLS",
+             "Spawn rate for items from OTHER TOOLS category.",
+             0.0, 20.0, 1.0, 0.01 );
+
+        // this needs special handling since it uses .goes_bad() instead of an actual group
+        add( "SPAWN_RATE_perishables", page_id, "PERISHABLES",
+             "Spawn rate for items from PERISHABLES category.",
+             0.0, 20.0, 1.0, 0.01 );
+
+        add( "SPAWN_RATE_scrap_plastic", page_id, "PLASTIC SCRAP",
+             "Spawn rate for items from PLASTIC SCRAP category.",
+             0.0, 20.0, 1.0, 0.01 );
+
+        add( "SPAWN_RATE_rocks", page_id, "ROCKS",
+             "Spawn rate for items from ROCKS category.",
+             0.0, 20.0, 1.0, 0.01 );
+
+        add( "SPAWN_RATE_scrap_rubber", page_id, "RUBBER SCRAP",
+             "Spawn rate for items from RUBBER SCRAP category.",
+             0.0, 20.0, 1.0, 0.01 );
+
+        add( "SPAWN_RATE_seeds", page_id, "SEEDS",
+             "Spawn rate for items from SEEDS category.",
+             0.0, 20.0, 1.0, 0.01 );
+
+        add( "SPAWN_RATE_soil", page_id, "SOIL",
+             "Spawn rate for items from SOIL category.",
+             0.0, 20.0, 1.0, 0.01 );
+
+        add( "SPAWN_RATE_spare_parts", page_id, "SPARE PARTS",
+             "Spawn rate for items from SPARE PARTS category.",
+             0.0, 20.0, 1.0, 0.01 );
+
+        add( "SPAWN_RATE_spellbooks", page_id, "SPELLBOOKS",
+             "Spawn rate for items from SPELLBOOKS category.",
+             0.0, 20.0, 1.0, 0.01 );
+
+        add( "SPAWN_RATE_valuables", page_id, "VALUABLES",
+             "Spawn rate for items from VALUABLES category.",
+             0.0, 20.0, 1.0, 0.01 );
+
+        add( "SPAWN_RATE_veh_parts", page_id, "VEHICLE PARTS",
+             "Spawn rate for items from VEHICLE PARTS category.",
+             0.0, 20.0, 1.0, 0.01 );
+
+        add( "SPAWN_RATE_weapons", page_id, "WEAPONS",
+             "Spawn rate for items from WEAPONS category.",
+             0.0, 20.0, 1.0, 0.01 );
+
+        add( "SPAWN_RATE_scrap_wood", page_id, "WOOD SCRAP",
+             "Spawn rate for items from WOOD SCRAP category.",
+             0.0, 20.0, 1.0, 0.01 );
+
+        add( "SPAWN_RATE_tools_workshop", page_id, "WORKSHOP TOOLS",
+             "Spawn rate for items from WORKSHOP TOOLS category.",
+             0.0, 20.0, 1.0, 0.01 );
+
+
+    } );
+
+    add_empty_line();
+
+    add( "MONSTER_SPEED", world_default, translate_marker( "Monster speed percentage" ),
          translate_marker( "Determines the movement rate of monsters.  A higher value increases monster speed and a lower reduces it.  Requires world reset." ),
          1, 1000, 100, COPT_NO_HIDE, "%i%%"
        );
 
-    add( "MONSTER_RESILIENCE", world_default, translate_marker( "Monster resilience" ),
+    add( "MONSTER_RESILIENCE", world_default,
+         translate_marker( "Monster resilience percentage" ),
          translate_marker( "Determines how much damage monsters can take.  A higher value makes monsters more resilient and a lower makes them more flimsy.  Requires world reset." ),
          1, 1000, 100, COPT_NO_HIDE, "%i%%"
        );
@@ -2409,14 +2946,21 @@ void options_manager::add_options_world_default()
          14, 127, 30
        );
 
-    add( "CONSTRUCTION_SCALING", world_default, translate_marker( "Construction scaling" ),
-         translate_marker( "Sets the time of construction in percents.  '50' is two times faster than default, '200' is two times longer.  '0' automatically scales construction time to match the world's season length." ),
-         0, 1000, 100
+    add( "CONSTRUCTION_SCALING", world_default,
+         translate_marker( "Construction speed percentage" ),
+         translate_marker( "Sets the time of construction in percents.  '50' is two times faster than default, '200' is two times longer.  '0' makes construction instant." ),
+         0, 1000, 100, COPT_NO_HIDE, "%i%%"
        );
 
-    add( "GROWTH_SCALING", world_default, translate_marker( "Growth scaling" ),
+
+    add( "CRAFTING_SPEED_MULT", world_default, translate_marker( "Crafting speed percentage" ),
+         translate_marker( "Sets default crafting speed in percents.  '50' is two times faster than default, '200' is two times longer.  '0' makes crafting instant." ),
+         0, 1000, 100, COPT_NO_HIDE, "%i%%"
+       );
+
+    add( "GROWTH_SCALING", world_default, translate_marker( "Growth scaling percentage" ),
          translate_marker( "Sets the time of crop growth in percents.  '50' is two times faster than default, '200' is two times longer.  '0' automatically scales growth time to match the world's season length." ),
-         0, 1000, 0
+         0, 1000, 0, COPT_NO_HIDE, "%i%%"
        );
 
     add( "ETERNAL_SEASON", world_default, translate_marker( "Eternal season" ),
@@ -2742,13 +3286,15 @@ static void refresh_tiles( bool used_tiles_changed, bool pixel_minimap_height_ch
         // Disable UIs below to avoid accessing the tile context during loading.
         ui_adaptor dummy( ui_adaptor::disable_uis_below {} );
         //try and keep SDL calls limited to source files that deal specifically with them
+        const auto tilesName = get_option<std::string>( "TILES" );
+        const auto omTilesName = get_option<std::string>( "OVERMAP_TILES" );
         try {
             tilecontext->reinit();
             std::vector<mod_id> dummy;
 
             tilecontext->load_tileset(
-                get_option<std::string>( "TILES" ),
-                ingame ? world_generator->active_world->active_mod_order : dummy,
+                tilesName,
+                ingame ? world_generator->active_world->info->active_mod_order : dummy,
                 /*precheck=*/false,
                 /*force=*/force_tile_change,
                 /*pump_events=*/true
@@ -2763,6 +3309,32 @@ static void refresh_tiles( bool used_tiles_changed, bool pixel_minimap_height_ch
             popup( _( "Loading the tileset failed: %s" ), err.what() );
             use_tiles = false;
             use_tiles_overmap = false;
+        }
+        if( tilesName == omTilesName ) {
+            overmap_tilecontext = tilecontext;
+        } else {
+            try {
+                repoint_overmap_tilecontext();
+                std::vector<mod_id> dummy;
+
+                overmap_tilecontext->load_tileset(
+                    omTilesName,
+                    ingame ? world_generator->active_world->info->active_mod_order : dummy,
+                    /*precheck=*/false,
+                    /*force=*/force_tile_change,
+                    /*pump_events=*/true
+                );
+                //game_ui::init_ui is called when zoom is changed
+                g->reset_zoom();
+                g->mark_main_ui_adaptor_resize();
+                overmap_tilecontext->do_tile_loading_report( []( const std::string & str ) {
+                    DebugLog( DL::Info, DC::Main ) << str;
+                } );
+            } catch( const std::exception &err ) {
+                popup( _( "Loading the overmap tileset failed: %s" ), err.what() );
+                use_tiles = false;
+                use_tiles_overmap = false;
+            }
         }
     } else if( ingame && pixel_minimap_option && pixel_minimap_height_changed ) {
         g->mark_main_ui_adaptor_resize();
@@ -2860,7 +3432,7 @@ struct string_col {
 std::string options_manager::show( bool ingame, const bool world_options_only,
                                    const std::function<bool()> &on_quit )
 {
-    const int iWorldOptPage = std::find_if( pages_.begin(), pages_.end(), [&]( const Page & p ) {
+    const int iWorldOptPage = std::ranges::find_if( pages_, [&]( const Page & p ) {
         return p.id_ == world_default;
     } ) - pages_.begin();
 
@@ -2910,19 +3482,19 @@ std::string options_manager::show( bool ingame, const bool world_options_only,
     catacurses::window w_options;
 
     const auto init_windows = [&]( ui_adaptor & ui ) {
-        if( OPTIONS.find( "TERMINAL_X" ) != OPTIONS.end() ) {
-            if( OPTIONS_OLD.find( "TERMINAL_X" ) != OPTIONS_OLD.end() ) {
+        if( OPTIONS.contains( "TERMINAL_X" ) ) {
+            if( OPTIONS_OLD.contains( "TERMINAL_X" ) ) {
                 OPTIONS_OLD["TERMINAL_X"] = OPTIONS["TERMINAL_X"];
             }
-            if( WOPTIONS_OLD.find( "TERMINAL_X" ) != WOPTIONS_OLD.end() ) {
+            if( WOPTIONS_OLD.contains( "TERMINAL_X" ) ) {
                 WOPTIONS_OLD["TERMINAL_X"] = OPTIONS["TERMINAL_X"];
             }
         }
-        if( OPTIONS.find( "TERMINAL_Y" ) != OPTIONS.end() ) {
-            if( OPTIONS_OLD.find( "TERMINAL_Y" ) != OPTIONS_OLD.end() ) {
+        if( OPTIONS.contains( "TERMINAL_Y" ) ) {
+            if( OPTIONS_OLD.contains( "TERMINAL_Y" ) ) {
                 OPTIONS_OLD["TERMINAL_Y"] = OPTIONS["TERMINAL_Y"];
             }
-            if( WOPTIONS_OLD.find( "TERMINAL_Y" ) != WOPTIONS_OLD.end() ) {
+            if( WOPTIONS_OLD.contains( "TERMINAL_Y" ) ) {
                 WOPTIONS_OLD["TERMINAL_Y"] = OPTIONS["TERMINAL_Y"];
             }
         }
@@ -3280,9 +3852,11 @@ std::string options_manager::show( bool ingame, const bool world_options_only,
                 pixel_minimap_changed = true;
 
             } else if( iter.first == "TILES" || iter.first == "USE_TILES" || iter.first == "STATICZEFFECT" ||
-                       iter.first == "MEMORY_MAP_MODE" ) {
+                       iter.first == "MEMORY_MAP_MODE" || iter.first == "OVERMAP_TILES" ||
+                       iter.first == "NIGHT_VISION_COLOR" || iter.first == "NIGHT_VISION_DEFAULT_COLOR" ) {
                 used_tiles_changed = true;
-                if( iter.first == "STATICZEFFECT" || iter.first == "MEMORY_MAP_MODE" ) {
+                if( iter.first == "STATICZEFFECT" || iter.first == "MEMORY_MAP_MODE" ||
+                    iter.first == "NIGHT_VISION_COLOR" || iter.first == "NIGHT_VISION_DEFAULT_COLOR" ) {
                     force_tile_change = true;
                 }
             } else if( iter.first == "USE_LANG" ) {
@@ -3309,8 +3883,8 @@ std::string options_manager::show( bool ingame, const bool world_options_only,
 
             save();
             if( ingame && world_options_changed ) {
-                world_generator->active_world->WORLD_OPTIONS = ACTIVE_WORLD_OPTIONS;
-                world_generator->active_world->save();
+                world_generator->active_world->info->WORLD_OPTIONS = ACTIVE_WORLD_OPTIONS;
+                world_generator->active_world->info->save();
             }
             g->on_options_changed();
         } else {
@@ -3447,7 +4021,23 @@ void options_manager::cache_to_globals()
     fov_3d = ::get_option<bool>( "FOV_3D" );
     fov_3d_z_range = ::get_option<int>( "FOV_3D_Z_RANGE" );
     static_z_effect = ::get_option<bool>( "STATICZEFFECT" );
+    overmap_transparency = ::get_option<bool>( "OVERMAP_TRANSPARENCY" );
     PICKUP_RANGE = ::get_option<int>( "PICKUP_RANGE" );
+
+    monster_lod_enabled       = ::get_option<bool>( "MONSTER_LOD_ENABLED" );
+    lod_tier_full_dist        = ::get_option<int>( "LOD_TIER_FULL_DIST" );
+    lod_tier_coarse_dist      = ::get_option<int>( "LOD_TIER_COARSE_DIST" );
+    lod_demotion_cooldown     = ::get_option<int>( "LOD_DEMOTION_COOLDOWN" );
+    lod_action_budget         = ::get_option<int>( "LOD_ACTION_BUDGET" );
+    lod_macro_interval        = ::get_option<int>( "LOD_MACRO_INTERVAL" );
+    lod_coarse_scent_interval = ::get_option<int>( "LOD_COARSE_SCENT_INTERVAL" );
+    lod_group_morale_max_tier = ::get_option<int>( "LOD_GROUP_MORALE_MAX_TIER" );
+
+    parallel_enabled          = ::get_option<bool>( "MULTITHREADING_ENABLED" );
+    parallel_monster_planning = ::get_option<bool>( "PARALLEL_MONSTER_PLANNING" );
+    monster_plan_chunk_size   = ::get_option<int>( "MONSTER_PLAN_CHUNK_SIZE" );
+    parallel_map_cache        = ::get_option<bool>( "PARALLEL_MAP_CACHE" );
+    parallel_scent_update     = ::get_option<bool>( "PARALLEL_SCENT_UPDATE" );
 
     merge_comestible_mode = ( [] {
         const auto opt = ::get_option<std::string>( "MERGE_COMESTIBLES" );
@@ -3478,9 +4068,9 @@ bool options_manager::save()
 void options_manager::load()
 {
     const auto file = PATH_INFO::options();
-    read_from_file_optional_json( file, [&]( JsonIn & jsin ) {
+    read_from_file_json( file, [&]( JsonIn & jsin ) {
         deserialize( jsin );
-    } );
+    }, true );
 
     cache_to_globals();
 }

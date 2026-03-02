@@ -1,14 +1,18 @@
 #include "mattack_actors.h"
 
 #include <algorithm>
+#include <functional>
 #include <limits>
 #include <memory>
 #include <optional>
 
+#include "ammo_effect.h"
 #include "avatar.h"
 #include "calendar.h"
 #include "creature.h"
+#include "creature_functions.h"
 #include "enums.h"
+#include "field_type.h"
 #include "game.h"
 #include "generic_factory.h"
 #include "gun_mode.h"
@@ -233,6 +237,8 @@ melee_actor::melee_actor()
     move_cost = 100;
 }
 
+melee_actor::~melee_actor() = default;
+
 void melee_actor::load_internal( const JsonObject &obj, const std::string & )
 {
     // Optional:
@@ -323,9 +329,8 @@ bool melee_actor::call( monster &z ) const
                                     target->select_body_part( &z, hitspread ) :
                                     convert_bp( *body_parts.pick() );
 
-    target->on_hit( &z, bp_hit.id() );
     dealt_damage_instance dealt_damage = target->deal_damage( &z, bp_hit.id(), damage );
-    dealt_damage.bp_hit = bp_hit->token;
+    dealt_damage.bp_hit = bp_hit;
 
     int damage_total = dealt_damage.total_damage();
     add_msg( m_debug, "%s's melee_attack did %d damage", z.name(), damage_total );
@@ -337,7 +342,7 @@ bool melee_actor::call( monster &z ) const
         target->add_msg_player_or_npc( m_neutral, no_dmg_msg_u, no_dmg_msg_npc, z.name(),
                                        body_part_name_accusative( bp_hit ) );
     }
-
+    target->on_hit( &z, bp_hit.id() );
     return true;
 }
 
@@ -351,13 +356,13 @@ void melee_actor::on_damage( monster &z, Creature &target, dealt_damage_instance
         sfx::do_player_death_hurt( dynamic_cast<player &>( target ), false );
     }
     auto msg_type = target.attitude_to( g->u ) == Attitude::A_FRIENDLY ? m_bad : m_neutral;
-    const body_part bp = dealt.bp_hit;
+    const bodypart_str_id bp = dealt.bp_hit;
     target.add_msg_player_or_npc( msg_type, hit_dmg_u, hit_dmg_npc, z.name(),
                                   body_part_name_accusative( bp ) );
 
     for( const auto &eff : effects ) {
         if( x_in_y( eff.chance, 100 ) ) {
-            const bodypart_str_id &affected_bp = convert_bp( eff.affect_hit_bp ? bp : eff.bp );
+            const bodypart_str_id &affected_bp = eff.affect_hit_bp ? bp : convert_bp( eff.bp );
             target.add_effect( eff.id, time_duration::from_turns( eff.duration ), affected_bp );
             if( eff.permanent ) {
                 target.get_effect( eff.id, affected_bp ).set_permanent();
@@ -383,7 +388,7 @@ void bite_actor::on_damage( monster &z, Creature &target, dealt_damage_instance 
 {
     melee_actor::on_damage( z, target, dealt );
     if( target.has_effect( effect_grabbed ) && one_in( no_infection_chance - dealt.total_damage() ) ) {
-        const bodypart_str_id hit = convert_bp( dealt.bp_hit );
+        const bodypart_str_id &hit = dealt.bp_hit;
         if( target.has_effect( effect_bite, hit ) ) {
             target.add_effect( effect_bite, 40_minutes, hit );
         } else if( target.has_effect( effect_infected, hit ) ) {
@@ -555,58 +560,53 @@ auto find_target_vehicle( monster &z, int range ) -> std::optional<tripoint>
 
 } // namespace
 
-
 bool gun_actor::call( monster &z ) const
 {
-    Creature *target;
-    tripoint aim_at;
-    bool untargeted = false;
+    /// common firing logic.
+    /// @param target_critter can be nullptr if shooting at a vehicle (untargeted).
+    auto attempt_shoot = [&]( const tripoint & aim_pos, Creature * target_critter ) {
+        if( target_critter && z.attitude_to( *target_critter ) == Attitude::A_FRIENDLY ) { return false; }
+
+        const int dist = rl_dist( z.pos(), aim_pos );
+        for( const auto &entry : ranges ) {
+            if( dist >= entry.first.first && dist <= entry.first.second ) {
+                // If target_critter is null, it's "untargeted" (vehicle), so we skip try_target.
+                if( !target_critter || try_target( z, *target_critter ) ) {
+                    shoot( z, aim_pos, entry.second );
+                }
+                return true;
+            }
+        }
+        return false;
+    };
 
     if( z.friendly ) {
-        int max_range = get_max_range();
+        const int max_range = get_max_range();
 
-        int hostiles; // hostiles which cannot be engaged without risking friendly fire
-        target = z.auto_find_hostile_target( max_range, hostiles );
-        if( !target ) {
-            if( hostiles > 0 && g->u.sees( z ) ) {
-                add_msg( m_warning, vgettext( "Pointed in your direction, the %s emits an IFF warning beep.",
-                                              "Pointed in your direction, the %s emits %d annoyed sounding beeps.",
-                                              hostiles ),
-                         z.name(), hostiles );
-            }
-            return false;
-        }
-        aim_at = target->pos();
-    } else {
-        target = z.attack_target();
-        if( !target || !z.sees( *target ) ) {
-            if( !target_moving_vehicles ) {
-                return false;
-            }
-            //No living targets, try to find a moving car
-            std::optional<tripoint> aim = find_target_vehicle( z, get_max_range() );
-            if( !aim ) {
-                return false;
-            }
-            aim_at = *aim;
-            untargeted = true;
-        } else {
-            aim_at = target->pos();
-        }
-    }
+        const item gun_item( gun_type );
+        const bool has_trail = std::ranges::any_of( gun_item.ammo_effects(),
+        []( const ammo_effect_str_id & ae ) { return ae->trail_field_type && ae->trail_field_type != fd_null; } );
 
-    // One last check to make sure we're not firing on a friendly
-    if( target && z.attitude_to( *target ) == Attitude::A_FRIENDLY ) {
+        auto res = creature_functions::auto_find_hostile_target( z, { .range = max_range, .trail = has_trail, .area = 0 } );
+        if( res ) {
+            return attempt_shoot( res.value().get().pos(), &res.value().get() );
+        }
+        if( const int hostiles = res.error(); hostiles > 0 && g->u.sees( z ) ) {
+            add_msg( m_warning, vgettext( "Pointed in your direction, the %s emits an IFF warning beep.",
+                                          "Pointed in your direction, the %s emits %d annoyed sounding beeps.",
+                                          hostiles ), z.name(), hostiles );
+        }
         return false;
     }
-    int dist = rl_dist( z.pos(), aim_at );
-    for( const auto &e : ranges ) {
-        if( dist >= e.first.first && dist <= e.first.second ) {
-            if( untargeted || try_target( z, *target ) ) {
-                shoot( z, aim_at, e.second );
-            }
 
-            return true;
+    Creature *target = z.attack_target();
+
+    if( target && ( target->is_monster() || z.aggro_character ) && z.sees( *target ) ) {
+        return attempt_shoot( target->pos(), target );
+    }
+    if( target_moving_vehicles ) {
+        if( const auto vehicle_pos = find_target_vehicle( z, get_max_range() ) ) {
+            return attempt_shoot( *vehicle_pos, nullptr );
         }
     }
     return false;
@@ -681,7 +681,12 @@ void gun_actor::shoot( monster &z, const tripoint &target, const gun_mode_id &mo
     standard_npc tmp( _( "The " ) + z.name(), z.pos(), {}, 8,
                       fake_str, fake_dex, fake_int, fake_per );
     tmp.set_fake( true );
-    tmp.set_attitude( z.friendly ? NPCATT_FOLLOW : NPCATT_KILL );
+    if( z.friendly ) {
+        tmp.set_attitude( NPCATT_FOLLOW );
+        tmp.set_fac( faction_id( "your_followers" ) );
+    } else {
+        tmp.set_attitude( NPCATT_KILL );
+    }
     tmp.recoil = inital_recoil; // set inital recoil
     if( no_crits ) {
         tmp.toggle_trait( trait_NORANGEDCRIT );

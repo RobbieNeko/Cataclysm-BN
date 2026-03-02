@@ -80,6 +80,7 @@
 #include "morale.h"
 #include "morale_types.h"
 #include "mtype.h"
+#include "mutation.h"
 #include "npc.h"
 #include "npc_class.h"
 #include "options.h"
@@ -103,6 +104,7 @@
 #include "submap.h"
 #include "text_snippets.h"
 #include "tileray.h"
+#include "trait_group.h"
 #include "units.h"
 #include "uistate.h"
 #include "value_ptr.h"
@@ -112,8 +114,6 @@
 #include "vitamin.h"
 #include "vpart_position.h"
 #include "vpart_range.h"
-
-struct mutation_branch;
 
 static const efftype_id effect_riding( "riding" );
 
@@ -198,7 +198,6 @@ void player_activity::serialize( JsonOut &json ) const
 
     if( !type.is_null() ) {
         json.member( "actor", actor );
-        json.member( "moves_left", moves_left );
         json.member( "index", index );
         json.member( "position", position );
         json.member( "coords", coords );
@@ -210,12 +209,17 @@ void player_activity::serialize( JsonOut &json ) const
         json.member( "str_values", str_values );
         json.member( "auto_resume", auto_resume );
         json.member( "monsters", monsters );
+        json.member( "tools", tools_ );
+        json.member( "moves_total", moves_total );
+        json.member( "moves_left", moves_left );
+        json.member( "assistants_ids", assistants_ids_ );
     }
     json.end_object();
 }
 
 void player_activity::deserialize( JsonIn &jsin )
 {
+    static const activity_id ACT_MIGRATION_CANCEL( "ACT_MIGRATION_CANCEL" );
     JsonObject data = jsin.get_object();
     data.allow_omitted_members();
     data.read( "type", type );
@@ -224,18 +228,39 @@ void player_activity::deserialize( JsonIn &jsin )
         return;
     }
 
-    const bool has_actor = activity_actors::deserialize_functions.find( type ) !=
-                           activity_actors::deserialize_functions.end();
+    const bool has_actor = activity_actors::deserialize_functions.contains( type );
 
     // Handle migration of pre-activity_actor activities
     // ACT_MIGRATION_CANCEL will clear the backlog and reset npc state
     // this may cause inconvenience but should avoid any lasting damage to npcs
-    if( has_actor && !data.has_member( "actor" ) ) {
-        type = activity_id( "ACT_MIGRATION_CANCEL" );
+    if( has_actor && type != ACT_MIGRATION_CANCEL ) {
+        if( !data.has_member( "actor" ) ) {
+            type = ACT_MIGRATION_CANCEL;
+        } else {
+            auto actor = data.get_object( "actor" );
+            actor.allow_omitted_members();
+            if( !actor.has_member( "actor_data" ) ) {
+                type = ACT_MIGRATION_CANCEL;
+            } else if( !actor.has_null( "actor_data" ) ) {
+                auto a_data = actor.get_object( "actor_data" );
+                a_data.allow_omitted_members();
+                if( !a_data.has_member( "progress" ) ) {
+                    type = ACT_MIGRATION_CANCEL;
+                }
+            }
+        }
+    } else {
+        data.read( "moves_total", moves_total );
+        int ml = data.get_int( "moves_left" );
+        if( ml <= 0 ) {
+            type = ACT_MIGRATION_CANCEL;
+        } else {
+            moves_left = ml;
+        }
     }
-
-    data.read( "actor", actor );
-    data.read( "moves_left", moves_left );
+    if( type != ACT_MIGRATION_CANCEL ) {
+        data.read( "actor", actor );
+    }
     data.read( "index", index );
     data.read( "position", position );
     data.read( "coords", coords );
@@ -247,7 +272,46 @@ void player_activity::deserialize( JsonIn &jsin )
     str_values = data.get_string_array( "str_values" );
     data.read( "auto_resume", auto_resume );
     data.read( "monsters", monsters );
+    data.read( "tools", tools_ );
+    data.read( "assistants_ids", assistants_ids_ );
 
+}
+
+void progress_counter::serialize( JsonOut &json ) const
+{
+    json.start_object();
+    json.member( "moves_total", moves_total );
+    json.member( "moves_left", moves_left );
+    json.member( "idx", idx );
+    json.member( "total_tasks", total_tasks );
+    json.member( "targets", targets );
+    json.end_object();
+}
+
+void progress_counter::deserialize( JsonIn &jsin )
+{
+    JsonObject data = jsin.get_object();
+    data.allow_omitted_members();
+    data.read( "moves_total", moves_total );
+    data.read( "moves_left", moves_left );
+    data.read( "idx", idx );
+    data.read( "total_tasks", total_tasks );
+    auto arr = data.get_array( "targets" );
+    for( JsonObject target : arr ) {
+        targets.emplace_back( simple_task{
+            .target_name = target.get_string( "target_name" ),
+            .moves_total = target.get_int( "moves_total" ),
+            .moves_left = target.get_int( "moves_left" ) } );
+    }
+}
+
+void simple_task::serialize( JsonOut &json ) const
+{
+    json.start_object();
+    json.member( "target_name", target_name );
+    json.member( "moves_total", moves_total );
+    json.member( "moves_left", moves_left );
+    json.end_object();
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -509,27 +573,120 @@ void Character::load( const JsonObject &data )
     data.read( "magic", magic );
     JsonArray parray;
 
+    // Migration for old combined hair mutations (e.g., hair_black_crewcut -> hair_black + hair_crewcut)
+    std::vector<trait_id> valid_hair_colors = get_mutations_in_type( "hair_color" );
+    std::vector<trait_id> valid_hair_styles = get_mutations_in_type( "hair_style" );
+
     data.read( "traits", my_traits );
     for( auto it = my_traits.begin(); it != my_traits.end(); ) {
         const auto &tid = *it;
         if( tid.is_valid() ) {
             ++it;
         } else {
-            debugmsg( "character %s has invalid trait %s, it will be ignored", name, tid.c_str() );
+            bool silence = false;
+            auto pid = it->str();
+            if( pid.starts_with( "hair_" ) ) {
+                int cnt = 0;
+                for( auto c : pid.substr( 5 ) ) {
+                    if( c == '_' ) { cnt++; }
+                }
+                silence = cnt >= 1;
+            }
+            if( !silence ) {
+                debugmsg( "character %s has invalid trait %s, it will be ignored", name, pid );
+            }
             my_traits.erase( it++ );
         }
     }
 
     data.read( "mutations", my_mutations );
+    std::vector<trait_id> migrations_to_add;
+    bool has_hair_bald = false;
+    bool has_hair_color = false;
     for( auto it = my_mutations.begin(); it != my_mutations.end(); ) {
-        const trait_id &mid = it->first;
+        const auto &mid = it->first;
+        auto pid = mid.str();
         if( mid.is_valid() ) {
-            on_mutation_gain( mid );
-            cached_mutations.push_back( &mid.obj() );
+            if( mid.str() == "HAIR_BALD" ) {
+                has_hair_bald = true;
+            }
+            for( const trait_id &color_trait : valid_hair_colors ) {
+                if( mid == color_trait ) {
+                    has_hair_color = true;
+                    break;
+                }
+            }
             ++it;
         } else {
-            debugmsg( "character %s has invalid mutation %s, it will be ignored", name, mid.c_str() );
+            std::string mid_str = mid.str();
+            bool migrated = false;
+
+            if( mid_str.starts_with( "hair_" ) ) {
+                for( const trait_id &color_trait : valid_hair_colors ) {
+                    std::string color_str = color_trait.str();
+                    if( !color_str.starts_with( "hair_" ) ) {
+                        color_str = "hair_" + color_str;
+                    }
+                    std::string prefix = color_str + "_";
+                    if( mid_str.starts_with( prefix ) ) {
+                        std::string style_suffix = mid_str.substr( prefix.length() );
+                        for( const trait_id &style_trait : valid_hair_styles ) {
+                            std::string style_str = style_trait.str();
+                            if( style_str.starts_with( "hair_" ) ) {
+                                style_str = style_str.substr( 5 );
+                            }
+                            if( style_suffix == style_str ) {
+                                migrations_to_add.push_back( color_trait );
+                                migrations_to_add.push_back( style_trait );
+                                has_hair_color = true;
+                                migrated = true;
+                                break;
+                            }
+                        }
+                        if( migrated ) {
+                            break;
+                        }
+                    }
+                }
+            }
+
+            if( !migrated ) {
+                debugmsg( "character %s has invalid mutation %s, it will be ignored", name, mid.c_str() );
+            }
             it = my_mutations.erase( it );
+        }
+    }
+
+    // Iterate twice to avoid issues with subsequent calls on invalid mutations
+    for( auto it = my_mutations.begin(); it != my_mutations.end(); ) {
+        const auto &mid = it->first;
+        on_mutation_gain( mid );
+        cached_mutations.push_back( &mid.obj() );
+        it++;
+    }
+
+    for( const trait_id &tid : migrations_to_add ) {
+        if( !has_trait( tid ) ) {
+            if( !has_base_trait( tid ) ) {
+                toggle_trait( tid );
+            } else {
+                set_mutation( tid );
+            }
+        }
+    }
+    // Handle old HAIR_BALD saves: if character has HAIR_BALD but no hair color,
+    // add a random hair color (in the new system, even bald characters have a hair color)
+    if( has_hair_bald && !has_hair_color ) {
+        trait_group::Trait_list random_colors = trait_group::traits_from(
+                trait_group::Trait_group_tag( "Hair_Color_Any" ) );
+        if( !random_colors.empty() ) {
+            const trait_id &color_tid = random_colors.front();
+            if( !has_trait( color_tid ) ) {
+                set_mutation( color_tid );
+            }
+            if( !has_base_trait( color_tid ) ) {
+                toggle_trait( color_tid );
+            }
         }
     }
     recalculate_size();
@@ -841,6 +998,7 @@ void player::store( JsonOut &json ) const
     }
 
     json.member( "destination_point", destination_point );
+    json.member( "last_emote", last_emote );
     json.member( "ammo_location", ammo_location );
 }
 
@@ -884,7 +1042,8 @@ void player::load( const JsonObject &data )
     }
 
     // Fixes bugged characters for CBM's preventing mutations.
-    for( const bionic_id &bid : get_bionics() ) {
+    for( const bionic &i : get_bionic_collection() ) {
+        const bionic_id &bid = i.id;
         for( const trait_id &mid : bid->canceled_mutations ) {
             if( has_trait( mid ) ) {
                 remove_mutation( mid );
@@ -907,6 +1066,7 @@ void player::load( const JsonObject &data )
         last_target = g->critter_tracker->from_temporary_id( tmptar );
     }
     data.read( "destination_point", destination_point );
+    data.read( "last_emote", last_emote );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -937,6 +1097,10 @@ void avatar::store( JsonOut &json ) const
 
     // misc player specific stuff
     json.member( "focus_pool", focus_pool );
+
+    if( shadow_npc ) {
+        json.member( "shadow_npc", *shadow_npc );
+    }
 
     // stats through kills
     json.member( "str_upgrade", std::abs( str_upgrade ) );
@@ -972,6 +1136,10 @@ void avatar::store( JsonOut &json ) const
     inv.json_save_invcache( json );
 
     json.member( "preferred_aiming_mode", preferred_aiming_mode );
+
+    json.member( "snippets_read", snippets_read );
+
+    json.member( "known_monsters", known_monsters );
 
     json.member( "faction_warnings" );
     json.start_array();
@@ -1011,6 +1179,11 @@ void avatar::load( const JsonObject &data )
 
     data.read( "focus_pool", focus_pool );
 
+    if( data.has_member( "shadow_npc" ) ) {
+        shadow_npc = std::make_unique<npc>();
+        data.read( "shadow_npc", *shadow_npc );
+    }
+
     // stats through kills
     data.read( "str_upgrade", str_upgrade );
     data.read( "dex_upgrade", dex_upgrade );
@@ -1048,6 +1221,9 @@ void avatar::load( const JsonObject &data )
 
     items_identified.clear();
     data.read( "items_identified", items_identified );
+
+    // Player only, snippets they have read at least once.
+    data.read( "snippets_read", snippets_read );
 
     data.read( "translocators", translocators );
 
@@ -1131,6 +1307,9 @@ void avatar::load( const JsonObject &data )
             warning_record[faction_id( fac_id )] = std::make_pair( warning_num, warning_time );
         }
     }
+
+    // monsters recorded by the character
+    data.read( "known_monsters", known_monsters );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1830,7 +2009,7 @@ void monster::load( const JsonObject &data )
     // make sure the loaded monster has every special attack its type says it should have
     for( auto &sa : type->special_attacks ) {
         const std::string &aname = sa.first;
-        if( special_attacks.find( aname ) == special_attacks.end() ) {
+        if( !special_attacks.contains( aname ) ) {
             auto &entry = special_attacks[aname];
             entry.cooldown = rng( 0, sa.second->cooldown );
         }
@@ -1842,7 +2021,17 @@ void monster::load( const JsonObject &data )
     data.read( "dead", dead );
     data.read( "anger", anger );
     data.read( "morale", morale );
+
+    if( data.has_member( "faction_anger" ) ) {
+        JsonObject ja = data.get_object( "faction_anger" );
+        for( const auto &member : ja ) {
+            mfaction_str_id faction_str( member.name() );
+            faction_anger[mfaction_id( faction_str )] = member.get_int();
+        }
+    }
+
     data.read( "hallucination", hallucination );
+    data.read( "aggro_character", aggro_character );
     data.read( "stairscount", staircount ); // really?
     data.read( "fish_population", fish_population );
     // Load legacy plans.
@@ -1934,7 +2123,18 @@ void monster::store( JsonOut &json ) const
     json.member( "dead", dead );
     json.member( "anger", anger );
     json.member( "morale", morale );
+
+    if( !faction_anger.empty() ) {
+        json.member( "faction_anger" );
+        json.start_object();
+        for( const auto &pair : faction_anger ) {
+            json.member( pair.first.id().str(), pair.second );
+        }
+        json.end_object();
+    }
+
     json.member( "hallucination", hallucination );
+    json.member( "aggro_character", aggro_character );
     json.member( "stairscount", staircount );
     if( tied_item ) {
         json.member( "tied_item", *tied_item );
@@ -2126,6 +2326,69 @@ static void migrate( std::vector<detached_ptr<item>> &stack )
     }
 }
 } // namespace to_cbc_migration
+namespace damage_instance_serialization
+{
+
+struct serialized_damage_unit {
+    int type = 0;
+    float amount = 0.0f;
+    float res_pen = 0.0f;
+    float res_mult = 1.0f;
+    float damage_multiplier = 1.0f;
+
+    auto serialize( JsonOut &jsout ) const -> void {
+        jsout.start_array();
+        jsout.write( type );
+        jsout.write( amount );
+        jsout.write( res_pen );
+        jsout.write( res_mult );
+        jsout.write( damage_multiplier );
+        jsout.end_array();
+    }
+
+    auto deserialize( JsonIn &jsin ) -> void {
+        jsin.start_array();
+        jsin.read( type );
+        jsin.read( amount );
+        jsin.read( res_pen );
+        jsin.read( res_mult );
+        jsin.read( damage_multiplier );
+        jsin.end_array();
+    }
+};
+
+auto serialize_damage_instance( const damage_instance &dmg ) -> std::vector<serialized_damage_unit>
+{
+    auto result = std::vector<serialized_damage_unit> {};
+    for( const auto &du : dmg.damage_units ) {
+        result.push_back( {
+            static_cast<int>( du.type ),
+            du.amount,
+            du.res_pen,
+            du.res_mult,
+            du.damage_multiplier
+        } );
+    }
+    return result;
+}
+
+auto deserialize_damage_instance( const std::vector<serialized_damage_unit> &serialized ) ->
+damage_instance
+{
+    auto result = damage_instance{};
+    for( const auto &sdu : serialized ) {
+        result.damage_units.emplace_back(
+            static_cast<damage_type>( sdu.type ),
+            sdu.amount,
+            sdu.res_pen,
+            sdu.res_mult,
+            sdu.damage_multiplier
+        );
+    }
+    return result;
+}
+
+} // namespace damage_instance_serialization
 
 template<typename Archive>
 void item::io( Archive &archive )
@@ -2183,6 +2446,24 @@ void item::io( Archive &archive )
     archive.io( "rot", rot, 0_turns );
     archive.io( "last_rot_check", last_rot_check, calendar::start_of_cataclysm );
     archive.io( "techniques", techniques, io::empty_default_tag() );
+    {
+        auto serialized_melee = std::vector<damage_instance_serialization::serialized_damage_unit> {};
+        auto serialized_ranged = std::vector<damage_instance_serialization::serialized_damage_unit> {};
+
+        archive.io( "melee_damage_bonus", serialized_melee );
+        archive.io( "ranged_damage_bonus", serialized_ranged );
+
+        // 로드 시에만 역직렬화
+        if( !serialized_melee.empty() ) {
+            melee_damage_bonus = deserialize_damage_instance( serialized_melee );
+        }
+        if( !serialized_ranged.empty() ) {
+            ranged_damage_bonus = deserialize_damage_instance( serialized_ranged );
+        }
+    }
+    archive.io( "range_bonus", range_bonus, 0 );
+    archive.io( "dispersion_bonus", dispersion_bonus, 0 );
+    archive.io( "recoil_bonus", recoil_bonus, 0 );
     archive.io( "faults", faults, io::empty_default_tag() );
     archive.io( "item_tags", item_tags, io::empty_default_tag() );
     archive.io( "components", components, io::empty_default_tag() );
@@ -2274,7 +2555,7 @@ void item::io( Archive &archive )
     // counter, it will always be 0 and it prevents proper stacking.
     if( get_chapters() == 0 ) {
         for( auto it = item_vars.begin(); it != item_vars.end(); ) {
-            if( it->first.compare( 0, 19, "remaining-chapters-" ) == 0 ) {
+            if( it->first.starts_with( "remaining-chapters-" ) ) {
                 item_vars.erase( it++ );
             } else {
                 ++it;
@@ -2347,6 +2628,17 @@ void item::serialize( JsonOut &json ) const
 {
     io::JsonObjectOutputArchive archive( json );
     const_cast<item *>( this )->io( archive );
+
+    if( !melee_damage_bonus.damage_units.empty() ) {
+        json.member( "melee_damage_bonus",
+                     damage_instance_serialization::serialize_damage_instance( melee_damage_bonus ) );
+    }
+
+    if( !ranged_damage_bonus.damage_units.empty() ) {
+        json.member( "ranged_damage_bonus",
+                     damage_instance_serialization::serialize_damage_instance( ranged_damage_bonus ) );
+    }
+
     if( !contents.empty() ) {
         json.member( "contents", contents );
     }
@@ -2597,12 +2889,24 @@ void vehicle::deserialize( JsonIn &jsin )
     int turn_dir_int;
     data.read( "turn_dir", turn_dir_int );
     turn_dir = units::from_degrees( turn_dir_int );
-    data.read( "velocity", velocity );
+    int loaded_velocity = 0;
+    int loaded_cruise_velocity = 0;
+    int loaded_vertical_velocity = 0;
+    data.read( "velocity", loaded_velocity );
     data.read( "falling", is_falling );
     data.read( "floating", is_floating );
     data.read( "flying", is_flying );
-    data.read( "cruise_velocity", cruise_velocity );
-    data.read( "vertical_velocity", vertical_velocity );
+    data.read( "cruise_velocity", loaded_cruise_velocity );
+    data.read( "vertical_velocity", loaded_vertical_velocity );
+    if( savegame_loading_version < 29 ) {
+        velocity = std::lround( static_cast<double>( loaded_velocity ) * 0.44704 );
+        cruise_velocity = std::lround( static_cast<double>( loaded_cruise_velocity ) * 0.44704 );
+        vertical_velocity = std::lround( static_cast<double>( loaded_vertical_velocity ) * 0.44704 );
+    } else {
+        velocity = loaded_velocity;
+        cruise_velocity = loaded_cruise_velocity;
+        vertical_velocity = loaded_vertical_velocity;
+    }
     data.read( "cruise_on", cruise_on );
     data.read( "engine_on", engine_on );
     data.read( "tracking_on", tracking_on );
@@ -3840,6 +4144,14 @@ void submap::store( JsonOut &jsout ) const
         pr.second.serialize( jsout );
     }
     jsout.end_array();
+
+    jsout.member( "transformer_last_run" );
+    jsout.start_array();
+    for( const auto &pr : transformer_last_run ) {
+        jsout.write( pr.first );
+        jsout.write( pr.second );
+    }
+    jsout.end_array();
 }
 
 void submap::load( JsonIn &jsin, const std::string &member_name, int version,
@@ -4083,6 +4395,15 @@ void submap::load( JsonIn &jsin, const std::string &member_name, int version,
             jsin.read( p );
             active_furniture[p].deserialize( jsin );
         }
+    } else if( member_name == "transformer_last_run" ) {
+        jsin.start_array();
+        while( !jsin.end_array() ) {
+            point_sm_ms p;
+            time_point t;
+            jsin.read( p );
+            jsin.read( t );
+            transformer_last_run[p] = t;
+        }
     } else {
         jsin.skip_value();
     }
@@ -4097,7 +4418,8 @@ void advanced_inv_pane_save_state::serialize( JsonOut &json, const std::string &
     json.member( prefix + "in_vehicle", in_vehicle );
 }
 
-void advanced_inv_pane_save_state::deserialize( const JsonObject &jo, const std::string &prefix )
+void advanced_inv_pane_save_state::deserialize( const JsonObject &jo,
+        const std::string &prefix )
 {
 
     jo.read( prefix + "sort_idx", sort_idx );
@@ -4179,13 +4501,16 @@ void uistatedata::serialize( JsonOut &json ) const
     json.member( "overmap_show_city_labels", overmap_show_city_labels );
     json.member( "overmap_show_hordes", overmap_show_hordes );
     json.member( "overmap_show_forest_trails", overmap_show_forest_trails );
+    json.member( "overmap_highlighted_omts", overmap_highlighted_omts );
     json.member( "vmenu_show_items", vmenu_show_items );
     json.member( "list_item_sort", list_item_sort );
+    json.member( "read_items", read_items );
     json.member( "list_item_filter_active", list_item_filter_active );
     json.member( "list_item_downvote_active", list_item_downvote_active );
     json.member( "list_item_priority_active", list_item_priority_active );
     json.member( "hidden_recipes", hidden_recipes );
     json.member( "favorite_recipes", favorite_recipes );
+    json.member( "read_recipes", read_recipes );
     json.member( "recent_recipes", recent_recipes );
     json.member( "favorite_construct_recipes", favorite_construct_recipes );
     json.member( "bionic_ui_sort_mode", bionic_sort_mode );
@@ -4234,8 +4559,10 @@ void uistatedata::deserialize( const JsonObject &jo )
     jo.read( "overmap_show_city_labels", overmap_show_city_labels );
     jo.read( "overmap_show_hordes", overmap_show_hordes );
     jo.read( "overmap_show_forest_trails", overmap_show_forest_trails );
+    jo.read( "overmap_highlighted_omts", overmap_highlighted_omts );
     jo.read( "hidden_recipes", hidden_recipes );
     jo.read( "favorite_recipes", favorite_recipes );
+    jo.read( "read_recipes", read_recipes );
     jo.read( "recent_recipes", recent_recipes );
     jo.read( "favorite_construct_recipes", favorite_construct_recipes );
     jo.read( "bionic_ui_sort_mode", bionic_sort_mode );
@@ -4251,6 +4578,7 @@ void uistatedata::deserialize( const JsonObject &jo )
     }
 
     jo.read( "list_item_sort", list_item_sort );
+    jo.read( "read_items", read_items );
     jo.read( "list_item_filter_active", list_item_filter_active );
     jo.read( "list_item_downvote_active", list_item_downvote_active );
     jo.read( "list_item_priority_active", list_item_priority_active );

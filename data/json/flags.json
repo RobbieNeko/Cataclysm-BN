@@ -6,6 +6,66 @@
     "info": "This gear has <info>cloaking tech</info> that will <good>make you invisible</good> when active, at the cost of <info>power from a UPS</info>."
   },
   {
+    "id": "ALLOWS_FLIGHT",
+    "type": "json_flag",
+    "context": [ "ARMOR", "TOOL_ARMOR" ],
+    "info": "This gear <info>allows flight</info> when active, at the cost of <info>power from a UPS</info>."
+  },
+  {
+    "id": "ALWAYS_ALLOWS_FLIGHT",
+    "type": "json_flag",
+    "context": [ "ARMOR", "TOOL_ARMOR" ],
+    "info": "This gear <info>allows flight</info>."
+  },
+  {
+    "id": "ALLOWS_TAIL_SNAKE",
+    "type": "json_flag",
+    "context": [ "ARMOR", "TOOL_ARMOR" ],
+    "info": "This clothing is <good>uniquely compatible</good> with mutants possessing <info>serpentine bodies</info>."
+  },
+  {
+    "id": "ALLOWS_CLAWS",
+    "type": "json_flag",
+    "context": [ "ARMOR", "TOOL_ARMOR" ],
+    "info": "This clothing is <good>uniquely compatible</good> with mutants possessing <info>clawed fingers</info>."
+  },
+  {
+    "id": "ALLOWS_CLAWS_FOOT",
+    "type": "json_flag",
+    "context": [ "ARMOR", "TOOL_ARMOR" ],
+    "info": "This clothing is <good>uniquely compatible</good> with mutants possessing <info>toe claws</info>."
+  },
+  {
+    "id": "ALLOWS_HOOVES",
+    "type": "json_flag",
+    "context": [ "ARMOR", "TOOL_ARMOR" ],
+    "info": "This clothing is <good>uniquely compatible</good> with mutants possessing <info>hooves, foot-paws, or otherwise altered feet</info>."
+  },
+  {
+    "id": "ALLOWS_HORNS",
+    "type": "json_flag",
+    "context": [ "ARMOR", "TOOL_ARMOR" ],
+    "info": "This clothing is <good>uniquely compatible</good> with mutants possessing <info>horns on their head</info>."
+  },
+  {
+    "id": "ALLOWS_TAIL",
+    "type": "json_flag",
+    "context": [ "ARMOR", "TOOL_ARMOR" ],
+    "info": "This clothing is <good>uniquely compatible</good> with mutants possessing <info>a tail</info>."
+  },
+  {
+    "id": "ALLOWS_WINGS",
+    "type": "json_flag",
+    "context": [ "ARMOR", "TOOL_ARMOR" ],
+    "info": "This clothing is <good>uniquely compatible</good> with mutants possessing <info>wings</info>."
+  },
+  {
+    "id": "ALLOWS_MUZZLE",
+    "type": "json_flag",
+    "context": [ "ARMOR", "TOOL_ARMOR" ],
+    "info": "This clothing is <good>uniquely compatible</good> with mutants possessing <info>a snout, beak, or mandibles</info>."
+  },
+  {
     "id": "EFFECT_INVISIBLE",
     "context": [  ],
     "type": "json_flag"
@@ -63,6 +123,12 @@
     "info": "This item <info>provides</info> instructions and other required data for several bionics, allowing installation of them with <good>minimal failure chance</good>."
   },
   {
+    "id": "GENOME_DRIVE",
+    "type": "json_flag",
+    "context": [ "GENERIC" ],
+    "info": "This item stores <info>genetic data</info> for a genome workstation."
+  },
+  {
     "id": "BIONIC_NPC_USABLE",
     "type": "json_flag",
     "context": [ "BIONIC_ITEM" ],
@@ -74,6 +140,12 @@
     "context": [ "ARMOR", "TOOL_ARMOR" ],
     "//": "Blinds the wearer while worn, and provides nominal protection vs flashbang flashes.",
     "info": "This gear <bad>prevents</bad> you from <info>seeing</info> anything."
+  },
+  {
+    "id": "BLINDS_EYES_ON_HIT",
+    "type": "json_flag",
+    "context": [  ],
+    "info": "When thrown and it hits a creature's head, it can <bad>blind</bad> them."
   },
   {
     "id": "EFFECT_NIGHT_VISION",
@@ -115,6 +187,11 @@
     "context": [ "ARMOR", "TOOL_ARMOR" ],
     "info": "This gear <bad>prevents</bad> you from <info>hearing any sounds</info>.",
     "conflicts": [ "PARTIAL_DEAF" ]
+  },
+  {
+    "id": "DESTROY_ON_DECHARGE",
+    "type": "json_flag",
+    "context": [  ]
   },
   {
     "id": "DIAMOND",
@@ -251,6 +328,24 @@
     "info": "This gear <good>completely protects</good> you from <info>low temperatures</info>."
   },
   {
+    "id": "DARK_IMMUNE",
+    "context": [ "ARMOR", "TOOL_ARMOR" ],
+    "type": "json_flag",
+    "info": "This gear <good>completely protects</good> you from <info>dark damage</info>."
+  },
+  {
+    "id": "LIGHT_IMMUNE",
+    "context": [ "ARMOR", "TOOL_ARMOR" ],
+    "type": "json_flag",
+    "info": "This gear <good>completely protects</good> you from <info>light damage</info>."
+  },
+  {
+    "id": "PSI_IMMUNE",
+    "context": [ "ARMOR", "TOOL_ARMOR" ],
+    "type": "json_flag",
+    "info": "This gear <good>completely protects</good> you from <info>psionic damage</info>."
+  },
+  {
     "id": "ACID",
     "context": [ "COMESTIBLE" ],
     "type": "json_flag"
@@ -262,10 +357,15 @@
     "info": "You can wear <info>only one</info>."
   },
   {
+    "id": "EXOSUIT",
+    "type": "json_flag",
+    "context": [ "ARMOR", "TOOL_ARMOR" ]
+  },
+  {
     "id": "FANCY",
     "type": "json_flag",
     "context": [ "ARMOR", "TOOL_ARMOR" ],
-    "//": "Wearing this clothing gives a morale bonus if the player has the Stylish trait.",
+    "//": "Wearing this clothing gives a morale bonus if the player doesn't have the Fashion Deficient trait.",
     "info": "This clothing is <info>fancy</info>.",
     "conflicts": [ "SUPER_FANCY" ]
   },
@@ -285,7 +385,7 @@
     "id": "FIREWOOD",
     "type": "json_flag",
     "context": [ "GENERIC" ],
-    "info": "This item can serve as a firewood."
+    "info": "This item can serve as firewood."
   },
   {
     "id": "FIX_FARSIGHT",
@@ -300,14 +400,6 @@
     "info": "This gear <good>corrects nearsightedness</good>."
   },
   {
-    "id": "FILTHY",
-    "type": "json_flag",
-    "context": [ "ARMOR", "TOOL_ARMOR" ],
-    "//": "Zombie-dropped clothing giving various penalties if Filthy mod is active.  Also CBMs harvested from zombies.",
-    "craft_inherit": true,
-    "info": "This item is <bad>filthy</bad>."
-  },
-  {
     "id": "FLAMMABLE",
     "type": "json_flag",
     "context": [ "GENERIC" ]
@@ -316,7 +408,8 @@
     "id": "FLASH_PROTECTION",
     "type": "json_flag",
     "context": [ "ARMOR", "TOOL_ARMOR" ],
-    "//": "Used for eyes protection from flashbang."
+    "//": "Used for eyes protection from flashbang.",
+    "info": "This clothing will <good>partially protect from a flash from a flashbang</good>."
   },
   {
     "id": "FLOTATION",
@@ -390,13 +483,13 @@
     "id": "HYGROMETER",
     "type": "json_flag",
     "context": [ "ARMOR", "TOOL_ARMOR" ],
-    "info": "This gear is equipped with an accurate hygrometer (which is used to measure humidity)."
+    "info": "This gear is equipped with an accurate hygrometer (which is used to <info>measure humidity</info>)."
   },
   {
     "id": "BRASS_CATCHER",
     "type": "json_flag",
     "context": [ "GUNMOD" ],
-    "info": "This gun mod catches ejected casings."
+    "info": "This gun mod <info>catches ejected casings</info>."
   },
   {
     "id": "IRREMOVABLE",
@@ -436,6 +529,12 @@
     "//": "forces calories and vitamins to be the ones defined in the json, instead of inheriting from ingredients"
   },
   {
+    "id": "NO_COOKING_BUFF",
+    "type": "json_flag",
+    "context": [ "COMESTIBLE" ],
+    "//": "prevents cooking from increasing calories of this food based on cooking skill"
+  },
+  {
     "id": "PLANTABLE_SEED",
     "type": "json_flag",
     "context": [ "COMESTIBLE" ],
@@ -473,6 +572,12 @@
     "info": "This gear has been modified to accommodate <info>abnormally large mutated anatomy</info> with some <bad>increase to encumbrance</bad>."
   },
   {
+    "id": "resized_small",
+    "type": "json_flag",
+    "context": [ "ARMOR", "TOOL_ARMOR" ],
+    "info": "This gear has been modified to accommodate <info>abnormally small mutants</info> with some <bad>increase to encumbrance</bad>."
+  },
+  {
     "id": "UNDERSIZE",
     "type": "json_flag",
     "context": [ "ARMOR", "TOOL_ARMOR" ],
@@ -504,7 +609,7 @@
     "id": "POLEARM",
     "type": "json_flag",
     "context": [ "GENERIC", "TOOL" ],
-    "info": "As a weapon, this item needs considerable space to use properly and does 70% of its normal damage to adjacent enemies."
+    "info": "As a weapon, this item <info>needs considerable space to use</info> properly and <bad>does 70% of its normal damage to adjacent enemies</bad>."
   },
   {
     "id": "SPAWN_FRIENDLY",
@@ -512,6 +617,13 @@
     "context": [ "GENERIC" ],
     "//": "This item will spawn friendly. Used for pets and such.",
     "info": "Any creature spawned from this item will <info>always</info> emerge <good>friendly to you</good>."
+  },
+  {
+    "id": "SPAWN_HOSTILE",
+    "type": "json_flag",
+    "context": [ "GENERIC" ],
+    "//": "This item will spawn mean. Used for target dummies and such.",
+    "info": "Any creature spawned from this item will <info>always</info> emerge <bad>against you</good>."
   },
   {
     "id": "STAB",
@@ -694,6 +806,12 @@
     "info": "This item can be used to <info>pick locks</info> with <good>zero effort</good>."
   },
   {
+    "id": "DURABLE_LOCKPICK",
+    "type": "json_flag",
+    "context": [  ],
+    "//": "takes no damage from normal use"
+  },
+  {
     "id": "RAINPROOF",
     "type": "json_flag",
     "context": [ "ARMOR", "TOOL_ARMOR" ],
@@ -758,12 +876,6 @@
     "conflicts": [ "BELTED", "OUTER", "WAIST", "PERSONAL", "AURA" ]
   },
   {
-    "id": "SLEEP_AID",
-    "type": "json_flag",
-    "context": [ "GENERIC" ],
-    "info": "This item provides comfort during sleep."
-  },
-  {
     "id": "REVIVE_SPECIAL",
     "type": "json_flag",
     "context": [ "GENERIC" ]
@@ -798,7 +910,7 @@
     "id": "SUPER_FANCY",
     "type": "json_flag",
     "context": [ "ARMOR", "TOOL_ARMOR" ],
-    "//": "Gives an additional moral bonus over FANCY if the player has the Stylish trait.",
+    "//": "Gives an additional moral bonus over FANCY if the player doesn't have the Fashion Deficient trait.",
     "info": "This clothing is <info>very fancy</info>.",
     "conflicts": [ "FANCY" ]
   },
@@ -907,6 +1019,12 @@
     "info": "This gear has Kevlar inserted into strategic locations to <good>increase protection</good> with some <bad>increase to encumbrance</bad>."
   },
   {
+    "id": "carbon_fiber_padded",
+    "type": "json_flag",
+    "context": [ "ARMOR", "TOOL_ARMOR" ],
+    "info": "This gear has been permeated with carbon fiber to <good>increase protection</good> with some <bad>increase to encumbrance</bad>."
+  },
+  {
     "id": "leather_padded",
     "type": "json_flag",
     "context": [ "ARMOR", "TOOL_ARMOR" ],
@@ -923,6 +1041,12 @@
     "type": "json_flag",
     "context": [ "ARMOR", "TOOL_ARMOR" ],
     "info": "This gear has certain parts padded with steel to <good>increase protection</good> with moderate <bad>increase to encumbrance</bad>."
+  },
+  {
+    "id": "hard_steel_padded",
+    "type": "json_flag",
+    "context": [ "ARMOR", "TOOL_ARMOR" ],
+    "info": "This gear has certain parts padded with steel to greatly <good>increase protection</good> with a high <bad>increase to encumbrance</bad>."
   },
   {
     "id": "alloy_padded",
@@ -966,6 +1090,12 @@
     "type": "json_flag",
     "context": [ "BIONIC" ],
     "info": "This bionic is <bad>faulty</bad>."
+  },
+  {
+    "id": "BIONIC_FLIGHT",
+    "type": "json_flag",
+    "context": [ "BIONIC" ],
+    "info": "This bionic allows flight."
   },
   {
     "id": "BIONIC_POWER_SOURCE",
@@ -1166,6 +1296,21 @@
     "type": "json_flag"
   },
   {
+    "id": "EFFECT_DARK_IMMUNE",
+    "context": [  ],
+    "type": "json_flag"
+  },
+  {
+    "id": "EFFECT_LIGHT_IMMUNE",
+    "context": [  ],
+    "type": "json_flag"
+  },
+  {
+    "id": "EFFECT_PSI_IMMUNE",
+    "context": [  ],
+    "type": "json_flag"
+  },
+  {
     "id": "EFFECT_ELECTRIC_IMMUNE",
     "context": [  ],
     "type": "json_flag"
@@ -1204,7 +1349,7 @@
     "id": "CANNIBALISM",
     "type": "json_flag",
     "context": [ "COMESTIBLE" ],
-    "craft_inherit": true
+    "//": "Obsoleted"
   },
   {
     "id": "ALLERGEN_EGG",
@@ -1432,6 +1577,11 @@
     "context": [  ]
   },
   {
+    "id": "FAKE_CLONING_VAT",
+    "type": "json_flag",
+    "context": [  ]
+  },
+  {
     "id": "FAKE_SMOKE",
     "type": "json_flag",
     "context": [  ]
@@ -1499,7 +1649,14 @@
   {
     "id": "GNV_EFFECT",
     "type": "json_flag",
-    "context": [  ]
+    "context": [  ],
+    "info": "This gear <good>enhances your vision</good> when worn, and <info>tints your field of view</info>."
+  },
+  {
+    "id": "RECON_VISION",
+    "type": "json_flag",
+    "context": [  ],
+    "info": "This gear <good>enhances your vision</good> when worn."
   },
   {
     "id": "HELMET_COMPAT",
@@ -1549,7 +1706,8 @@
   {
     "id": "IR_EFFECT",
     "type": "json_flag",
-    "context": [  ]
+    "context": [  ],
+    "info": "This gear allows you to <good>see heat signatures</good> when worn."
   },
   {
     "id": "IS_ARMOR",
@@ -1568,6 +1726,11 @@
   },
   {
     "id": "IS_PET_ARMOR",
+    "type": "json_flag",
+    "context": [  ]
+  },
+  {
+    "id": "ADD_UPS_TOGGLE",
     "type": "json_flag",
     "context": [  ]
   },
@@ -1630,7 +1793,7 @@
     "id": "MOUNTED_GUN",
     "type": "json_flag",
     "context": [  ],
-    "info": "This weapon <bad>can only be fired if mounted</bad> on a vehicle or furniture (window, table, mound of dirt, etc.) to fire, <info>Large or Huge</info> mutants or those with active <info>Power Armor</info> can fire from the hip with <bad>reduced accuracy.</bad>"
+    "info": "This weapon <bad>can only be fired if mounted</bad> on a vehicle or furniture (window, table, mound of dirt, etc.) to fire, <info>Large or Huge</info> mutants or those with active <info>Power Armor</info> can fire from the hip with <bad>reduced accuracy</bad>."
   },
   {
     "id": "MYCUS_OK",
@@ -1730,6 +1893,16 @@
   },
   {
     "id": "NO_UNWIELD",
+    "type": "json_flag",
+    "context": [  ]
+  },
+  {
+    "id": "COMBAT_NPC_USE",
+    "type": "json_flag",
+    "context": [  ]
+  },
+  {
+    "id": "COMBAT_NPC_ON",
     "type": "json_flag",
     "context": [  ]
   },
@@ -1864,6 +2037,12 @@
     "context": [  ]
   },
   {
+    "id": "USE_PARENT_GUN",
+    "//": "If this is a gunmod that can be fired, treat it as if the gun it's installed on is firing for relevant behaviors (brass catcher, installed suppressor, etc).  Used for 'second magazine' type gunmods, not just second barrel gunmods in general.",
+    "type": "json_flag",
+    "context": [  ]
+  },
+  {
     "id": "RELOAD_ONE",
     "type": "json_flag",
     "context": [  ]
@@ -1943,7 +2122,8 @@
   {
     "id": "STR_RELOAD",
     "type": "json_flag",
-    "context": [  ]
+    "context": [  ],
+    "info": "This weapon's <info>reload speed</info> is <good>increased by strength</good>."
   },
   {
     "id": "TACK",
@@ -1954,6 +2134,12 @@
     "id": "TANGLE",
     "type": "json_flag",
     "context": [  ]
+  },
+  {
+    "id": "NET_TANGLE",
+    "type": "json_flag",
+    "context": [  ],
+    "info": "Thrown nets apply the NET_TANGLE ammo effect to nearby creatures."
   },
   {
     "id": "TARDIS",
@@ -1973,6 +2159,11 @@
   },
   {
     "id": "TOBACCO",
+    "type": "json_flag",
+    "context": [  ]
+  },
+  {
+    "id": "MARIJUANA",
     "type": "json_flag",
     "context": [  ]
   },
@@ -2004,7 +2195,8 @@
   {
     "id": "UNDERWATER_GUN",
     "type": "json_flag",
-    "context": [  ]
+    "context": [  ],
+    "info": "This weapon is inherently <good>designed to work underwater</good>."
   },
   {
     "id": "UNRECOVERABLE",
@@ -2104,11 +2296,6 @@
     "context": [  ]
   },
   {
-    "id": "DETERGENT",
-    "type": "json_flag",
-    "context": [  ]
-  },
-  {
     "id": "FIRE_100",
     "type": "json_flag",
     "context": [  ]
@@ -2132,7 +2319,7 @@
     "id": "HEAVY_WEAPON_SUPPORT",
     "type": "json_flag",
     "context": [  ],
-    "info": "This equipment <good>allows you to fire</good> unwieldy weapons without requiring support from mountable terrain, as a <info>Large or Huge</info> mutant could, at the expense of <bad>reduced accuracy.</bad>"
+    "info": "This equipment <good>allows you to fire</good> unwieldy weapons without requiring support from mountable terrain, as a <info>Large or Huge</info> mutant could, at the expense of <bad>reduced accuracy</bad>."
   },
   {
     "id": "FIRE_TWOHAND",
@@ -2148,6 +2335,12 @@
     "id": "JAVELIN",
     "type": "json_flag",
     "context": [  ]
+  },
+  {
+    "id": "FLY_STRAIGHT",
+    "type": "json_flag",
+    "context": [ "GENERIC" ],
+    "info": "This thrown item <info>flies straight</info> without rotating in the air, maintaining its aerodynamic orientation."
   },
   {
     "id": "LEAK_ALWAYS",
@@ -2175,6 +2368,11 @@
     "context": [  ]
   },
   {
+    "id": "UNBREAKABLE",
+    "type": "json_flag",
+    "context": [  ]
+  },
+  {
     "id": "UNBREAKABLE_MELEE",
     "type": "json_flag",
     "context": [  ]
@@ -2182,7 +2380,8 @@
   {
     "id": "WATERPROOF_GUN",
     "type": "json_flag",
-    "context": [  ]
+    "context": [  ],
+    "info": "This weapon <good>can shoot underwater</good>, but <info>unless it was specifically designed to do so</info>, it <bad>will suffer from accuracy penalty</bad>."
   },
   {
     "id": "no_auto_equip",
@@ -2233,17 +2432,108 @@
     "id": "WEATHER_FORECAST",
     "type": "json_flag",
     "context": [ "ARMOR", "TOOL_ARMOR" ],
-    "info": "It can show the automated weather forcast."
+    "info": "This item can show the <info>automated weather forecast</info>."
   },
   {
     "id": "WINDMETER",
     "type": "json_flag",
-    "context": [  ]
+    "context": [  ],
+    "info": "This item can show the <info>current heading and speed of the wind</info> as well as <info>perceived temperature</info>."
   },
   {
     "id": "HIDDEN",
     "type": "json_flag",
     "info": "You have marked this article to not display a sprite when worn.",
     "context": [ "ARMOR", "TOOL_ARMOR" ]
+  },
+  {
+    "id": "INITIALLY_ACTIVATE",
+    "type": "json_flag",
+    "//": "Used on bionics, sets them to be active once installed",
+    "context": [  ]
+  },
+  {
+    "id": "BIONIC_TOOLS",
+    "type": "json_flag",
+    "//": "Used on bionics and fake bionic items, invalidates crafting inventory on activate or makes them usable with bionic power",
+    "context": [  ]
+  },
+  {
+    "id": "MULTIINSTALL",
+    "type": "json_flag",
+    "//": "Lets you install multiple copies of this bionic",
+    "context": [  ]
+  },
+  {
+    "id": "TEMPORARY_ITEM",
+    "type": "json_flag",
+    "//": "Set in game on fake items for their special processing",
+    "context": [  ]
+  },
+  {
+    "id": "TINT_NO_FG",
+    "type": "json_flag",
+    "//": "Do not apply tint to background",
+    "context": [  ]
+  },
+  {
+    "id": "TINT_NO_BG",
+    "type": "json_flag",
+    "//": "Do not apply tint to foreground",
+    "context": [  ]
+  },
+  {
+    "id": "TINT_NONE",
+    "type": "json_flag",
+    "//": "Do not apply tint",
+    "context": [  ]
+  },
+  {
+    "id": "VEHICLE_UNLOCKED",
+    "type": "json_flag",
+    "//": "Marks a vehicle to always spawn unlocked, but possibly requiring hotwiring",
+    "context": [  ]
+  },
+  {
+    "id": "VEHICLE_LOCKED",
+    "type": "json_flag",
+    "//": "Marks a vehicle to always spawn locked, and possibly requiring hotwiring",
+    "context": [  ]
+  },
+  {
+    "id": "VEHICLE_NO_LOCKS",
+    "type": "json_flag",
+    "//": "Marks a vehicle to not get locks installed automatically",
+    "context": [  ]
+  },
+  {
+    "id": "VEHICLE_HOTWIRE",
+    "type": "json_flag",
+    "//": "Marks a vehicle to always requiring hotwiring controls",
+    "context": [  ]
+  },
+  {
+    "id": "VEHICLE_NO_HOTWIRE",
+    "type": "json_flag",
+    "//": "Marks a vehicle to never require hotwiring controls (e.g bycicles)",
+    "context": [  ]
+  },
+  {
+    "id": "EFFECT_LUA_ON_ADDED",
+    "type": "json_flag",
+    "//": "",
+    "context": [  ]
+  },
+  {
+    "id": "EFFECT_LUA_ON_TICK",
+    "type": "json_flag",
+    "//": "",
+    "context": [  ]
+  },
+  {
+    "id": "EFFECT_LUA_ON_REMOVED",
+    "type": "json_flag",
+    "//": "",
+    "context": [  ]
   }
 ]

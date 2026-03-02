@@ -36,6 +36,7 @@
     "color": "white",
     "fun": -5,
     "calories": 192,
+    "flags": [ "RAW", "NO_COOKING_BUFF" ],
     "use_action": {
       "target": "sourdough_starter_uncovered",
       "msg": "After feeding it and caring for it for a week, your sourdough starter is finally ready for the big leagues.",
@@ -43,7 +44,8 @@
       "type": "delayed_transform",
       "transform_age": 200000,
       "not_ready_msg": "You've been caring for your starter for a while, but it's going to need longer before you can do anything tasty with it."
-    }
+    },
+    "vitamins": [ [ "wheat_allergen", 1 ] ]
   },
   {
     "id": "sourdough_split_uncovered",
@@ -61,6 +63,7 @@
     "color": "white",
     "fun": -5,
     "calories": 192,
+    "flags": [ "RAW", "NO_COOKING_BUFF" ],
     "use_action": {
       "target": "sourdough_starter_uncovered",
       "msg": "The starter is now stinky and bubbly, and looks ready for cooking.",
@@ -68,7 +71,8 @@
       "type": "delayed_transform",
       "transform_age": 180000,
       "not_ready_msg": "The starter isn't quite ready to go."
-    }
+    },
+    "vitamins": [ [ "wheat_allergen", 1 ] ]
   },
   {
     "id": "sourdough_starter_uncovered",
@@ -85,12 +89,14 @@
     "symbol": "%",
     "color": "yellow",
     "fun": -1,
-    "calories": 192
+    "calories": 192,
+    "flags": [ "RAW", "NO_COOKING_BUFF" ],
+    "vitamins": [ [ "wheat_allergen", 1 ] ]
   },
   {
     "type": "COMESTIBLE",
     "id": "sourdough_bread",
-    "name": "sourdough bread",
+    "name": { "str_sp": "sourdough bread" },
     "weight": "56 g",
     "color": "brown",
     "spoils_in": "8 days",
@@ -102,17 +108,18 @@
     "description": "Healthy and filling, with a sharper taste and thicker crust than yeast-only bread.",
     "price": "190 cent",
     "price_postapoc": "1 USD",
-    "material": "wheat",
+    "material": [ "wheat" ],
     "looks_like": "bread",
     "volume": "750 ml",
     "charges": 4,
     "flags": [ "EATEN_HOT", "NUTRIENT_OVERRIDE" ],
-    "fun": 2
+    "fun": 2,
+    "vitamins": [ [ "wheat_allergen", 1 ] ]
   },
   {
     "type": "COMESTIBLE",
     "id": "flatbread",
-    "name": "flatbread",
+    "name": { "str_sp": "flatbread" },
     "weight": "85 g",
     "color": "brown",
     "spoils_in": "11 days 16 hours",
@@ -123,15 +130,15 @@
     "description": "Simple unleavened bread.",
     "price": "23 cent",
     "price_postapoc": "1 USD",
-    "material": "wheat",
+    "material": [ "wheat" ],
     "volume": "250 ml",
     "flags": [ "EATEN_HOT" ],
-    "vitamins": [ [ "calcium", 5 ], [ "iron", 12 ] ]
+    "vitamins": [ [ "calcium", 5 ], [ "iron", 12 ], [ "wheat_allergen", 1 ] ]
   },
   {
     "type": "COMESTIBLE",
     "id": "bread",
-    "name": "bread",
+    "name": { "str_sp": "bread" },
     "weight": "60 g",
     "color": "brown",
     "spoils_in": "10 days",
@@ -143,12 +150,12 @@
     "description": "Healthy and filling.",
     "price": "47 cent",
     "price_postapoc": "1 USD",
-    "material": "wheat",
+    "material": [ "wheat" ],
     "volume": "250 ml",
     "charges": 2,
     "flags": [ "EATEN_HOT" ],
     "fun": 1,
-    "vitamins": [ [ "vitC", 1 ], [ "calcium", 10 ], [ "iron", 4 ] ]
+    "vitamins": [ [ "vitC", 1 ], [ "calcium", 10 ], [ "iron", 4 ], [ "wheat_allergen", 1 ] ]
   },
   {
     "type": "COMESTIBLE",
@@ -172,12 +179,12 @@
     "charges": 14,
     "flags": [ "EATEN_HOT" ],
     "fun": 3,
-    "vitamins": [ [ "vitA", 1 ], [ "vitB", 3 ], [ "calcium", 2 ], [ "iron", 14 ] ]
+    "vitamins": [ [ "vitA", 1 ], [ "vitB", 3 ], [ "calcium", 2 ], [ "iron", 14 ], [ "wheat_allergen", 1 ] ]
   },
   {
     "type": "COMESTIBLE",
     "id": "cornbread",
-    "name": "cornbread",
+    "name": { "str_sp": "cornbread" },
     "weight": "60 g",
     "color": "yellow",
     "spoils_in": "30 days",
@@ -189,13 +196,13 @@
     "description": "Healthy and filling cornbread.",
     "price": "75 cent",
     "price_postapoc": "1 USD",
-    "material": "veggy",
+    "material": [ "veggy" ],
     "primary_material": "wheat",
     "volume": "250 ml",
     "charges": 2,
     "flags": [ "EATEN_HOT" ],
     "fun": 2,
-    "vitamins": [ [ "vitA", 2 ], [ "calcium", 8 ], [ "iron", 6 ] ]
+    "vitamins": [ [ "vitA", 2 ], [ "calcium", 8 ], [ "iron", 6 ], [ "veggy_allergen", 1 ] ]
   },
   {
     "type": "COMESTIBLE",
@@ -216,7 +223,50 @@
     "charges": 6,
     "flags": [ "EATEN_HOT" ],
     "fun": 2,
-    "vitamins": [ [ "vitA", 1 ], [ "calcium", 4 ], [ "iron", 7 ] ]
+    "vitamins": [ [ "vitA", 1 ], [ "calcium", 4 ], [ "iron", 7 ], [ "wheat_allergen", 1 ], [ "junk_allergen", 1 ] ]
+  },
+  {
+    "type": "COMESTIBLE",
+    "id": "blinkie",
+    "name": "blinkie",
+    "looks_like": "bread",
+    "weight": "50 g",
+    "color": "yellow",
+    "comestible_type": "FOOD",
+    "container": "box_small",
+    "symbol": "%",
+    "quench": -1,
+    "healthy": -4,
+    "calories": 140,
+    "charges": 10,
+    "description": "A sweet, cream-filled snack cake with an indefinitely long shelf life. For all you know, this could be the last one that anyone will enjoy in the whole universe.",
+    "price": "6 USD",
+    "//": "blinkies are a sought after commodity",
+    "price_postapoc": "12 USD",
+    "material": [ "junk", "wheat" ],
+    "volume": "1000 ml",
+    "vitamins": [ [ "calcium", 4 ], [ "iron", 1 ], [ "wheat_allergen", 1 ], [ "milk_allergen", 1 ], [ "junk_allergen", 5 ] ],
+    "fun": 20
+  },
+  {
+    "type": "COMESTIBLE",
+    "id": "fried_blinkie",
+    "name": "fried blinkie",
+    "looks_like": "bread",
+    "weight": "60 g",
+    "color": "yellow",
+    "spoils_in": "3 days 12 hours",
+    "comestible_type": "FOOD",
+    "symbol": "%",
+    "healthy": -8,
+    "calories": 640,
+    "description": "A sweet, cream-filled snack cake.  This one has been removed from the packaging and deep fried, greatly reducing its shelf life.",
+    "price": "2 USD",
+    "price_postapoc": "3 USD",
+    "material": [ "junk", "wheat" ],
+    "volume": "125 ml",
+    "vitamins": [ [ "calcium", 4 ], [ "iron", 1 ], [ "wheat_allergen", 2 ], [ "milk_allergen", 3 ], [ "junk_allergen", 10 ] ],
+    "fun": 16
   },
   {
     "type": "COMESTIBLE",
@@ -233,13 +283,13 @@
     "description": "A round, thin flatbread made from finely ground corn flour.",
     "price": "50 cent",
     "price_postapoc": "50 cent",
-    "material": "veggy",
+    "material": [ "veggy" ],
     "primary_material": "wheat",
     "volume": "250 ml",
     "charges": 2,
     "flags": [ "EATEN_HOT" ],
     "fun": 1,
-    "vitamins": [ [ "calcium", 1 ], [ "iron", 1 ] ]
+    "vitamins": [ [ "calcium", 1 ], [ "iron", 1 ], [ "veggy_allergen", 1 ] ]
   },
   {
     "type": "COMESTIBLE",
@@ -254,10 +304,11 @@
     "description": "A dry and virtually tasteless bread product capable of remaining edible without spoilage for vast lengths of time.",
     "price": "125 cent",
     "price_postapoc": "150 cent",
-    "material": "wheat",
+    "material": [ "wheat" ],
     "volume": "250 ml",
     "charges": 2,
-    "vitamins": [ [ "calcium", 2 ], [ "iron", 15 ] ],
+    "flags": [ "NO_COOKING_BUFF" ],
+    "vitamins": [ [ "calcium", 2 ], [ "iron", 15 ], [ "wheat_allergen", 1 ] ],
     "stack_size": 20,
     "fun": -1
   },
@@ -275,12 +326,12 @@
     "description": "Wholesome and filling, this home made biscuit is pretty good!",
     "price": "57 cent",
     "price_postapoc": "250 cent",
-    "material": "wheat",
+    "material": [ "wheat" ],
     "volume": "250 ml",
     "charges": 10,
-    "flags": [ "EATEN_HOT" ],
+    "flags": [ "EATEN_HOT", "NO_COOKING_BUFF" ],
     "fun": 3,
-    "vitamins": [ [ "vitA", 1 ], [ "calcium", 11 ], [ "iron", 9 ] ]
+    "vitamins": [ [ "vitA", 1 ], [ "calcium", 11 ], [ "iron", 9 ], [ "wheat_allergen", 1 ] ]
   },
   {
     "type": "COMESTIBLE",
@@ -304,7 +355,7 @@
     "stack_size": 20,
     "flags": [ "EATEN_HOT" ],
     "fun": -1,
-    "vitamins": [ [ "calcium", 12 ] ],
+    "vitamins": [ [ "calcium", 12 ], [ "wheat_allergen", 1 ], [ "junk_allergen", 1 ] ],
     "//": "this item will generally inherit its values, so it is essentially a copy of bread"
   }
 ]

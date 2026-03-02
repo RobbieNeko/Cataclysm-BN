@@ -1,7 +1,7 @@
-#ifdef LUA
 #include "catalua_impl.h"
 
 #include "catalua_bindings.h"
+#include "catalua_loader.h"
 #include "catalua_log.h"
 #include "catalua_sol.h"
 #include "debug.h"
@@ -19,10 +19,14 @@ sol::state make_lua_state()
 
     lua.open_libraries(
         sol::lib::base,
+        sol::lib::package,
         sol::lib::math,
         sol::lib::string,
         sol::lib::table
     );
+
+    // Register custom module loader for relative/absolute imports
+    cata::lua_loader::register_searcher( lua.lua_state() );
 
     cata::reg_all_bindings( lua );
 
@@ -31,6 +35,9 @@ sol::state make_lua_state()
 
 void run_lua_script( sol::state &lua, const std::string &script_name )
 {
+    // RAII guard ensures stack cleanup even if exception occurs
+    const auto guard = cata::lua_loader::script_context_guard{ script_name };
+
     sol::load_result load_res = lua.load_file( script_name );
 
     if( !load_res.valid() ) {
@@ -274,5 +281,3 @@ bool compare_tables( sol::table a, sol::table b )
     }
     return are_equal;
 }
-
-#endif

@@ -1,14 +1,14 @@
 #pragma once
-#ifndef CATA_SRC_CATA_ALGO_H
-#define CATA_SRC_CATA_ALGO_H
 
 #include <algorithm>
+#include <functional>
 #include <map>
 #include <cassert>
 #include <optional>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
+#include <ranges>
 
 namespace cata
 {
@@ -122,16 +122,6 @@ std::vector<std::vector<T>> find_cycles( const std::unordered_map<T, std::vector
     return result;
 }
 
-/// poor person's https://en.cppreference.com/w/cpp/utility/optional/and_then
-template <typename T, typename Fn>
-auto and_then( std::optional<T> const &opt, Fn &&f ) -> std::optional<std::invoke_result_t<Fn, T>>
-{
-    if( opt ) {
-        return std::optional{f( *opt )};
-    }
-    return std::nullopt;
-}
-
 /// @brief Group elements of a container into key-value map by a given selector function.
 ///
 /// @tparam M map type to use for the result. defaults to std::map
@@ -159,6 +149,130 @@ auto group_by( const C &c, F && selector )
     return result;
 }
 
-} // namespace cata
+namespace ranges
+{
 
-#endif // CATA_SRC_CATA_ALGO_H
+/// @remark poor person's flatmap
+inline constexpr auto flat_map = []( auto &&func )
+{
+    return std::views::transform( std::forward<decltype( func )>( func ) ) | std::views::join;
+};
+
+/// allows any invocable that accepts a range to be used in ranges pipeline
+/// doesn't require @tparam Self to be a range adaptor closure
+template <typename Self, std::ranges::input_range R> requires std::invocable<Self, R>
+auto operator|( R &&r, const Self &&adaptor )
+{
+    return adaptor( std::forward<R>( r ) );
+}
+
+template <typename Proj>
+struct MaxAdaptor {
+    Proj proj;
+    explicit MaxAdaptor( Proj s ) : proj( std::move( s ) ) {}
+
+    template <std::ranges::input_range R>
+    requires std::copy_constructible<std::ranges::range_value_t<R>>
+    auto operator()( R &&r ) const -> std::optional<std::ranges::range_value_t<R>> {
+        auto current_it = std::ranges::begin( r );
+        const auto last_it = std::ranges::end( r );
+
+        if( current_it == last_it ) {
+            return std::nullopt;
+        }
+
+        std::ranges::range_value_t<R> max_val = *current_it;
+        auto max_proj = proj( max_val );
+        ++current_it;
+
+        while( current_it != last_it ) {
+            auto current_proj = proj( *current_it );
+            if( max_proj < current_proj ) {
+                max_val = *current_it;
+                max_proj = current_proj;
+            }
+            ++current_it;
+        }
+        return max_val;
+    }
+};
+
+template <typename Proj>
+struct MinAdaptor {
+    Proj proj;
+    explicit MinAdaptor( Proj s ) : proj( std::move( s ) ) {}
+
+    template <std::ranges::input_range R>
+    requires std::copy_constructible<std::ranges::range_value_t<R>>
+    auto operator()( R &&r ) const -> std::optional<std::ranges::range_value_t<R>> {
+        auto current_it = std::ranges::begin( r );
+        const auto last_it = std::ranges::end( r );
+
+        if( current_it == last_it ) {
+            return std::nullopt;
+        }
+
+        std::ranges::range_value_t<R> min_val = *current_it;
+        auto min_proj = proj( min_val );
+        ++current_it;
+
+        while( current_it != last_it ) {
+            auto current_proj = proj( *current_it );
+            if( current_proj < min_proj ) {
+                min_val = *current_it;
+                min_proj = current_proj;
+            }
+            ++current_it;
+        }
+        return min_val;
+    }
+};
+
+template <typename T, typename BinOp>
+struct FoldLeftAdaptor {
+    T init;
+    BinOp op;
+
+    explicit FoldLeftAdaptor( T i, BinOp o ) : init( std::move( i ) ), op( std::move( o ) ) {}
+
+    template <std::ranges::input_range R>
+    auto operator()( R &&r ) const {
+        auto accum = init;
+        for( auto &&elem : r ) {
+            accum = op( std::move( accum ), std::forward<decltype( elem )>( elem ) );
+        }
+        return accum;
+    }
+};
+
+template <typename Proj>
+inline auto max_by( Proj &&proj )
+{
+    return MaxAdaptor<std::decay_t<Proj>>( std::forward<Proj>( proj ) );
+}
+inline auto max()
+{
+    return MaxAdaptor( std::identity{} );
+}
+
+template <typename Proj>
+inline auto min_by( Proj &&proj )
+{
+    return MinAdaptor<std::decay_t<Proj>>( std::forward<Proj>( proj ) );
+}
+inline auto min()
+{
+    return MinAdaptor( std::identity{} );
+}
+
+/// std::ranges::fold_left but pipeable
+template <typename T, typename BinOp>
+inline auto fold_left( T &&init, BinOp &&op )
+{
+    return FoldLeftAdaptor<std::decay_t<T>, std::decay_t<BinOp>>(
+               std::forward<T>( init ), std::forward<BinOp>( op ) );
+}
+
+} // namespace ranges
+
+} // namespace cata

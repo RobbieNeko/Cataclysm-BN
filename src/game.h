@@ -1,6 +1,4 @@
 #pragma once
-#ifndef CATA_SRC_GAME_H
-#define CATA_SRC_GAME_H
 
 #include <array>
 #include <chrono>
@@ -12,7 +10,9 @@
 #include <memory>
 #include <optional>
 #include <set>
+#include <shared_mutex>
 #include <string>
+#include <unordered_map>
 #include <unordered_set>
 #include <utility>
 #include <vector>
@@ -25,10 +25,12 @@
 #include "cursesdef.h"
 #include "enums.h"
 #include "game_constants.h"
+#include "mapdata.h"
 #include "memory_fast.h"
 #include "pimpl.h"
 #include "point.h"
 #include "type_id.h"
+#include "location_vector.h"
 
 class Character;
 class Creature_tracker;
@@ -99,9 +101,8 @@ class stats_tracker;
 template<typename Tripoint>
 class tripoint_range;
 class vehicle;
-struct WORLD;
-
-using WORLDPTR = WORLD *;
+struct WORLDINFO;
+class world;
 class live_view;
 class loading_ui;
 class overmap;
@@ -158,15 +159,9 @@ class game
         void load_static_data();
 
         /**
-         * Base path for saving player data. Just add a suffix (unique for
-         * the thing you want to save) and use the resulting path.
-         * Example: `save_ui_data(get_player_base_save_path()+".ui")`
+         * @return The current world database, or nullptr if no world is loaded.
          */
-        std::string get_player_base_save_path() const;
-        /**
-         * Base path for saving world data. This yields a path to a folder.
-         */
-        std::string get_world_base_save_path() const;
+        world *get_active_world() const;
 
         /**
          * @brief Should be invoked whenever options change.
@@ -174,7 +169,7 @@ class game
         void on_options_changed();
 
     public:
-        void setup();
+        void setup( bool load_world_modfiles = true );
         /** Saving and loading functions. */
         void serialize( std::ostream &fout ); // for save
         void unserialize( std::istream &fin ); // for load
@@ -245,6 +240,7 @@ class game
         void vertical_move( int z, bool force, bool peeking = false );
         void start_hauling( const tripoint &pos );
         /** Returns the other end of the stairs (if any). May query, affect u etc.  */
+        std::optional<tripoint> find_stairs( map &mp, int z_after, bool peeking );
         std::optional<tripoint> find_or_make_stairs( map &mp, int z_after, bool &rope_ladder,
                 bool peeking );
         /** Actual z-level movement part of vertical_move. Doesn't include stair finding, traps etc. */
@@ -447,7 +443,7 @@ class game
          */
         bool revive_corpse( const tripoint &p, item &it );
         /**Turns Broken Cyborg monster into Cyborg NPC via surgery*/
-        void save_cyborg( item *cyborg, const tripoint &couch_pos, player &installer );
+        void save_cyborg( item *cyborg, const tripoint &couch_pos, Character &installer );
         /** Asks if the player wants to cancel their activity, and if so cancels it. */
         bool cancel_activity_query( const std::string &text );
         /** Asks if the player wants to cancel their activity and if so cancels it. Additionally checks
@@ -493,22 +489,15 @@ class game
         /** process vehicles that are following the player */
         void autopilot_vehicles();
         /** Picks and spawns a random fish from the remaining fish list when a fish is caught. */
-        void catch_a_monster( monster *fish, const tripoint &pos, player *p,
+        void catch_a_monster( monster *fish, const tripoint &pos, Character *who,
                               const time_duration &catch_duration );
         /**
          * Get the contiguous fishable locations starting at fish_pos, out to the specificed distance.
-         * @param distance Distance around the fish_pos to examine for contiguous fishable locations.
+         * @param radius Distance around the fish_pos to examine for contiguous fishable locations.
          * @param fish_pos The location being fished.
          * @return A set of locations representing the valid contiguous fishable locations.
          */
-        std::unordered_set<tripoint> get_fishable_locations( int distance, const tripoint &fish_pos );
-        /**
-         * Get the fishable monsters within the provided fishable locations.
-         * @param fishable_locations A set of locations which are valid fishable terrain. Any fishable monsters
-         * are filtered by this collection to determine those which can actually be caught.
-         * @return Fishable monsters within the specified fishable terrain.
-         */
-        std::vector<monster *> get_fishable_monsters( std::unordered_set<tripoint> &fishable_locations );
+        std::unordered_set<tripoint>get_fishable_locations( int radius, const tripoint &fish_pos );
 
         /** Flings the input creature in the given direction. */
         void fling_creature( Creature *c, const units::angle &dir, float flvel, bool controlled = false );
@@ -524,13 +513,17 @@ class game
         Creature *is_hostile_very_close();
         // Handles shifting coordinates transparently when moving between submaps.
         // Helper to make calling with a player pointer less verbose.
-        point update_map( player &p );
+        point update_map( Character &who );
         point update_map( int &x, int &y );
         void update_overmap_seen(); // Update which overmap tiles we can see
 
-        void process_artifact( item &it, player &p );
+        void process_artifact( item &it, Character &who );
         void add_artifact_messages( const std::vector<art_effect_passive> &effects );
         void add_artifact_dreams( );
+
+        static tripoint find_closest_stair( const tripoint &near_this, const ter_bitflags stair_type );
+        std::optional<tripoint> find_local_stairs_leading_to( map &mp, const int z_after );
+        void suggest_auto_walk_to_stairs( Character &u, map &m, const std::string &direction );
 
         void peek();
         void peek( const tripoint &p );
@@ -589,11 +582,13 @@ class game
         void reload_tileset( const std::function<void( std::string )> &out );
         void temp_exit_fullscreen();
         void reenter_fullscreen();
+        void zoom_in_overmap();
+        void zoom_out_overmap();
         void zoom_in();
         void zoom_out();
         void reset_zoom();
-        void set_zoom( int level );
-        int get_zoom() const;
+        void set_zoom( float level );
+        float get_zoom() const;
         int get_moves_since_last_save() const;
         int get_user_action_counter() const;
 
@@ -657,7 +652,7 @@ class game
 
         // Animation related functions
         void draw_bullet( const tripoint &t, int i, const std::vector<tripoint> &trajectory,
-                          char bullet );
+                          char bullet, const std::string &custom_sprite = {} );
         void draw_hit_mon( const tripoint &p, const monster &m, bool dead = false );
         void draw_hit_player( const Character &p, int dam );
         void draw_line( const tripoint &p, const tripoint &center_point,
@@ -723,7 +718,7 @@ class game
         bool load( const std::string &world );
 
         /** Returns true if the menu handled stuff and player shouldn't do anything else */
-        bool npc_menu( npc &who );
+        bool npc_menu( npc &who, const bool &force = false );
 
         // Handle phasing through walls, returns true if it handled the move
         bool phasing_move( const tripoint &dest, bool via_ramp = false );
@@ -757,7 +752,8 @@ class game
         // create vehicle nearby, for example; for a profession vehicle.
         vehicle *place_vehicle_nearby(
             const vproto_id &id, const point_abs_omt &origin, int min_distance,
-            int max_distance, const std::vector<std::string> &omt_search_types = {} );
+            int max_distance, const std::vector<std::string> &omt_search_types = {},
+            bool notwater = false );
         // V Menu Functions and helpers:
         void list_items_monsters(); // Called when you invoke the `V`-menu
 
@@ -863,6 +859,9 @@ class game
 
         // Routine loop functions, approximately in order of execution
         void monmove();          // Monster movement
+        void npcmove();          // NPC movement (split from monmove for per-option sleep-skip)
+        void sleep_skip_npc_process(); // Sleep-only NPC processing when SLEEP_SKIP_NPC is active
+        int  tier_assign_all(); // LOD tier assignment, O(M), called from monmove(); returns Tier 0 count
         void overmap_npc_move(); // NPC overmap movement
         void process_voluntary_act_interrupt(); // Process
         void process_activity(); // Processes and enacts the player's activity
@@ -911,6 +910,7 @@ class game
         void display_lighting(); // Displays lighting conditions heat map
         void display_radiation(); // Displays radiation map
         void display_transparency(); // Displays transparency map
+        void display_tiles_no_vfx(); // Disables tileset visual effects
 
         // prints the IRL time in ms of the last full in-game hour
         class debug_hour_timer
@@ -928,6 +928,7 @@ class game
 
         void move_save_to_graveyard( const std::string &dirname );
         bool save_player_data();
+        bool save_uistate_data() const;
         // ########################## DATA ################################
     private:
         // May be a bit hacky, but it's probably better than the header spaghetti
@@ -986,6 +987,7 @@ class game
 
         bool debug_pathfinding = false; // show NPC pathfinding on overmap ui
         bool debug_submap_grid_overlay = false;
+        bool show_zone_overlay = false;
 
         /* tile overlays */
         // Toggle all other overlays off and flip the given overlay on/off.
@@ -1009,6 +1011,24 @@ class game
         int turnssincelastmon = 0; // needed for auto run mode
 
         int mostseen = 0; // # of mons seen last turn; if this increases, set safe_mode to SAFE_MODE_STOP
+
+        // P-8: per-turn symmetric sight-result cache used during parallel monster
+        // planning (monmove()).  Keyed on the sorted (lo, hi) Creature pointer
+        // pair so A→B and B→A share one entry (LOS ray is symmetric).  Cleared
+        // at the start of monmove() before the parallel phase begins.  Workers
+        // hold a shared_lock for hits and upgrade to unique_lock on a miss.
+        // Lives in the public section so turn_cached_sees() in monmove.cpp can
+        // access it directly without an additional indirection layer.
+        struct TurnSightPairHash {
+            size_t operator()( const std::pair<const Creature *, const Creature *> &p ) const noexcept {
+                size_t h1 = std::hash<const Creature *> {}( p.first );
+                size_t h2 = std::hash<const Creature *> {}( p.second );
+                return h1 ^ ( h2 * 2654435761ULL );
+            }
+        };
+        std::unordered_map<std::pair<const Creature *, const Creature *>, bool, TurnSightPairHash>
+        turn_sight_cache_;
+        std::shared_mutex turn_sight_cache_mutex_;
     private:
         shared_ptr_fast<player> u_shared_ptr;
 
@@ -1045,7 +1065,8 @@ class game
         int user_action_counter = 0; // Times the user has input an action
 
         /** How far the tileset should be zoomed out, 16 is default. 32 is zoomed in by x2, 8 is zoomed out by x0.5 */
-        int tileset_zoom = 0;
+        float tileset_zoom = 0;
+        int overmap_tileset_zoom = DEFAULT_TILESET_ZOOM;
 
         /** Seed for all the random numbers that should have consistent randomness (weather). */
         unsigned int seed = 0;
@@ -1083,6 +1104,11 @@ class game
         @return whether player has slipped down
         */
         bool slip_down();
+    private:
+        location_vector<item> fake_items;
+    public:
+        item *add_fake_item( detached_ptr<item> &&fake );
+        void remove_fake_item( item *it );
 };
 
 // Returns temperature modifier from direct heat radiation of nearby sources
@@ -1102,4 +1128,4 @@ namespace cata_event_dispatch
 void avatar_moves( const avatar &u, const map &m, const tripoint &p );
 } // namespace cata_event_dispatch
 
-#endif // CATA_SRC_GAME_H
+

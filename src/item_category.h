@@ -1,6 +1,4 @@
 #pragma once
-#ifndef CATA_SRC_ITEM_CATEGORY_H
-#define CATA_SRC_ITEM_CATEGORY_H
 
 #include <optional>
 #include <string>
@@ -18,7 +16,6 @@ class item;
 struct zone_priority_data {
     bool was_loaded = false;
     zone_type_id id;
-    bool filthy = false;
     cata::flat_set<flag_id> flags;
 
     void deserialize( JsonIn &jsin );
@@ -38,6 +35,8 @@ class item_category
         translation name_;
         /** Used to sort categories when displaying.  Lower values are shown first. */
         int sort_rank_ = 0;
+        /** Global spawn rate for items from category */
+        float spawn_rate = 1.0f;
 
         std::optional<zone_type_id> zone_;
         std::vector<zone_priority_data> zone_priority_;
@@ -62,6 +61,7 @@ class item_category
         std::optional<zone_type_id> priority_zone( const item &it ) const;
         std::optional<zone_type_id> zone() const;
         int sort_rank() const;
+        float get_spawn_rate() const;
 
         /**
          * Comparison operators
@@ -81,5 +81,5 @@ class item_category
         void load( const JsonObject &jo, const std::string & );
 };
 
-#endif // CATA_SRC_ITEM_CATEGORY_H
+
 

@@ -355,12 +355,6 @@
     "text": "Longing to kill"
   },
   {
-    "id": "morale_perm_filthy",
-    "type": "morale_type",
-    "text": "Filthy Gear",
-    "permanent": true
-  },
-  {
     "id": "morale_butcher",
     "type": "morale_type",
     "text": "Anguished by memories of butchering human corpse"
@@ -418,6 +412,24 @@
     "id": "morale_nicotine",
     "type": "morale_type",
     "text": "Nicotine",
+    "permanent": true
+  },
+  {
+    "id": "morale_indoor_misery",
+    "type": "morale_type",
+    "text": "Claustrophobic",
+    "permanent": true
+  },
+  {
+    "id": "morale_outdoor_misery",
+    "type": "morale_type",
+    "text": "Agoraphobic",
+    "permanent": true
+  },
+  {
+    "id": "morale_clutter_intolerant",
+    "type": "morale_type",
+    "text": "Messy surroundings",
     "permanent": true
   },
   {

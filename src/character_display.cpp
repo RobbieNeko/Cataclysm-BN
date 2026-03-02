@@ -3,10 +3,8 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
-#include <cstddef>
 #include <cstdlib>
 #include <memory>
-#include <unordered_map>
 
 #include "addiction.h"
 #include "avatar.h"
@@ -21,6 +19,7 @@
 #include "input.h"
 #include "melee.h"
 #include "mutation.h"
+#include "messages.h"
 #include "options.h"
 #include "output.h"
 #include "pldata.h"
@@ -53,6 +52,23 @@ static const trait_flag_str_id trait_flag_UNARMED_BONUS( "UNARMED_BONUS" );
 // use this instead of having to type out 26 spaces like before
 static const std::string header_spaces( 26, ' ' );
 
+static nc_color encumb_color( int level )
+{
+    if( level < 0 ) {
+        return c_green;
+    }
+    if( level < 10 ) {
+        return c_light_gray;
+    }
+    if( level < 40 ) {
+        return c_yellow;
+    }
+    if( level < 70 ) {
+        return c_light_red;
+    }
+    return c_red;
+}
+
 static int get_temp_conv( const Character &c, const bodypart_str_id &bp )
 {
     auto iter = c.get_body().find( bp );
@@ -62,11 +78,6 @@ static int get_temp_conv( const Character &c, const bodypart_str_id &bp )
     }
 
     return iter->second.get_temp_conv();
-}
-
-static int get_temp_conv( const Character &c, body_part bp )
-{
-    return get_temp_conv( c, convert_bp( bp ) );
 }
 
 nc_color warmth::bodytemp_color( const Character &c, const bodypart_str_id &bp )
@@ -100,39 +111,35 @@ static int temperature_print_rescaling( int temp )
     return ( temp / 100.0 ) * 2 - 100;
 }
 
-static body_part other_part( body_part bp )
-{
-    return static_cast<body_part>( bp_aiOther[bp] );
-}
-
-static bool should_combine_bps( const Character &ch, body_part l, body_part r,
+static bool should_combine_bps( const Character &ch,
+                                const bodypart_str_id &l, const bodypart_str_id &r,
                                 const item *selected_clothing )
 {
     const char_encumbrance_data enc_data = ch.get_encumbrance();
     return l != r && // are different parts
-           l == other_part( r ) && r == other_part( l ) && // are complementary parts
+           l == r->opposite_part && r == l->opposite_part && // are complementary parts
            // same encumberance & temperature
-           enc_data.elems[l] == enc_data.elems[r] &&
+           // @todo Is ::at safe here?
+           enc_data.elems.at( l ) == enc_data.elems.at( r ) &&
            temperature_print_rescaling( get_temp_conv( ch,
                                         l ) ) == temperature_print_rescaling( get_temp_conv( ch, r ) ) &&
            // selected_clothing covers both or neither parts
            ( !selected_clothing ||
-             ( selected_clothing->covers( convert_bp( l ).id() ) == selected_clothing->covers( convert_bp(
-                         r ).id() ) ) );
+             ( selected_clothing->covers( l.id() ) == selected_clothing->covers( r.id() ) ) );
 }
 
-static std::vector<std::pair<body_part, bool>> list_and_combine_bps( const Character &ch,
+static std::vector<std::pair<bodypart_str_id, bool>> list_and_combine_bps( const Character &ch,
         const item *selected_clothing )
 {
     // bool represents whether the part has been combined with its other half
-    std::vector<std::pair<body_part, bool>> bps;
-    for( auto bp : all_body_parts ) {
+    std::vector<std::pair<bodypart_str_id, bool>> bps;
+    for( auto bp : ch.get_all_body_parts() ) {
         // assuming that a body part has at most one other half
-        if( other_part( other_part( bp ) ) != bp ) {
-            debugmsg( "Bodypart %d has more than one other half!", bp );
+        if( bp->opposite_part->opposite_part != bp.id() ) {
+            debugmsg( "Bodypart %s has more than one other half!", bp.id().c_str() );
         }
-        if( should_combine_bps( ch, bp, other_part( bp ), selected_clothing ) ) {
-            if( bp < other_part( bp ) ) {
+        if( should_combine_bps( ch, bp.id(), bp->opposite_part, selected_clothing ) ) {
+            if( bp.to_i() < bp->opposite_part.id().to_i() ) {
                 // only add the earlier one
                 bps.emplace_back( bp, true );
             }
@@ -168,7 +175,8 @@ void character_display::print_encumbrance( ui_adaptor &ui, const catacurses::win
         const int line, const item *selected_clothing )
 {
     // bool represents whether the part has been combined with its other half
-    const std::vector<std::pair<body_part, bool>> bps = list_and_combine_bps( ch, selected_clothing );
+    const std::vector<std::pair<bodypart_str_id, bool>> bps = list_and_combine_bps( ch,
+            selected_clothing );
 
     // width/height excluding title & scrollbar
     const int height = getmaxy( win ) - 1;
@@ -191,11 +199,10 @@ void character_display::print_encumbrance( ui_adaptor &ui, const catacurses::win
         if( static_cast<size_t>( thisline ) >= bps.size() ) {
             break;
         }
-        const body_part bp = bps[thisline].first;
+        const bodypart_str_id &bp = bps[thisline].first;
         const bool combine = bps[thisline].second;
-        const encumbrance_data &e = enc_data.elems[bp];
-        const bool highlighted = selected_clothing ? selected_clothing->covers( convert_bp(
-                                     bp ).id() ) : false;
+        const encumbrance_data &e = enc_data.elems.at( bp );
+        const bool highlighted = selected_clothing ? selected_clothing->covers( bp.id() ) : false;
         std::string out = body_part_name_as_heading( bp, combine ? 2 : 1 );
         if( utf8_width( out ) > 7 ) {
             out = utf8_truncate( out, 7 );
@@ -221,7 +228,7 @@ void character_display::print_encumbrance( ui_adaptor &ui, const catacurses::win
         mvwprintz( win, point( 12, y_pos ), encumb_color( e.encumbrance ), "%-3d", e.layer_penalty );
         // print warmth, tethered to right hand side of the window
 
-        mvwprintz( win, point( width - 6, y_pos ), warmth::bodytemp_color( ch, convert_bp( bp ) ), "(% 3d)",
+        mvwprintz( win, point( width - 6, y_pos ), warmth::bodytemp_color( ch, bp ), "(% 3d)",
                    temperature_print_rescaling( get_temp_conv( ch, bp ) ) );
     }
 
@@ -268,26 +275,27 @@ static std::string dodge_skill_text( double mod )
     return string_format( _( "Dodge skill: <color_white>%+.1f</color>\n" ), mod );
 }
 
-static int get_encumbrance( const Character &p, body_part bp, bool combine )
+static int get_encumbrance( const Character &who, body_part bp, bool combine )
 {
     // Body parts that can't combine with anything shouldn't print double values on combine
     // This shouldn't happen, but handle this, just in case
     const bool combines_with_other = static_cast<int>( bp_aiOther[bp] ) != bp;
-    return p.encumb( convert_bp( bp ) ) * ( ( combine && combines_with_other ) ? 2 : 1 );
+    return who.encumb( convert_bp( bp ) ) * ( ( combine && combines_with_other ) ? 2 : 1 );
 }
 
-static std::string get_encumbrance_description( const Character &p, body_part bp, bool combine )
+static std::string get_encumbrance_description( const Character &who, const bodypart_str_id &bp,
+        bool combine )
 {
     std::string s;
 
-    const int eff_encumbrance = get_encumbrance( p, bp, combine );
+    const int eff_encumbrance = get_encumbrance( who, bp->token, combine );
 
-    switch( bp ) {
+    switch( bp->token ) {
         case bp_torso: {
             const int melee_roll_pen = std::max( -eff_encumbrance, -80 );
             s += string_format( _( "Melee attack rolls: <color_white>%+d%%</color>\n" ), melee_roll_pen );
             s += dodge_skill_text( -( eff_encumbrance / 10.0 ) );
-            s += swim_cost_text( ( eff_encumbrance / 10.0 ) * ( 80 - p.get_skill_level(
+            s += swim_cost_text( ( eff_encumbrance / 10.0 ) * ( 80 - who.get_skill_level(
                                      skill_swimming ) * 3 ) );
             s += melee_cost_text( eff_encumbrance );
             break;
@@ -322,12 +330,12 @@ static std::string get_encumbrance_description( const Character &p, body_part bp
                                 -( eff_encumbrance / 10.0f ) );
             s += melee_cost_text( eff_encumbrance / 2 );
             s += string_format( _( "Reduced gun aim speed: <color_white>%.1f</color>" ),
-                                ranged::aim_speed_encumbrance_modifier( p ) );
+                                ranged::aim_speed_encumbrance_modifier( who ) );
             break;
         case bp_leg_l:
         case bp_leg_r:
             s += run_cost_text( static_cast<int>( eff_encumbrance * 0.15 ) );
-            s += swim_cost_text( ( eff_encumbrance / 10 ) * ( 50 - p.get_skill_level(
+            s += swim_cost_text( ( eff_encumbrance / 10 ) * ( 50 - who.get_skill_level(
                                      skill_swimming ) * 2 ) / 2 );
             s += dodge_skill_text( -eff_encumbrance / 10.0 / 4.0 );
             break;
@@ -352,7 +360,7 @@ static bool is_cqb_skill( const skill_id &id )
             skill_id( "bashing" ), skill_id( "stabbing" ),
         }
     };
-    return std::find( cqb_skills.begin(), cqb_skills.end(), id ) != cqb_skills.end();
+    return std::ranges::find( cqb_skills, id ) != cqb_skills.end();
 }
 
 namespace
@@ -554,10 +562,10 @@ static void draw_encumbrance_tab( ui_adaptor &ui, const catacurses::window &w_en
 static void draw_encumbrance_info( const catacurses::window &w_info, const Character &you,
                                    const unsigned line )
 {
-    const std::vector<std::pair<body_part, bool>> bps = list_and_combine_bps( you, nullptr );
+    const std::vector<std::pair<bodypart_str_id, bool>> bps = list_and_combine_bps( you, nullptr );
 
     werase( w_info );
-    body_part bp = num_bp;
+    bodypart_str_id bp;
     bool combined_here = false;
     if( line < bps.size() ) {
         bp = bps[line].first;
@@ -621,7 +629,7 @@ static void draw_traits_info( const catacurses::window &w_info, const unsigned l
 static void draw_bionics_tab( ui_adaptor &ui, const catacurses::window &w_bionics,
                               const Character &you, const unsigned line,
                               const player_display_tab curtab,
-                              const std::vector<bionic> &bionicslist )
+                              const std::vector<std::pair<bionic, int>> &bionicslist )
 {
     werase( w_bionics );
     const bool is_current_tab = curtab == player_display_tab::bionics;
@@ -649,8 +657,12 @@ static void draw_bionics_tab( ui_adaptor &ui, const catacurses::window &w_bionic
         if( highlight_line ) {
             ui.set_cursor( w_bionics, pos );
         }
-        trim_and_print( w_bionics, pos, width,
-                        highlight_line ? hilite( c_white ) : c_white, "%s", bionicslist[i].info().name );
+
+        const auto& [bio, cnt] =  bionicslist[i];
+        const auto fmtstr = cnt > 1 ? "%s (%d)" : "%s";
+        const auto color = get_bionic_text_color( bio, highlight_line );
+        trim_and_print( w_bionics, pos, width, highlight_line ? hilite( color ) : color, fmtstr,
+                        bio.info().name, cnt );
     }
     if( do_draw_scrollbar ) {
         draw_scrollbar( w_bionics, range.first, height, bionicslist.size(), point( width + 1, 2 ), c_white,
@@ -660,13 +672,15 @@ static void draw_bionics_tab( ui_adaptor &ui, const catacurses::window &w_bionic
 }
 
 static void draw_bionics_info( const catacurses::window &w_info, const unsigned line,
-                               const std::vector<bionic> &bionicslist )
+                               const std::vector<std::pair<bionic, int>> &bionicslist )
 {
     werase( w_info );
     if( line < bionicslist.size() ) {
+        const auto& [bio, cnt] = bionicslist[line];
         // NOLINTNEXTLINE(cata-use-named-point-constants)
-        fold_and_print( w_info, point( 1, 0 ), FULL_SCREEN_WIDTH - 2, c_light_gray, "%s",
-                        bionicslist[line].info().description );
+        const auto fmtStr = cnt > 1 ? "%s\n\nYou have %s instances of this bionic installed." : "%s";
+        fold_and_print(
+            w_info, point( 1, 0 ), FULL_SCREEN_WIDTH - 2, c_light_gray, fmtStr, bio.info().description, cnt );
     }
     wnoutrefresh( w_info );
 }
@@ -1013,7 +1027,7 @@ static void draw_speed_tab( const catacurses::window &w_speed,
 static void draw_info_window( const catacurses::window &w_info, const Character &you,
                               const unsigned line, const player_display_tab curtab,
                               const std::vector<trait_id> &traitslist,
-                              const std::vector<bionic> &bionicslist,
+                              const std::vector<std::pair<bionic, int>> &bionicslist,
                               const std::vector<std::pair<std::string, std::string>> &effect_name_and_text,
                               const std::vector<HeaderSkill> &skillslist )
 {
@@ -1082,7 +1096,7 @@ static bool handle_player_display_action( Character &you, unsigned int &line,
         const ui_adaptor &ui_traits, const ui_adaptor &ui_bionics,
         const ui_adaptor &ui_effects, const ui_adaptor &ui_skills,
         const std::vector<trait_id> &traitslist,
-        const std::vector<bionic> &bionicslist,
+        const std::vector<std::pair<bionic, int>> &bionicslist,
         const std::vector<std::pair<std::string, std::string>> &effect_name_and_text,
         const std::vector<HeaderSkill> &skillslist )
 {
@@ -1118,7 +1132,7 @@ static bool handle_player_display_action( Character &you, unsigned int &line,
             line_end = 6;
             break;
         case player_display_tab::encumbrance: {
-            const std::vector<std::pair<body_part, bool>> bps = list_and_combine_bps( you, nullptr );
+            const std::vector<std::pair<bodypart_str_id, bool>> bps = list_and_combine_bps( you, nullptr );
             line_end = bps.size();
             break;
         }
@@ -1208,6 +1222,18 @@ static bool handle_player_display_action( Character &you, unsigned int &line,
         .query();
 
         you.custom_profession = popup.text();
+        add_msg( "You now consider yourself to be a %s.", popup.text() );
+        ui_tip.invalidate_ui();
+    } else if( action == "CHANGE_NAME" ) {
+        string_input_popup popup;
+        popup.title( _( "Name: " ) )
+        .width( 50 )
+        .text( "" )
+        .max_length( 50 )
+        .query();
+
+        you.name = popup.text();
+        add_msg( "From now on, you will refer to yourself as '%s.'", popup.text() );
         ui_tip.invalidate_ui();
     }
     return done;
@@ -1324,11 +1350,34 @@ void character_display::disp_info( Character &ch )
     const unsigned int effect_win_size_y_max = 1 + static_cast<unsigned>( effect_name_and_text.size() );
 
     std::vector<trait_id> traitslist = ch.get_mutations( false );
-    std::sort( traitslist.begin(), traitslist.end(), trait_display_sort );
+    std::ranges::sort( traitslist, trait_display_sort );
     const unsigned int trait_win_size_y_max = 1 + static_cast<unsigned>( traitslist.size() );
 
-    std::vector<bionic> bionicslist = *ch.my_bionics;
-    const unsigned int bionics_win_size_y_max = 2 + bionicslist.size();
+    std::multimap<bionic_id, bionic> bionics_map;
+    for( const auto &elem : *ch.my_bionics ) {
+        bionics_map.emplace( elem.id, elem );
+    }
+    std::vector<std::pair<bionic, int>> bionics_list;
+    for( auto it = bionics_map.begin(); it != bionics_map.end(); ) {
+        const auto [k, v] = *it;
+        int d = 0;
+        do {
+            ++it;
+            ++d;
+        } while( it != bionics_map.end() && k == it->first );
+        bionics_list.push_back( std::make_pair( v,  d ) );
+    }
+
+    using bionic_pair = decltype( bionics_list )::value_type;
+    std::ranges::sort( bionics_list, []( const bionic_pair & a, const bionic_pair & b ) -> bool {
+        if( a.first.info().activated != b.first.info().activated )
+        {
+            return a.first.info().activated;
+        }
+        constexpr auto less = bionic_sort_less{ bionic_ui_sort_mode::NAME };
+        return less( a.first, b.first );
+    } );
+    const unsigned int bionics_win_size_y_max = 2 + bionics_list.size();
 
     const std::vector<const Skill *> player_skill = Skill::get_skills_sorted_by(
     [&]( const Skill & a, const Skill & b ) {
@@ -1378,6 +1427,7 @@ void character_display::disp_info( Character &ch )
     ctxt.register_action( "QUIT" );
     ctxt.register_action( "CONFIRM", to_translation( "Toggle skill training / Upgrade stat" ) );
     ctxt.register_action( "CHANGE_PROFESSION_NAME", to_translation( "Change profession name" ) );
+    ctxt.register_action( "CHANGE_NAME", to_translation( "Change name" ) );
     ctxt.register_action( "HELP_KEYBINDINGS" );
 
     std::map<std::string, int> speed_effects;
@@ -1485,7 +1535,7 @@ void character_display::disp_info( Character &ch )
         borders.draw_border( w_bionics_border );
         wnoutrefresh( w_bionics_border );
         ui_bionics.disable_cursor();
-        draw_bionics_tab( ui_bionics, w_bionics, ch, line, curtab, bionicslist );
+        draw_bionics_tab( ui_bionics, w_bionics, ch, line, curtab, bionics_list );
     } );
 
     // ENCUMBRANCE
@@ -1604,7 +1654,7 @@ void character_display::disp_info( Character &ch )
         wnoutrefresh( w_info_border );
         ui_info.disable_cursor();
         draw_info_window( w_info, ch, line, curtab,
-                          traitslist, bionicslist, effect_name_and_text, skillslist );
+                          traitslist, bionics_list, effect_name_and_text, skillslist );
     } );
 
     bool done = false;
@@ -1614,7 +1664,7 @@ void character_display::disp_info( Character &ch )
 
         done = handle_player_display_action( ch, line, curtab, ctxt, ui_tip, ui_info,
                                              ui_stats, ui_encumb, ui_traits, ui_bionics, ui_effects, ui_skills,
-                                             traitslist, bionicslist, effect_name_and_text, skillslist );
+                                             traitslist, bionics_list, effect_name_and_text, skillslist );
     } while( !done );
 }
 

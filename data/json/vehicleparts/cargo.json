@@ -1,6 +1,28 @@
 [
   {
     "type": "vehicle_part",
+    "id": "cargo_lock",
+    "name": { "str": "cargo lock" },
+    "symbol": "+",
+    "color": "dark_gray",
+    "broken_symbol": "+",
+    "broken_color": "light_gray",
+    "durability": 25,
+    "description": "A set of locks.  Attached to a suitable cargo space, it will prevent other people from accessing the cargo and taking your stuff.",
+    "folded_volume": "250 ml",
+    "item": "cargo_lock",
+    "location": "on_lockable_cargo",
+    "requirements": {
+      "install": { "skills": [ [ "mechanics", 0 ] ], "time": "12 m", "using": [ [ "vehicle_screw", 1 ] ] },
+      "removal": { "skills": [ [ "mechanics", 0 ] ], "time": "12 m", "using": [ [ "vehicle_screw", 1 ] ] },
+      "repair": { "skills": [ [ "mechanics", 2 ] ], "time": "6 m", "using": [ [ "adhesive", 1 ], [ "vehicle_repair_small_metal", 1 ] ] }
+    },
+    "flags": [ "CARGO_LOCKING", "FOLDABLE", "INTERNAL", "SHOCK_RESISTANT" ],
+    "breaks_into": [ { "item": "clockworks", "count": [ 0, 2 ] }, { "item": "scrap", "count": [ 2, 6 ] } ],
+    "damage_reduction": { "all": 60 }
+  },
+  {
+    "type": "vehicle_part",
     "id": "cargo_bag",
     "name": { "str": "storage bag" },
     "symbol": "o",
@@ -16,15 +38,19 @@
     "requirements": {
       "install": { "skills": [ [ "mechanics", 0 ] ], "time": "30 m", "using": [ [ "vehicle_nail_install", 5 ] ] },
       "removal": { "skills": [ [ "mechanics", 0 ] ], "time": "15 m", "using": [ [ "vehicle_nail_removal", 1 ] ] },
-      "repair": { "skills": [ [ "mechanics", 2 ] ], "time": "30 m", "using": [ [ "sewing_standard", 2 ], [ "fabric_standard", 1 ] ] }
+      "repair": {
+        "skills": [ [ "tailor", 2 ], [ "tailor", 2 ] ],
+        "time": "30 m",
+        "using": [ [ "sewing_standard", 10 ], [ "fabric_standard", 1 ] ]
+      }
     },
-    "flags": [ "CARGO", "BOARDABLE", "COVERED", "FOLDABLE" ],
+    "flags": [ "CARGO", "BOARDABLE", "COVERED", "FOLDABLE", "SHOCK_IMMUNE" ],
     "breaks_into": "ig_vp_cloth"
   },
   {
     "type": "vehicle_part",
     "abstract": "basketlg_abstract",
-    "name": { "str": "shopping cart basket" },
+    "name": { "str": "large wire basket" },
     "symbol": "o",
     "looks_like": "basketsm",
     "color": "brown",
@@ -62,7 +88,7 @@
   {
     "id": "basketlg_external",
     "type": "vehicle_part",
-    "name": { "str": "external shopping cart basket" },
+    "name": { "str": "external large wire basket" },
     "looks_like": "basketlg",
     "item": "basket",
     "location": "structure",
@@ -89,7 +115,7 @@
   {
     "type": "vehicle_part",
     "id": "basketlg_folding",
-    "name": { "str": "folding shopping cart basket" },
+    "name": { "str": "large folding wire basket" },
     "symbol": "o",
     "looks_like": "basketlg",
     "color": "brown",
@@ -116,7 +142,7 @@
   {
     "type": "vehicle_part",
     "abstract": "basketsm_abstract",
-    "name": { "str": "wire bike basket" },
+    "name": { "str": "small folding wire basket" },
     "symbol": "o",
     "looks_like": "basketlg",
     "color": "brown",
@@ -157,7 +183,7 @@
   {
     "id": "basketsm_external",
     "type": "vehicle_part",
-    "name": { "str": "external wire bike basket" },
+    "name": { "str": "external small wire basket" },
     "looks_like": "basketsm",
     "item": "bike_basket",
     "location": "structure",
@@ -192,7 +218,7 @@
     "broken_color": "brown",
     "damage_modifier": 60,
     "durability": 100,
-    "size": "68750 ml",
+    "size": "75 L",
     "item": "frame",
     "location": "center",
     "requirements": {
@@ -218,26 +244,203 @@
     "type": "vehicle_part"
   },
   {
+    "copy-from": "box",
+    "id": "box_carbon",
+    "type": "vehicle_part",
+    "name": { "str": "carbon fiber box" },
+    "size": "90 L",
+    "item": "frame_carbon",
+    "breaks_into": "ig_vp_carbon",
+    "requirements": {
+      "repair": { "skills": [ [ "mechanics", 1 ] ], "time": "30 m", "using": [ [ "adhesive", 1 ], [ "vehicle_repair_carbon", 10 ] ] }
+    },
+    "durability": 120,
+    "damage_reduction": { "all": 34 },
+    "extend": { "flags": [ "SHOCK_RESISTANT" ] }
+  },
+  {
+    "copy-from": "box_abstract",
+    "id": "wood box",
+    "type": "vehicle_part",
+    "name": { "str": "wood box" },
+    "durability": 70,
+    "item": "frame_wood",
+    "requirements": {
+      "install": { "skills": [ [ "mechanics", 0 ] ], "time": "30 m", "using": [ [ "vehicle_nail_install", 15 ] ] },
+      "removal": { "skills": [ [ "mechanics", 0 ] ], "time": "15 m", "using": [ [ "vehicle_nail_removal", 1 ] ] },
+      "repair": {
+        "skills": [ [ "mechanics", 1 ] ],
+        "time": "30 m",
+        "using": [ [ "nail_any_adhesive", 2 ], [ "wood_structural_small", 1 ] ]
+      }
+    },
+    "breaks_into": [ { "item": "splinter", "count": [ 3, 5 ] }, { "item": "nail", "charges": [ 10, 15 ] } ],
+    "damage_reduction": { "all": 16, "stab": 6, "cut": 6 }
+  },
+  {
+    "copy-from": "box_abstract",
+    "id": "folding wood box",
+    "type": "vehicle_part",
+    "name": { "str": "folding wood box" },
+    "durability": 65,
+    "folded_volume": "1500 ml",
+    "size": "30 L",
+    "item": "foldwoodframe",
+    "requirements": {
+      "install": { "skills": [ [ "mechanics", 1 ] ], "time": "30 m", "using": [ [ "vehicle_nail_install", 10 ] ] },
+      "removal": { "skills": [ [ "mechanics", 1 ] ], "time": "15 m", "using": [ [ "vehicle_nail_removal", 1 ] ] },
+      "repair": {
+        "skills": [ [ "mechanics", 2 ] ],
+        "time": "30 m",
+        "using": [ [ "nail_any_adhesive", 2 ], [ "wood_structural_small", 1 ] ]
+      }
+    },
+    "flags": [ "CARGO", "BOARDABLE", "COVERED", "FOLDABLE", "LOCKABLE_CARGO" ],
+    "damage_reduction": { "all": 10, "stab": 4, "cut": 5 }
+  },
+  {
+    "abstract": "trunk_abstract",
+    "type": "vehicle_part",
+    "name": { "str": "trunk" },
+    "symbol": "H",
+    "looks_like": "f_locker",
+    "color": "brown",
+    "broken_symbol": "#",
+    "broken_color": "brown",
+    "durability": 350,
+    "size": "162500 ml",
+    "item": "frame",
+    "location": "center",
+    "requirements": {
+      "install": { "skills": [ [ "mechanics", 2 ] ], "time": "60 m", "using": [ [ "welding_standard", 5 ] ] },
+      "removal": { "skills": [ [ "mechanics", 2 ] ], "time": "30 m", "using": [ [ "vehicle_weld_removal", 1 ] ] },
+      "repair": { "skills": [ [ "mechanics", 2 ] ], "time": "60 m", "using": [ [ "welding_standard", 5 ], [ "steel_tiny", 1 ] ] }
+    },
+    "damage_reduction": { "all": 28 }
+  },
+  {
+    "copy-from": "trunk_abstract",
+    "type": "vehicle_part",
+    "id": "trunk",
+    "name": { "str": "trunk" },
+    "flags": [ "CARGO", "LOCKABLE_CARGO", "COVERED", "BOARDABLE" ]
+  },
+  {
+    "copy-from": "trunk",
+    "id": "trunk_carbon",
+    "type": "vehicle_part",
+    "name": { "str": "carbon fiber trunk" },
+    "size": "195 L",
+    "item": "frame_carbon",
+    "breaks_into": "ig_vp_carbon",
+    "durability": 420,
+    "damage_reduction": { "all": 34 },
+    "requirements": {
+      "repair": {
+        "skills": [ [ "mechanics", 2 ] ],
+        "time": "60 m",
+        "using": [ [ "welding_standard", 5 ], [ "vehicle_repair_carbon", 10 ] ]
+      }
+    },
+    "extend": { "flags": [ "SHOCK_RESISTANT" ] }
+  },
+  {
+    "copy-from": "trunk_abstract",
+    "id": "trunk_floor",
+    "type": "vehicle_part",
+    "name": { "str": "floor trunk" },
+    "symbol": "=",
+    "looks_like": "t_carpet_red",
+    "color": "white",
+    "broken_symbol": "#",
+    "broken_color": "light_gray",
+    "durability": 400,
+    "description": "An aisle.  A hatch lets you access a cargo space beneath it.",
+    "size": "87500 ml",
+    "item": "cargo_aisle",
+    "flags": [ "AISLE", "BOARDABLE", "CARGO", "LOCKABLE_CARGO", "COVERED" ],
+    "breaks_into": "ig_vp_sheet_metal"
+  },
+  {
+    "copy-from": "trunk_abstract",
+    "id": "cargo_space",
+    "type": "vehicle_part",
+    "name": { "str": "cargo space" },
+    "symbol": "=",
+    "looks_like": "box",
+    "color": "light_gray",
+    "broken_symbol": "#",
+    "broken_color": "dark_gray",
+    "size": "500 L",
+    "item": "cargo_rack",
+    "flags": [ "BOARDABLE", "CARGO", "COVERED" ],
+    "breaks_into": [
+      { "item": "steel_lump", "count": [ 6, 8 ] },
+      { "item": "steel_chunk", "count": [ 6, 8 ] },
+      { "item": "scrap", "count": [ 6, 8 ] }
+    ]
+  },
+  {
+    "copy-from": "cargo_space",
     "id": "cargo_space_external",
     "type": "vehicle_part",
     "name": { "str": "external cargo rack" },
-    "item": "cargo_rack",
     "location": "structure",
-    "symbol": "=",
-    "broken_symbol": "#",
-    "color": "light_gray",
-    "broken_color": "dark_gray",
-    "durability": 250,
     "description": "Storage space, mounted outside your vehicle's armor and vulnerable to damage.",
     "size": "250 L",
-    "breaks_into": [  ],
+    "flags": [ "UNMOUNT_ON_DAMAGE", "CARGO", "PROTRUSION", "COVERED", "BOARDABLE" ]
+  },
+  {
+    "copy-from": "cargo_space",
+    "id": "cargo_space_carbon",
+    "type": "vehicle_part",
+    "name": { "str": "carbon fiber cargo space" },
+    "size": "600 L",
+    "item": "cargo_rack_carbon",
+    "breaks_into": "ig_vp_carbon",
     "requirements": {
-      "install": { "skills": [ [ "mechanics", 3 ] ], "time": "60 m", "using": [ [ "welding_standard", 5 ] ] },
-      "removal": { "skills": [ [ "mechanics", 3 ] ], "time": "30 m", "using": [ [ "vehicle_weld_removal", 1 ] ] },
-      "repair": { "skills": [ [ "mechanics", 4 ] ], "time": "60 m", "using": [ [ "welding_standard", 5 ], [ "steel_tiny", 1 ] ] }
+      "repair": {
+        "skills": [ [ "mechanics", 2 ] ],
+        "time": "60 m",
+        "using": [ [ "welding_standard", 5 ], [ "vehicle_repair_carbon", 10 ] ]
+      }
     },
-    "flags": [ "UNMOUNT_ON_DAMAGE", "CARGO", "PROTRUSION", "COVERED", "BOARDABLE" ],
-    "damage_reduction": { "all": 26 }
+    "durability": 420,
+    "damage_reduction": { "all": 34 },
+    "extend": { "flags": [ "SHOCK_RESISTANT" ] }
+  },
+  {
+    "copy-from": "cargo_space_carbon",
+    "id": "cargo_space_carbon_external",
+    "type": "vehicle_part",
+    "name": { "str": "external carbon fiber cargo rack" },
+    "location": "structure",
+    "description": "Storage space, mounted outside your vehicle's armor and vulnerable to damage.",
+    "size": "300 L",
+    "flags": [ "UNMOUNT_ON_DAMAGE", "CARGO", "PROTRUSION", "COVERED", "BOARDABLE", "SHOCK_RESISTANT" ]
+  },
+  {
+    "copy-from": "cargo_space",
+    "id": "livestock_stall",
+    "type": "vehicle_part",
+    "name": { "str": "livestock stall" },
+    "description": "A cargo space for carrying livestock.  'e'xamine it to capture an animal next to you, or to release the animal currently contained.  When selecting an animal to capture, choose its tile relative to you, not the part.",
+    "size": "200 L",
+    "item": "livestock_carrier",
+    "flags": [ "BOARDABLE", "CARGO", "COVERED", "CAPTURE_MONSTER_VEH" ]
+  },
+  {
+    "copy-from": "livestock_stall",
+    "id": "animal_compartment",
+    "type": "vehicle_part",
+    "looks_like": "livestock_stall",
+    "name": { "str": "animal compartment" },
+    "durability": 125,
+    "description": "A large locker for transporting smaller animals.  'e'xamine it to capture an animal next to you, or to release the animal currently contained.  When selecting an animal to capture, choose its tile relative to you, not the part.",
+    "size": "50 L",
+    "item": "animal_locker",
+    "flags": [ "CARGO", "COVERED", "CAPTURE_MONSTER_VEH", "OBSTACLE" ],
+    "breaks_into": [ { "item": "steel_chunk", "count": [ 1, 2 ] }, { "item": "scrap", "count": [ 3, 4 ] } ]
   },
   {
     "id": "bike_rack",
@@ -283,7 +486,131 @@
       "removal": { "skills": [ [ "mechanics", 1 ] ], "time": "30 m", "using": [ [ "vehicle_bolt", 1 ] ] },
       "repair": { "skills": [ [ "mechanics", 2 ] ], "time": "60 m", "using": [ [ "welding_standard", 5 ], [ "steel_tiny", 1 ] ] }
     },
-    "flags": [ "UNMOUNT_ON_DAMAGE", "PROTRUSION" ],
+    "flags": [ "UNMOUNT_ON_DAMAGE", "PROTRUSION", "SHOCK_RESISTANT" ],
     "damage_reduction": { "all": 10 }
+  },
+  {
+    "type": "vehicle_part",
+    "id": "travois",
+    "name": { "str": "travois" },
+    "symbol": "o",
+    "looks_like": "frame_wood_light_cross",
+    "color": "brown",
+    "broken_symbol": "#",
+    "broken_color": "brown",
+    "damage_modifier": 60,
+    "durability": 50,
+    "size": "37500 ml",
+    "item": "frame_wood_light",
+    "location": "center",
+    "flags": [ "CARGO", "BOARDABLE", "COVERED" ],
+    "breaks_into": [ { "item": "splinter", "count": [ 3, 5 ] }, { "item": "string_36", "count": [ 10, 15 ] } ],
+    "requirements": {
+      "install": { "time": "10 m", "using": [ [ "rope_natural_short", 1 ] ] },
+      "repair": { "time": "5 m", "using": [ [ "nail_any_adhesive", 1 ], [ "vehicle_repair_small_wood", 4 ] ] }
+    },
+    "damage_reduction": { "all": 18, "stab": 8, "cut": 8 }
+  },
+  {
+    "type": "vehicle_part",
+    "id": "minifridge",
+    "name": { "str": "minifridge" },
+    "symbol": "H",
+    "looks_like": "f_fridge",
+    "color": "light_blue",
+    "broken_symbol": "#",
+    "broken_color": "light_blue",
+    "damage_modifier": 80,
+    "durability": 100,
+    "description": "A small fridge.  When turned on, it will cool the food inside, extended the time until the food spoils.",
+    "//": "Use average consumption, not the max on the appliance rating plate. 30W ~ 260kWh per annum",
+    "epower": -30,
+    "size": "75 L",
+    "item": "minifridge",
+    "location": "center",
+    "requirements": {
+      "install": { "skills": [ [ "mechanics", 3 ] ], "time": "60 m", "using": [ [ "vehicle_bolt", 1 ] ] },
+      "removal": { "skills": [ [ "mechanics", 2 ] ], "time": "30 m", "using": [ [ "vehicle_bolt", 1 ] ] },
+      "repair": {
+        "skills": [ [ "mechanics", 4 ] ],
+        "time": "60 m",
+        "using": [ [ "welding_standard", 5 ], [ "vehicle_repair_electronics", 2 ] ]
+      }
+    },
+    "flags": [ "CARGO", "OBSTACLE", "FRIDGE", "COVERED", "ENABLED_DRAINS_EPOWER" ],
+    "breaks_into": [
+      { "item": "steel_lump", "count": [ 8, 13 ] },
+      { "item": "steel_chunk", "count": [ 8, 13 ] },
+      { "item": "scrap", "count": [ 8, 13 ] },
+      { "item": "hose", "prob": 50 },
+      { "item": "motor_tiny", "prob": 25 }
+    ],
+    "damage_reduction": { "all": 32 }
+  },
+  {
+    "type": "vehicle_part",
+    "id": "minifreezer",
+    "name": { "str": "minifreezer" },
+    "symbol": "H",
+    "color": "light_blue",
+    "broken_symbol": "#",
+    "broken_color": "blue",
+    "looks_like": "minifridge",
+    "damage_modifier": 80,
+    "durability": 100,
+    "epower": -45,
+    "size": "75 L",
+    "item": "minifreezer",
+    "location": "center",
+    "requirements": {
+      "install": { "skills": [ [ "mechanics", 3 ] ], "time": "60 m", "using": [ [ "vehicle_bolt", 1 ] ] },
+      "removal": { "skills": [ [ "mechanics", 2 ] ], "time": "30 m", "using": [ [ "vehicle_bolt", 1 ] ] },
+      "repair": {
+        "skills": [ [ "mechanics", 4 ] ],
+        "time": "60 m",
+        "using": [ [ "welding_standard", 5 ], [ "vehicle_repair_electronics", 2 ] ]
+      }
+    },
+    "flags": [ "CARGO", "OBSTACLE", "FREEZER", "COVERED", "ENABLED_DRAINS_EPOWER" ],
+    "breaks_into": [
+      { "item": "steel_lump", "count": [ 8, 13 ] },
+      { "item": "steel_chunk", "count": [ 8, 13 ] },
+      { "item": "scrap", "count": [ 8, 13 ] },
+      { "item": "hose", "prob": 50 },
+      { "item": "motor_tiny", "prob": 25 }
+    ],
+    "damage_reduction": { "all": 32 }
+  },
+  {
+    "type": "vehicle_part",
+    "id": "fridgetank",
+    "name": { "str": "refrigerated tank (60L)" },
+    "symbol": "O",
+    "looks_like": "f_fridge",
+    "color": "light_gray",
+    "broken_symbol": "#",
+    "broken_color": "light_blue",
+    "damage_modifier": 80,
+    "durability": 100,
+    "description": "A 60L refrigerated tank.  When turned on, it will cool the liquid inside, extending the time until the food spoils.",
+    "//": "Use average consumption, not the max on the appliance rating plate. 30W ~ 260kWh per annum",
+    "epower": -30,
+    "size": "75 L",
+    "item": "fridgetank",
+    "location": "fuel_source",
+    "requirements": {
+      "install": { "skills": [ [ "mechanics", 3 ] ], "time": "60 m", "using": [ [ "vehicle_bolt", 1 ] ] },
+      "removal": { "skills": [ [ "mechanics", 2 ] ], "time": "30 m", "using": [ [ "vehicle_bolt", 1 ] ] },
+      "repair": { "skills": [ [ "mechanics", 5 ] ], "time": "60 m", "using": [ [ "welding_standard", 5 ], [ "steel_tiny", 1 ] ] }
+    },
+    "flags": [ "FLUIDTANK", "FRIDGE", "ENABLED_DRAINS_EPOWER" ],
+    "breaks_into": [
+      { "item": "steel_lump", "count": [ 8, 13 ] },
+      { "item": "steel_chunk", "count": [ 8, 13 ] },
+      { "item": "scrap", "count": [ 8, 13 ] },
+      { "item": "hose", "prob": 50 },
+      { "item": "motor_tiny", "prob": 25 }
+    ],
+    "damage_reduction": { "all": 32 }
   }
 ]

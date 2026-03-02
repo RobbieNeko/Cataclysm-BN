@@ -1,6 +1,4 @@
 #pragma once
-#ifndef CATA_SRC_CLZONES_H
-#define CATA_SRC_CLZONES_H
 
 #include <cstddef>
 #include <functional>
@@ -14,6 +12,7 @@
 #include <utility>
 #include <vector>
 
+#include "color.h"
 #include "memory_fast.h"
 #include "point.h"
 #include "string_id.h"
@@ -36,17 +35,20 @@ class zone_type
     private:
         std::string name_;
         std::string desc_;
+        nc_color color_;
     public:
 
         zone_type_id id;
         bool was_loaded = false;
 
         zone_type() = default;
-        explicit zone_type( const std::string &name, const std::string &desc ) : name_( name ),
-            desc_( desc ) {}
+        explicit zone_type( const std::string &name, const std::string &desc,
+                            nc_color color = c_yellow ) : name_( name ),
+            desc_( desc ), color_( color ) {}
 
         std::string name() const;
         std::string desc() const;
+        auto color() const -> nc_color;
 
         static void reset_zones();
         static void load_zones( const JsonObject &jo, const std::string &src );
@@ -435,4 +437,4 @@ class zone_manager
         void deserialize( JsonIn &jsin );
 };
 
-#endif // CATA_SRC_CLZONES_H
+

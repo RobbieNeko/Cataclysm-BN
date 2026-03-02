@@ -78,6 +78,7 @@ harvest_entry harvest_entry::load( const JsonObject &jo, const std::string &src 
     assign( jo, "mass_ratio", ret.mass_ratio, strict, 0.00f );
     assign( jo, "flags", ret.flags );
     assign( jo, "faults", ret.faults );
+    assign( jo, "no_auto_pickup", ret.no_auto_pickup, strict );
 
     return ret;
 }
@@ -107,7 +108,7 @@ const harvest_id &harvest_list::load( const JsonObject &jo, const std::string &s
 
 void harvest_list::finalize()
 {
-    std::transform( entries_.begin(), entries_.end(), std::inserter( names_, names_.begin() ),
+    std::ranges::transform( entries_, std::inserter( names_, names_.begin() ),
     []( const harvest_entry & entry ) {
         return itype_id( entry.drop ).is_valid() ?
                item::nname( itype_id( entry.drop ) ) : "";

@@ -1,6 +1,4 @@
 #pragma once
-#ifndef CATA_SRC_OMDATA_H
-#define CATA_SRC_OMDATA_H
 
 #include <climits>
 #include <cstddef>
@@ -120,6 +118,7 @@ enum class oter_flags : int {
     source_tailoring,
     source_vehicles,
     source_weapon,
+    is_bridge,
     num_oter_flags
 };
 
@@ -300,6 +299,14 @@ struct oter_t {
             return type->has_flag( oter_flags::lake_shore );
         }
 
+        // Comparison operators for Lua bindings
+        bool operator==( const oter_t &rhs ) const {
+            return id == rhs.id;
+        }
+        bool operator<( const oter_t &rhs ) const {
+            return id < rhs.id;
+        }
+
     private:
         om_direction::type dir = om_direction::type::none;
         uint32_t symbol;
@@ -335,4 +342,4 @@ const std::vector<overmap_land_use_code> &get_all();
 
 } // namespace overmap_land_use_codes
 
-#endif // CATA_SRC_OMDATA_H
+

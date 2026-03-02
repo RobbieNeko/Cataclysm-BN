@@ -1,6 +1,4 @@
 #pragma once
-#ifndef CATA_SRC_SCENARIO_H
-#define CATA_SRC_SCENARIO_H
 
 #include <set>
 #include <string>
@@ -41,6 +39,10 @@ class scenario
         std::set<trait_id> _allowed_traits;
         std::set<trait_id> _forced_traits;
         std::set<trait_id> _forbidden_traits;
+        std::set<bionic_id> _allowed_bionics;
+        std::set<bionic_id> _forced_bionics;
+        std::set<bionic_id> _forbidden_bionics;
+        bool _forbids_bionics;
         std::vector<start_location_id> _allowed_locs;
         int _point_cost = 0;
         std::set<std::string> flags; // flags for some special properties of the scenario
@@ -91,6 +93,12 @@ class scenario
         bool is_locked_trait( const trait_id &trait ) const;
         bool is_forbidden_trait( const trait_id &trait ) const;
 
+        bool bionicquery( const bionic_id &bionic ) const;
+        std::set<bionic_id> get_locked_bionics() const;
+        bool is_locked_bionic( const bionic_id &bionic ) const;
+        bool is_forbidden_bionic( const bionic_id &bionic ) const;
+        bool forbids_bionics() const;
+
         bool allowed_start( const start_location_id &loc ) const;
         signed int point_cost() const;
         bool has_map_extra() const;
@@ -133,4 +141,4 @@ void reset_scenarios_blacklist();
 const scenario *get_scenario();
 void set_scenario( const scenario *new_scenario );
 
-#endif // CATA_SRC_SCENARIO_H
+

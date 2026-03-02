@@ -152,6 +152,7 @@ class event_transformation::impl
         virtual std::unique_ptr<impl> clone() const = 0;
 };
 
+event_transformation::~event_transformation() = default;
 class event_statistic::impl
 {
     public:
@@ -164,6 +165,7 @@ class event_statistic::impl
         virtual std::unique_ptr<impl> clone() const = 0;
 };
 
+event_statistic::~event_statistic() = default;
 struct value_constraint {
     std::optional<cata_variant> equals_;
     std::optional<std::string> equals_string_;
@@ -505,7 +507,7 @@ struct event_transformation_impl : public event_transformation::impl {
         }
 
         for( const std::string &drop_field_name : drop_fields_ ) {
-            if( input_fields.find( drop_field_name ) == input_fields.end() ) {
+            if( !input_fields.contains( drop_field_name ) ) {
                 debugmsg( "event_transformation %s lists field %s to be dropped, but no field "
                           "with that name exists in the input", name, drop_field_name );
             }

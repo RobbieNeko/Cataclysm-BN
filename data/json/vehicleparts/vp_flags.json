@@ -55,6 +55,12 @@
     "info": "With a seat or saddle, you drive from here.  You can 'e'xamine the tile to access the controls, or use the vehicle control key (default '^')."
   },
   {
+    "id": "CONTROL_WITHOUT_HANDS",
+    "type": "json_flag",
+    "context": [ "vehicle_part" ],
+    "info": "Allows you to fire two-handed weapons while driving."
+  },
+  {
     "id": "COVERED",
     "type": "json_flag",
     "context": [ "vehicle_part" ],
@@ -182,6 +188,12 @@
     "info": "This item <good>can be used as a flat surface</good> for <info>butchering</info>."
   },
   {
+    "id": "BUTCHER_EQ",
+    "type": "json_flag",
+    "context": [ "vehicle_part" ],
+    "info": "This item <good>can be used as a butchering rack</good>."
+  },
+  {
     "id": "WORKBENCH",
     "type": "json_flag",
     "context": [ "vehicle_part" ],
@@ -230,6 +242,12 @@
     "requires_flag": "LOCKABLE_CARGO"
   },
   {
+    "id": "DOOR_LOCKING",
+    "type": "json_flag",
+    "context": [ "vehicle_part" ],
+    "requires_flag": "OPENABLE"
+  },
+  {
     "id": "DOOR_MOTOR",
     "type": "json_flag",
     "context": [ "vehicle_part" ],
@@ -240,5 +258,31 @@
     "type": "json_flag",
     "context": [ "vehicle_part" ],
     "requires_flag": "ROOF"
+  },
+  {
+    "id": "SEAT_REQUIRES_BALANCE",
+    "context": [ "vehicle_part" ],
+    "type": "json_flag"
+  },
+  {
+    "id": "WHEEL_MOUNT_SKATEBOARD",
+    "context": [ "vehicle_part" ],
+    "type": "json_flag"
+  },
+  {
+    "id": "NEEDS_WHEEL_MOUNT_SKATEBOARD",
+    "context": [ "vehicle_part" ],
+    "type": "json_flag",
+    "requires_flag": "WHEEL_MOUNT_SKATEBOARD"
+  },
+  {
+    "id": "SHOCK_IMMUNE",
+    "context": [ "vehicle_part" ],
+    "type": "json_flag"
+  },
+  {
+    "id": "SHOCK_RESISTANT",
+    "context": [ "vehicle_part" ],
+    "type": "json_flag"
   }
 ]

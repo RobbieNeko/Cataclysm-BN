@@ -19,7 +19,10 @@
     "time": "1 m",
     "autolearn": true,
     "flags": [ "BLIND_HARD" ],
-    "components": [ [ [ "water_clean", 1 ], [ "water", 1 ] ], [ [ "soap", 1 ], [ "soap_flakes", 15 ], [ "detergent", 1 ] ] ]
+    "components": [
+      [ [ "water_clean", 1 ], [ "water", 1 ] ],
+      [ [ "soap", 1 ], [ "soap_flakes", 15 ], [ "detergent", 1 ], [ "shimmer", 1 ] ]
+    ]
   },
   {
     "type": "recipe",
@@ -68,7 +71,11 @@
     "using": [ [ "sewing_standard", 1 ] ],
     "qualities": [ { "id": "CHEM", "level": 2 } ],
     "tools": [ [ [ "surface_heat", 2, "LIST" ] ] ],
-    "components": [ [ [ "fabric_standard", 1, "LIST" ], [ "bag_plastic", 1 ] ], [ [ "oxy_powder", 5 ] ], [ [ "scrap", 1 ] ] ]
+    "components": [
+      [ [ "fabric_standard", 1, "LIST" ], [ "bag_plastic", 1 ], [ "bag_zipper", 1 ] ],
+      [ [ "oxy_powder", 5 ] ],
+      [ [ "scrap", 1 ] ]
+    ]
   },
   {
     "type": "recipe",

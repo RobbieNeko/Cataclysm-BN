@@ -5,7 +5,6 @@
 #include "character.h"
 #include "cursesdef.h"
 #include "enums.h"
-#include "explosion.h"
 #include "game_constants.h"
 #include "game.h"
 #include "line.h"
@@ -14,7 +13,6 @@
 #include "mtype.h"
 #include "options.h"
 #include "output.h"
-#include "player.h"
 #include "point.h"
 #include "popup.h"
 #include "posix_time.h"
@@ -48,18 +46,19 @@ class basic_animation
             delay( static_cast<size_t>( get_option<int>( "ANIMATION_DELAY" ) ) * scale * 1000000L ) {
         }
 
-        void draw() const {
+        void popup() const {
             static_popup popup;
             popup
             .wait_message( "%s", _( "Hang on a bit…" ) )
             .on_top( true );
-
+        }
+        void draw() const {
             g->invalidate_main_ui_adaptor();
             ui_manager::redraw_invalidated();
             refresh_display();
         }
-
-        void progress() const {
+        void progress( bool draw_popup = true ) const {
+            if( draw_popup ) { popup(); }
             draw();
 
             // NOLINTNEXTLINE(cata-no-long): timespec uses long int
@@ -113,14 +112,14 @@ bool is_radius_visible( const tripoint &center, int radius )
 
 bool is_layer_visible( const std::map<tripoint, explosion_tile> &layer )
 {
-    return std::any_of( layer.begin(), layer.end(),
+    return std::ranges::any_of( layer,
     []( const std::pair<tripoint, explosion_tile> &element ) {
         return is_point_visible( element.first );
     } );
 }
 
 // Convert p to screen position relative to u's current position and view
-tripoint relative_view_pos( const player &u, const tripoint &p ) noexcept
+tripoint relative_view_pos( const avatar &u, const tripoint &p ) noexcept
 {
     return p - ( u.pos() + u.view_offset ) + point( POSX, POSY );
 }
@@ -192,8 +191,8 @@ void draw_custom_explosion_curses( game &g,
 {
     // calculate screen offset relative to player + view offset position
     const tripoint center = g.u.pos() + g.u.view_offset;
-    const tripoint topleft( center.x - getmaxx( g.w_terrain ) / 2,
-                            center.y - getmaxy( g.w_terrain ) / 2, 0 );
+    const tripoint topleft( center.x - ( getmaxx( g.w_terrain ) / 2 ),
+                            center.y - ( getmaxy( g.w_terrain ) / 2 ), 0 );
 
     explosion_animation anim;
 
@@ -259,6 +258,41 @@ void draw_custom_explosion_curses( game &g,
         }
     }
 }
+
+[[maybe_unused]]
+auto get_bullet_dir( const std::vector<tripoint> &trajectory, size_t i ) -> direction
+{
+    return i == 0 && trajectory.size() > 1 ?
+           direction_from( trajectory[i], trajectory[i + 1] ) :
+           ( i >= 1 && i < trajectory.size() ) ?
+           direction_from( trajectory[i - 1], trajectory[i] ) :
+           direction::NORTH;
+}
+
+[[maybe_unused]] auto get_bullet_rotation( direction dir ) -> int
+{
+    switch( dir ) {
+        case direction::NORTH:
+            return 0;
+        case direction::NORTHEAST:
+            return 5;
+        case direction::EAST:
+            return 3;
+        case direction::SOUTHEAST:
+            return 8;
+        case direction::SOUTH:
+            return 2;
+        case direction::SOUTHWEST:
+            return 7;
+        case direction::WEST:
+            return 1;
+        case direction::NORTHWEST:
+            return 6;
+        default:
+            return 0;
+    }
+}
+
 } // namespace
 
 #if defined(TILES)
@@ -483,10 +517,9 @@ void draw_bullet_curses( map &m, const tripoint &t, const char bullet, const tri
 } // namespace
 
 #if defined(TILES)
-/* Bullet Animation -- Maybe change this to animate the ammo itself flying through the air?*/
-// need to have a version where there is no player defined, possibly. That way shrapnel works as intended
 void game::draw_bullet( const tripoint &t, const int i,
-                        const std::vector<tripoint> &trajectory, const char bullet )
+                        const std::vector<tripoint> &trajectory, const char bullet,
+                        const std::string &custom_sprite )
 {
     if( !use_tiles ) {
         draw_bullet_curses( m, t, bullet, nullptr );
@@ -497,78 +530,20 @@ void game::draw_bullet( const tripoint &t, const int i,
         return;
     }
 
-    static const std::string bullet_unknown  {};
-    static const std::string bullet_normal_0deg {"animation_bullet_normal_0deg"};
-    static const std::string bullet_normal_45deg {"animation_bullet_normal_45deg"};
-    static const std::string bullet_flame    {"animation_bullet_flame"};
-    static const std::string bullet_shrapnel {"animation_bullet_shrapnel"};
+    auto sprite = std::string{};
+    if( !custom_sprite.empty() ) {
+        sprite = custom_sprite;
+    } else if( bullet == '*' ) {
+        sprite = "animation_bullet_normal_0deg";
+    } else if( bullet == '#' ) {
+        sprite = "animation_bullet_flame";
+    } else if( bullet == '`' ) {
+        sprite = "animation_bullet_shrapnel";
+    }
 
-    // to send to
-    enum rotation_impl : unsigned {
-        UP = 0,
-        DOWN = 2,
-        LEFT = 1,
-        RIGHT = 3,
-    };
-
-    const auto get_bullet_normal_sprite = [&]( direction dir ) {
-        switch( dir ) {
-            case direction::NORTH:
-            case direction::EAST:
-            case direction::SOUTH:
-            case direction::WEST:
-            default:
-                return bullet_normal_0deg;
-            case direction::NORTHEAST:
-            case direction::SOUTHEAST:
-            case direction::SOUTHWEST:
-            case direction::NORTHWEST:
-                return bullet_normal_45deg;
-        }
-    };
-
-    // converts direction into cata_tiles compatible rotation value
-    static const auto get_rotation = []( direction dir ) {
-        switch( dir ) {
-            default:
-            case direction::NORTH:
-            case direction::NORTHEAST:
-                return rotation_impl::UP;
-            case direction::SOUTH:
-            case direction::SOUTHWEST:
-                return rotation_impl::DOWN;
-            case direction::WEST: // for some reason it's counter-clockwise
-            case direction::NORTHWEST:
-                return rotation_impl::LEFT;
-            case direction::EAST:
-            case direction::SOUTHEAST:
-                return rotation_impl::RIGHT;
-        }
-    };
-    const auto get_dir = [&]( ) -> direction {
-        if( i == 0 && trajectory.size() > 1 )
-        {
-            return direction_from( t, trajectory[1] );
-        } else if( i >= 1 )
-        {
-            return direction_from( trajectory[i - 1], t );
-        } else
-        {
-            return direction::NORTH;
-        }
-    };
-
-    const direction dir = get_dir();
-    const rotation_impl rotation = get_rotation( dir );
-
-    const std::string &bullet_type =
-        bullet == '*' ? get_bullet_normal_sprite( dir )
-        : bullet == '#' ? bullet_flame
-        : bullet == '`' ? bullet_shrapnel
-        : bullet_unknown;
-
-    shared_ptr_fast<draw_callback_t> bullet_cb = make_shared_fast<draw_callback_t>( [&]() {
-        tilecontext->init_draw_bullet( t, bullet_type, rotation );
+    const auto rotation = get_bullet_rotation( get_bullet_dir( trajectory, static_cast<size_t>( i ) ) );
+    auto bullet_cb = make_shared_fast<draw_callback_t>( [&]() {
+        tilecontext->init_draw_bullet( t, sprite, rotation );
     } );
     add_draw_callback( bullet_cb );
 
@@ -577,7 +552,7 @@ void game::draw_bullet( const tripoint &t, const int i,
 }
 #else
 void game::draw_bullet( const tripoint &t, const int i, const std::vector<tripoint> &trajectory,
-                        const char bullet )
+                        const char bullet, const std::string & )
 {
     draw_bullet_curses( m, t, bullet, &trajectory[i] );
 }
@@ -587,7 +562,7 @@ namespace
 {
 // short visual animation (player, monster, ...) (hit, dodge, ...)
 // cTile is a UTF-8 strings, and must be a single cell wide!
-void hit_animation( const player &u, const tripoint &center, nc_color cColor,
+void hit_animation( const avatar &u, const tripoint &center, nc_color cColor,
                     const std::string &cTile )
 {
     const tripoint init_pos = relative_view_pos( u, center );
@@ -610,7 +585,7 @@ void hit_animation( const player &u, const tripoint &center, nc_color cColor,
     }
 }
 
-void draw_hit_mon_curses( const tripoint &center, const monster &m, const player &u,
+void draw_hit_mon_curses( const tripoint &center, const monster &m, const avatar &u,
                           const bool dead )
 {
     hit_animation( u, center, red_background( m.type->color ), dead ? "%" : m.symbol() );
@@ -647,11 +622,11 @@ void game::draw_hit_mon( const tripoint &p, const monster &m, const bool dead )
 
 namespace
 {
-void draw_hit_player_curses( const game &g, const Character &p, const int dam )
+void draw_hit_player_curses( const game &g, const Character &who, const int dam )
 {
-    nc_color const col = !dam ? yellow_background( p.symbol_color() ) : red_background(
-                             p.symbol_color() );
-    hit_animation( g.u, p.pos(), col, p.symbol() );
+    nc_color const col = !dam ? yellow_background( who.symbol_color() ) : red_background(
+                             who.symbol_color() );
+    hit_animation( g.u, who.pos(), col, who.symbol() );
 }
 } //namespace
 
@@ -684,9 +659,9 @@ void game::draw_hit_player( const Character &p, const int dam )
     bullet_animation().progress();
 }
 #else
-void game::draw_hit_player( const Character &p, const int dam )
+void game::draw_hit_player( const Character &who, const int dam )
 {
-    draw_hit_player_curses( *this, p, dam );
+    draw_hit_player_curses( *this, who, dam );
 }
 #endif
 
@@ -708,8 +683,8 @@ void draw_line_curses( game &g, const tripoint &center, const std::vector<tripoi
             const char sym = '?';
             const nc_color col = c_dark_gray;
             const catacurses::window &w = g.w_terrain;
-            const int k = p.x + getmaxx( w ) / 2 - center.x;
-            const int j = p.y + getmaxy( w ) / 2 - center.y;
+            const int k = p.x + ( getmaxx( w ) / 2 ) - center.x;
+            const int j = p.y + ( getmaxy( w ) / 2 ) - center.y;
             mvwputch( w, point( k, j ), col, sym );
         } else {
             // This function reveals tile at p and writes it to the player's memory
@@ -762,6 +737,46 @@ void draw_line_curses( game &g, const std::vector<tripoint> &points )
 } //namespace
 
 #if defined(TILES)
+void draw_line_of( const draw_sprite_line_options &options )
+{
+    if( !use_tiles ) {
+        draw_line_curses( *g, options.points );
+        return;
+    }
+    std::vector<tripoint> ps;
+    std::vector<std::string> ids;
+    std::vector<int> rots;
+
+    ps.reserve( options.points.size() );
+    ids.reserve( options.points.size() );
+    rots.reserve( options.points.size() );
+
+    for( size_t i = 0; i < options.points.size(); ++i ) {
+        if( !is_point_visible( options.points[i] ) ) { continue; }
+
+        int rotation;
+        if( options.rotate ) {
+            const int step = static_cast<int>( i % 8 );
+            const int cardinal_rotations[] = {0, 1, 2, 3};
+            const int diagonal_rotations[] = {5, 6, 7, 8};
+            rotation = ( step % 2 == 0 ) ? cardinal_rotations[step / 2] : diagonal_rotations[step / 2];
+        } else {
+            rotation = get_bullet_rotation( get_bullet_dir( options.points, i ) );
+        }
+
+        ps.push_back( options.points[i] );
+        ids.push_back( options.sprite );
+        rots.push_back( rotation );
+    }
+    if( ps.empty() ) { return; }
+
+    auto bullets_cb = make_shared_fast<game::draw_callback_t>( [&] {
+        tilecontext->init_draw_bullets( ps, ids, rots );
+    } );
+    g->add_draw_callback( bullets_cb );
+    bullet_animation().progress( false );
+    tilecontext->void_bullet();
+}
 void game::draw_line( const tripoint &p, const std::vector<tripoint> &points )
 {
     draw_line_curses( *this, points );
@@ -773,6 +788,10 @@ void game::draw_line( const tripoint &p, const std::vector<tripoint> &points )
     tilecontext->init_draw_line( p, points, "line_trail", false );
 }
 #else
+void draw_line_of( const draw_sprite_line_options &options )
+{
+    g->draw_line( options.p, options.points );
+}
 void game::draw_line( const tripoint &/*p*/, const std::vector<tripoint> &points )
 {
     draw_line_curses( *this, points );
@@ -1108,8 +1127,8 @@ static void draw_cone_aoe_curses( const tripoint &, const bucketed_points &waves
     // Calculate screen offset relative to player + view offset position
     const avatar &u = get_avatar();
     const tripoint center = u.pos() + u.view_offset;
-    const tripoint topleft( center.x - catacurses::getmaxx( g->w_terrain ) / 2,
-                            center.y - catacurses::getmaxy( g->w_terrain ) / 2, 0 );
+    const tripoint topleft( center.x - ( catacurses::getmaxx( g->w_terrain ) / 2 ),
+                            center.y - ( catacurses::getmaxy( g->w_terrain ) / 2 ), 0 );
 
     auto it = waves.begin();
     shared_ptr_fast<game::draw_callback_t> wave_cb =
@@ -1188,7 +1207,7 @@ void draw_cone_aoe( const tripoint &origin, const std::map<tripoint, double> &ao
             pv.val *= 1.0 - ( 2.0 / max_bucket_count );
         }
         combined_layer.insert( combined_layer.end(), layer.begin(), layer.end() );
-        if( std::any_of( combined_layer.begin(), combined_layer.end(),
+        if( std::ranges::any_of( combined_layer,
         []( const point_with_value & element ) {
         return is_point_visible( element.pt );
         } ) ) {

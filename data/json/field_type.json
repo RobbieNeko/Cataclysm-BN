@@ -210,8 +210,10 @@
     ],
     "description_affix": "covered_in",
     "is_splattering": true,
+    "accelerated_decay": true,
     "priority": 2,
-    "half_life": "6 hours",
+    "half_life": "10 minutes",
+    "underwater_age_speedup": "10 minutes",
     "phase": "liquid",
     "display_field": true,
     "looks_like": "fd_sap"
@@ -445,6 +447,7 @@
     "decay_amount_factor": 5,
     "percent_spread": 15,
     "outdoor_age_speedup": "1 minutes",
+    "underwater_age_speedup": "30 minutes",
     "dirty_transparency_cache": true,
     "has_fume": true,
     "priority": 8,
@@ -575,6 +578,7 @@
     "gas_absorption_factor": 15,
     "percent_spread": 30,
     "outdoor_age_speedup": "3 minutes",
+    "underwater_age_speedup": "10 minutes",
     "dirty_transparency_cache": true,
     "has_fume": true,
     "immunity_data": { "body_part_env_resistance": [ [ "mouth", 15 ] ] },
@@ -856,6 +860,26 @@
     "looks_like": "fd_cigsmoke"
   },
   {
+    "id": "fd_bluntsmoke",
+    "type": "field_type",
+    "intensity_levels": [
+      { "name": "swirl of blunt smoke", "translucency": 5 },
+      { "name": "blunt smoke", "color": "light_gray" },
+      { "name": "thick blunt smoke", "color": "dark_gray" }
+    ],
+    "npc_complain": { "chance": 20, "issue": "weed_smoke", "duration": "10 minutes", "speech": "<weed_smoke>" },
+    "decay_amount_factor": 5,
+    "percent_spread": 225,
+    "outdoor_age_speedup": "6 minutes",
+    "dirty_transparency_cache": true,
+    "priority": 8,
+    "half_life": "35 minutes",
+    "phase": "gas",
+    "accelerated_decay": true,
+    "display_field": true,
+    "looks_like": "fd_cigsmoke"
+  },
+  {
     "id": "fd_cracksmoke",
     "type": "field_type",
     "legacy_enum_id": 35,
@@ -1101,8 +1125,9 @@
     "decay_amount_factor": 5,
     "percent_spread": 100,
     "outdoor_age_speedup": "100 minutes",
+    "underwater_age_speedup": "1 minute",
     "priority": -1,
-    "half_life": "50 minutes",
+    "half_life": "5 minutes",
     "phase": "gas"
   },
   {
@@ -1117,8 +1142,9 @@
     "decay_amount_factor": 5,
     "percent_spread": 100,
     "outdoor_age_speedup": "100 minutes",
+    "underwater_age_speedup": "1 minute",
     "priority": -1,
-    "half_life": "50 minutes",
+    "half_life": "5 minutes",
     "phase": "gas"
   },
   {
@@ -1133,8 +1159,9 @@
     "decay_amount_factor": 5,
     "percent_spread": 100,
     "outdoor_age_speedup": "100 minutes",
+    "underwater_age_speedup": "1 minute",
     "priority": -1,
-    "half_life": "50 minutes",
+    "half_life": "5 minutes",
     "phase": "gas"
   },
   {
@@ -1149,8 +1176,9 @@
     "decay_amount_factor": 5,
     "percent_spread": 100,
     "outdoor_age_speedup": "100 minutes",
+    "underwater_age_speedup": "1 minute",
     "priority": -1,
-    "half_life": "50 minutes",
+    "half_life": "5 minutes",
     "phase": "gas"
   },
   {
@@ -1165,8 +1193,9 @@
     "decay_amount_factor": 5,
     "percent_spread": 100,
     "outdoor_age_speedup": "100 minutes",
+    "underwater_age_speedup": "1 minute",
     "priority": -1,
-    "half_life": "50 minutes",
+    "half_life": "5 minutes",
     "phase": "gas"
   },
   {
@@ -1181,8 +1210,9 @@
     "decay_amount_factor": 5,
     "percent_spread": 100,
     "outdoor_age_speedup": "100 minutes",
+    "underwater_age_speedup": "1 minute",
     "priority": -1,
-    "half_life": "50 minutes",
+    "half_life": "5 minutes",
     "phase": "gas"
   },
   {
@@ -1197,8 +1227,9 @@
     "decay_amount_factor": 5,
     "percent_spread": 100,
     "outdoor_age_speedup": "100 minutes",
+    "underwater_age_speedup": "1 minute",
     "priority": -1,
-    "half_life": "50 minutes",
+    "half_life": "5 minutes",
     "phase": "gas"
   },
   {
@@ -1213,8 +1244,9 @@
     "decay_amount_factor": 5,
     "percent_spread": 100,
     "outdoor_age_speedup": "100 minutes",
+    "underwater_age_speedup": "1 minute",
     "priority": -1,
-    "half_life": "50 minutes",
+    "half_life": "5 minutes",
     "phase": "gas"
   },
   {
@@ -1301,6 +1333,7 @@
     "gas_absorption_factor": 15,
     "percent_spread": 100,
     "outdoor_age_speedup": "1 minutes",
+    "underwater_age_speedup": "50 minutes",
     "dirty_transparency_cache": true,
     "has_fume": true,
     "immunity_data": { "body_part_env_resistance": [ [ "mouth", 15 ] ] },
@@ -1323,6 +1356,7 @@
     "gas_absorption_factor": 15,
     "percent_spread": 100,
     "outdoor_age_speedup": "1 minutes",
+    "underwater_age_speedup": "50 minutes",
     "dirty_transparency_cache": true,
     "has_fume": true,
     "immunity_data": { "body_part_env_resistance": [ [ "mouth", 15 ] ] },

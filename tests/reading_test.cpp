@@ -375,7 +375,7 @@ TEST_CASE( "Learning recipes from books", "[reading][book][recipe]" )
     REQUIRE( alpha.type->book );
     const auto book_recipes = alpha.type->book->recipes;
     bool book_has_recipe = std::find_if( book_recipes.begin(),
-    book_recipes.end(), [rec]( const islot_book::recipe_with_description_t &rec_d ) {
+    book_recipes.end(), [rec]( const book_recipe & rec_d ) {
         return rec_d.recipe == rec;
     } ) != book_recipes.end();
     REQUIRE( book_has_recipe );
@@ -409,10 +409,26 @@ TEST_CASE( "Learning recipes from books", "[reading][book][recipe]" )
     }
 }
 
+TEST_CASE( "Book recipe entries expose translations", "[reading][book][translation]" )
+{
+    clear_all_state();
+
+    detached_ptr<item> det = item::spawn( "recipe_alpha" );
+    const item &alpha = *det;
+
+    REQUIRE( alpha.type->book );
+    const auto &book_recipes = alpha.type->book->recipes;
+
+    REQUIRE_FALSE( book_recipes.empty() );
+    const auto &entry = *book_recipes.begin();
+
+    CHECK_FALSE( entry.name.translated().empty() );
+}
+
 static void destroyed_book_test_helper( avatar &u, item *loc )
 {
     std::vector<std::string> reasons_cant_read;
-    const player *reader = u.get_book_reader( *loc, reasons_cant_read );
+    const auto *reader = u.get_book_reader( *loc, reasons_cant_read );
     CAPTURE( reasons_cant_read );
     REQUIRE( reader != nullptr );
     WHEN( "You start reading the book" ) {

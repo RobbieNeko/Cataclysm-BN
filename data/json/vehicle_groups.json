@@ -6,11 +6,11 @@
       [ "car", 2000 ],
       [ "car_anmlcmpt", 250 ],
       [ "car_hatch", 1000 ],
-      [ "electric_car", 500 ],
+      [ "electric_car", 300 ],
       [ "car_sports", 300 ],
       [ "car_sports_electric", 60 ],
       [ "suv", 800 ],
-      [ "suv_electric", 200 ],
+      [ "suv_electric", 100 ],
       [ "suv_electric", 120 ],
       [ "car_mini", 400 ],
       [ "beetle", 500 ],
@@ -61,6 +61,7 @@
       [ "icecream_truck", 50 ],
       [ "food_truck", 50 ],
       [ "wienermobile", 5 ],
+      [ "blinkie_van", 5 ],
       [ "tatra_truck", 100 ],
       [ "4x4_car", 400 ],
       [ "whillys_mb", 100 ],
@@ -75,16 +76,96 @@
       [ "canoe", 2000 ],
       [ "kayak", 1500 ],
       [ "kayak_racing", 500 ],
+      [ "kayak_motorized", 500 ],
       [ "DUKW", 250 ],
+      [ "jetski", 500 ],
       [ "raft", 2000 ],
       [ "wood_rowboat_double", 1500 ]
     ]
   },
   {
     "type": "vehicle_group",
+    "id": "lake_boats",
+    "//": "Various boats that might have been abandoned out on the open water.  ~25% small craft, 25% larger commercial boats, 25% police/military, and 25% novelty/replica craft.",
+    "vehicles": [
+      [ "canoe", 75 ],
+      [ "kayak", 25 ],
+      [ "kayak_racing", 25 ],
+      [ "kayak_motorized", 25 ],
+      [ "wood_rowboat_double", 25 ],
+      [ "inflatable_boat", 25 ],
+      [ "jetski", 25 ],
+      [ "raft", 25 ],
+      [ "boat_motor_single", 175 ],
+      [ "scuba_boat", 25 ],
+      [ "fishing_boat", 25 ],
+      [ "barge_trailer", 50 ],
+      [ "boat_motor_smuggler", 50 ],
+      [ "boat_motor_police", 150 ],
+      [ "CG_patrol_boat", 75 ],
+      [ "CG_cutter", 25 ],
+      [ "sailboat", 125 ],
+      [ "pirate_ship", 25 ],
+      [ "DUKW", 75 ],
+      [ "hovercraft_motor_single", 25 ]
+    ]
+  },
+  {
+    "type": "vehicle_group",
+    "id": "cove_boats",
+    "vehicles": [
+      [ "jetski", 100 ],
+      [ "raft", 100 ],
+      [ "boat_motor_single", 200 ],
+      [ "fishing_boat", 100 ],
+      [ "boat_motor_smuggler", 100 ],
+      [ "boat_motor_police", 125 ],
+      [ "CG_patrol_boat", 25 ],
+      [ "sailboat", 150 ],
+      [ "pirate_ship", 100 ]
+    ]
+  },
+  {
+    "type": "vehicle_group",
+    "id": "river_boats",
+    "//": "Various boats that might have been abandoned or lost in rivers.  ~50% rafts or kayaks, 40% boats or hovercraft, and 10% police/military/smuggler.",
+    "vehicles": [
+      [ "canoe", 195 ],
+      [ "kayak", 100 ],
+      [ "kayak_racing", 50 ],
+      [ "kayak_motorized", 25 ],
+      [ "wood_rowboat_double", 60 ],
+      [ "inflatable_boat", 115 ],
+      [ "jetski", 30 ],
+      [ "raft", 190 ],
+      [ "fishing_boat", 25 ],
+      [ "barge_trailer", 50 ],
+      [ "water_autosweeper", 50 ],
+      [ "boat_motor_single", 115 ],
+      [ "boat_motor_smuggler", 60 ],
+      [ "boat_motor_police", 30 ],
+      [ "CG_patrol_boat", 20 ],
+      [ "hovercraft_motor_single", 125 ]
+    ]
+  },
+  {
+    "type": "vehicle_group",
+    "id": "boats_medium",
+    "//": "Medium-size boats suitable for docks and marinas.",
+    "vehicles": [
+      [ "boat_motor_single", 750 ],
+      [ "boat_motor_police", 75 ],
+      [ "CG_patrol_boat", 25 ],
+      [ "boat_motor_smuggler", 50 ],
+      [ "DUKW", 50 ],
+      [ "hovercraft_motor_single", 50 ]
+    ]
+  },
+  {
+    "type": "vehicle_group",
     "id": "boats_narrow",
     "//": "1 tile wide boats for storage sheds",
-    "vehicles": [ [ "canoe", 2000 ], [ "kayak", 1500 ], [ "kayak_racing", 500 ] ]
+    "vehicles": [ [ "canoe", 2000 ], [ "kayak", 1500 ], [ "kayak_racing", 500 ], [ "kayak_motorized", 250 ], [ "jetski", 250 ] ]
   },
   {
     "type": "vehicle_group",
@@ -93,7 +174,7 @@
       [ "car", 7000 ],
       [ "car_anmlcmpt", 600 ],
       [ "car_hatch", 3500 ],
-      [ "electric_car", 1000 ],
+      [ "electric_car", 800 ],
       [ "car_sports", 500 ],
       [ "suv", 1000 ],
       [ "suv_electric", 300 ],
@@ -124,7 +205,7 @@
       [ "car", 3000 ],
       [ "car_anmlcmpt", 250 ],
       [ "car_hatch", 1000 ],
-      [ "electric_car", 500 ],
+      [ "electric_car", 300 ],
       [ "car_sports", 1000 ],
       [ "car_sports_electric", 300 ],
       [ "pickup", 480 ],
@@ -144,7 +225,7 @@
       [ "truck_swat", 200 ],
       [ "hippie_van", 900 ],
       [ "hippie_van_electric", 100 ],
-      [ "rara_x", 800 ],
+      [ "rara_x", 600 ],
       [ "apc", 300 ],
       [ "apc-gl", 100 ],
       [ "aapc-mg", 100 ],
@@ -162,6 +243,7 @@
       [ "surv_car", 2 ],
       [ "car_roadwarrior", 2 ],
       [ "wienermobile", 5 ],
+      [ "blinkie_van", 5 ],
       [ "tatra_truck", 300 ],
       [ "4x4_car", 300 ],
       [ "whillys_mb", 100 ]
@@ -175,7 +257,7 @@
       [ "car_anmlcmpt", 150 ],
       [ "car_hatch", 500 ],
       [ "car_mini", 250 ],
-      [ "electric_car", 500 ],
+      [ "electric_car", 400 ],
       [ "beetle", 300 ],
       [ "car_sports", 100 ],
       [ "car_sports_electric", 50 ],
@@ -245,13 +327,13 @@
       [ "car", 1000 ],
       [ "car_anmlcmpt", 100 ],
       [ "car_hatch", 500 ],
-      [ "electric_car", 750 ],
+      [ "electric_car", 600 ],
       [ "hippie_van", 675 ],
       [ "hippie_van_electric", 75 ],
       [ "golf_cart", 300 ],
       [ "scooter", 300 ],
       [ "bicycle", 1000 ],
-      [ "rara_x", 300 ],
+      [ "rara_x", 200 ],
       [ "unicycle", 100 ],
       [ "bicycle_electric", 200 ],
       [ "motorcycle", 500 ],
@@ -261,6 +343,7 @@
       [ "icecream_truck", 50 ],
       [ "food_truck", 20 ],
       [ "wienermobile", 5 ],
+      [ "blinkie_van", 5 ],
       [ "portable_generator", 50 ],
       [ "4x4_car", 175 ],
       [ "whillys_mb", 25 ],
@@ -475,7 +558,7 @@
       [ "car", 1000 ],
       [ "car_hatch", 500 ],
       [ "car_anmlcmpt", 150 ],
-      [ "electric_car", 750 ],
+      [ "electric_car", 600 ],
       [ "hippie_van", 675 ],
       [ "hippie_van_electric", 75 ],
       [ "motorcycle", 500 ],
@@ -532,6 +615,27 @@
       [ "SmallFlier3", 400 ],
       [ "Medevac2", 200 ],
       [ "Medevac2_Wreck", 200 ]
+    ]
+  },
+  {
+    "type": "vehicle_group",
+    "id": "runway",
+    "//": "Lower chance of wrecked helis, include planes and other aircraft",
+    "vehicles": [
+      [ "plane_small", 500 ],
+      [ "2seater2", 100 ],
+      [ "SmallFlier1", 300 ],
+      [ "2seater2_Wreck", 100 ],
+      [ "SmallFlier3_Wreck", 50 ],
+      [ "SmallFlier2", 300 ],
+      [ "Medevac1", 100 ],
+      [ "Smallflier1_Wreck", 100 ],
+      [ "SmallFlier2_Wreck", 100 ],
+      [ "Medevac1_Wreck", 50 ],
+      [ "SmallFlier3", 300 ],
+      [ "Medevac2", 150 ],
+      [ "Medevac2_Wreck", 100 ],
+      [ "blimp", 25 ]
     ]
   },
   {
@@ -657,7 +761,7 @@
     "vehicles": [
       [ "car", 2000 ],
       [ "car_hatch", 1000 ],
-      [ "electric_car", 500 ],
+      [ "electric_car", 400 ],
       [ "suv", 800 ],
       [ "suv_electric", 200 ],
       [ "car_mini", 400 ],
@@ -700,7 +804,7 @@
       [ "pickup", 40 ],
       [ "pickup_diesel", 10 ],
       [ "car_anmlcmpt", 150 ],
-      [ "electric_car", 750 ],
+      [ "electric_car", 600 ],
       [ "hippie_van", 675 ],
       [ "hippie_van_electric", 75 ],
       [ "motorcycle", 500 ],
@@ -718,12 +822,22 @@
   },
   {
     "type": "vehicle_group",
+    "id": "trains_mine_shaft",
+    "vehicles": [ [ "motorized_draisine_6seats", 100 ], [ "motorized_draisine_2seats", 400 ], [ "coal_hopper", 600 ] ]
+  },
+  {
+    "type": "vehicle_group",
+    "id": "trains_lab_entrance",
+    "vehicles": [ [ "motorized_draisine_6seats", 250 ], [ "electric_tram", 750 ] ]
+  },
+  {
+    "type": "vehicle_group",
     "id": "oa_vg_wreck",
     "//": "for ws_regional_dump",
     "vehicles": [
       [ "car", 1000 ],
       [ "car_hatch", 500 ],
-      [ "electric_car", 500 ],
+      [ "electric_car", 400 ],
       [ "suv", 800 ],
       [ "suv_electric", 200 ],
       [ "car_mini", 400 ],
@@ -762,7 +876,7 @@
     "vehicles": [
       [ "car", 2000 ],
       [ "car_hatch", 1000 ],
-      [ "electric_car", 500 ],
+      [ "electric_car", 400 ],
       [ "suv", 800 ],
       [ "suv_electric", 200 ],
       [ "car_mini", 400 ],
@@ -790,7 +904,7 @@
     "vehicles": [
       [ "car", 2000 ],
       [ "car_hatch", 1000 ],
-      [ "electric_car", 500 ],
+      [ "electric_car", 400 ],
       [ "car_mini", 250 ],
       [ "suv", 800 ],
       [ "suv_electric", 200 ],
@@ -833,7 +947,7 @@
   {
     "type": "vehicle_group",
     "id": "speedway_rv",
-    "vehicles": [ [ "lux_rv", 300 ], [ "rv", 700 ] ]
+    "vehicles": [ [ "lux_rv", 300 ], [ "rv", 675 ], [ "surv_rv", 25 ] ]
   },
   {
     "type": "vehicle_group",
@@ -873,7 +987,7 @@
   {
     "id": "museum_vehicles",
     "type": "vehicle_group",
-    "vehicles": [ [ "cannon_3in", 50 ], [ "gatling_carriage", 50 ] ]
+    "vehicles": [ [ "cannon_3in", 50 ], [ "gatling_carriage", 25 ], [ "ballista_mount", 25 ] ]
   },
   {
     "id": "military_display_vehicles",

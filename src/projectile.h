@@ -1,6 +1,4 @@
 #pragma once
-#ifndef CATA_SRC_PROJECTILE_H
-#define CATA_SRC_PROJECTILE_H
 
 #include <memory>
 #include <set>
@@ -20,11 +18,25 @@ using ammo_effect_str_id = string_id<ammo_effect>;
 
 struct projectile {
         damage_instance impact;
-        // how hard is it to dodge? essentially rolls to-hit,
-        // bullets have arbitrarily high values but thrown objects have dodgeable values.
-        // TODO: Get rid of this, replace with something sane (or just get rid)
+        // Speed of the projectile in meters per second.
+        // How hard is it to dodge? essentially rolls to-hit.
+        // Projectiles travel their full distance instantly, and speed does not effect range.
+        // Speed of sound is roughly 340 m/s. Technically changes based on temp and altitude, but that is not worth calculating.
         int speed = 0;
         int range = 0;
+        /**
+        * Bonus to the potential maximum damage multiplier a projectile can receive from a ranged "crit"
+        * A value of 0.5 is +50%
+        * Does nothing without stats,skills, or aimedcrit bonus to make use of it
+        */
+        double aimedcritmaxbonus = 0.0;
+        /**
+        * Bonus to the damage multiplier for any ranged attack that is a "goodhit" or better (acc < 0.5).
+        * Can increase damage up to the maximum potential multiplier, or down to 0%.
+        * A value of 0.5 is +50%
+        */
+        double aimedcritbonus = 0.0;
+
 
         /**
          * Returns an item that should be dropped or an item for which is_null() is true
@@ -39,7 +51,7 @@ struct projectile {
         void set_custom_explosion( const explosion_data &ex );
         void unset_custom_explosion();
 
-        const std::set<ammo_effect_str_id> &get_ammo_effects() {
+        const std::set<ammo_effect_str_id> &get_ammo_effects() const {
             return proj_effects;
         }
 
@@ -83,4 +95,4 @@ void apply_ammo_effects( const tripoint &p, const std::set<std::string> &effects
 int max_aoe_size( const std::set<ammo_effect_str_id> &tags );
 int max_aoe_size( const std::set<std::string> &tags );
 
-#endif // CATA_SRC_PROJECTILE_H
+

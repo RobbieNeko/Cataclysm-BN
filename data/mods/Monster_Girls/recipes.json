@@ -9,7 +9,7 @@
     "type": "recipe",
     "result": "mutagen_neko",
     "copy-from": "mutagen_feline",
-    "components": [ [ [ "mutagen", 1 ] ], [ [ "animal_blood_concentrate", 9 ] ], [ [ "ammonia", 1 ], [ "lye_powder", 100 ] ] ]
+    "components": [ [ [ "mutagen", 1 ] ], [ [ "animal_blood_concentrate", 3 ] ], [ [ "ammonia", 1 ], [ "lye_powder", 100 ] ] ]
   },
   {
     "type": "recipe",
@@ -21,7 +21,7 @@
     "type": "recipe",
     "result": "mutagen_doggirl",
     "copy-from": "mutagen_lupine",
-    "components": [ [ [ "mutagen", 1 ] ], [ [ "animal_blood_concentrate", 9 ] ], [ [ "ammonia", 1 ], [ "lye_powder", 100 ] ] ]
+    "components": [ [ [ "mutagen", 1 ] ], [ [ "animal_blood_concentrate", 3 ] ], [ [ "ammonia", 1 ], [ "lye_powder", 100 ] ] ]
   },
   {
     "type": "recipe",
@@ -33,7 +33,7 @@
     "type": "recipe",
     "result": "mutagen_cowgirl",
     "copy-from": "mutagen_cattle",
-    "components": [ [ [ "mutagen", 1 ] ], [ [ "animal_blood_concentrate", 9 ] ], [ [ "ammonia", 1 ], [ "lye_powder", 100 ] ] ]
+    "components": [ [ [ "mutagen", 1 ] ], [ [ "animal_blood_concentrate", 3 ] ], [ [ "ammonia", 1 ], [ "lye_powder", 100 ] ] ]
   },
   {
     "type": "recipe",
@@ -45,7 +45,7 @@
     "type": "recipe",
     "result": "mutagen_beargirl",
     "copy-from": "mutagen_ursine",
-    "components": [ [ [ "mutagen", 1 ] ], [ [ "animal_blood_concentrate", 9 ] ], [ [ "ammonia", 1 ], [ "lye_powder", 100 ] ] ]
+    "components": [ [ [ "mutagen", 1 ] ], [ [ "animal_blood_concentrate", 3 ] ], [ [ "ammonia", 1 ], [ "lye_powder", 100 ] ] ]
   },
   {
     "type": "recipe",
@@ -81,7 +81,11 @@
     "type": "recipe",
     "result": "mutagen_harpy",
     "copy-from": "mutagen_bird",
-    "components": [ [ [ "mutagen", 1 ] ], [ [ "eggs_bird", 1, "LIST" ] ], [ [ "ammonia", 1 ], [ "lye_powder", 100 ] ] ]
+    "components": [
+      [ [ "mutagen", 1 ] ],
+      [ [ "eggs_bird", 1, "LIST" ], [ "feather", 3 ], [ "down_feather", 5 ] ],
+      [ [ "ammonia", 1 ], [ "lye_powder", 100 ] ]
+    ]
   },
   {
     "type": "recipe",
@@ -122,5 +126,41 @@
     "result": "mutagen_elf",
     "copy-from": "mutagen_elfa",
     "components": [ [ [ "mutagen_slime", 2 ], [ "iv_mutagen_slime", 1 ] ], [ [ "mutagen_plant", 1 ] ], [ [ "mutagen_bird", 1 ] ] ]
+  },
+  {
+    "type": "recipe",
+    "result": "iv_mutagen_kitsune",
+    "copy-from": "iv_mutagen_beast",
+    "components": [ [ [ "mutagen_kitsune", 2 ] ] ]
+  },
+  {
+    "type": "recipe",
+    "result": "mutagen_kitsune",
+    "copy-from": "mutagen_beast",
+    "components": [ [ [ "mutagen", 1 ] ], [ [ "animal_blood_concentrate", 3 ] ], [ [ "ammonia", 1 ], [ "lye_powder", 100 ] ] ]
+  },
+  {
+    "type": "recipe",
+    "result": "iv_mutagen_lamia",
+    "copy-from": "iv_mutagen_serpent",
+    "components": [ [ [ "mutagen_lamia", 2 ] ] ]
+  },
+  {
+    "type": "recipe",
+    "result": "mutagen_lamia",
+    "copy-from": "mutagen_serpent",
+    "components": [ [ [ "mutagen", 1 ] ], [ [ "egg_reptile", 1 ], [ "scute_piece", 3 ] ], [ [ "ammonia", 1 ], [ "lye_powder", 100 ] ] ]
+  },
+  {
+    "type": "recipe",
+    "result": "iv_mutagen_bunnygirl",
+    "copy-from": "iv_mutagen_rabbit",
+    "components": [ [ [ "mutagen_rabbit", 2 ] ] ]
+  },
+  {
+    "type": "recipe",
+    "result": "mutagen_bunnygirl",
+    "copy-from": "mutagen_rabbit",
+    "components": [ [ [ "mutagen", 1 ] ], [ [ "carrot", 3 ], [ "irradiated_carrot", 1 ] ], [ [ "ammonia", 1 ], [ "lye_powder", 100 ] ] ]
   }
 ]

@@ -40,6 +40,18 @@
   },
   {
     "type": "recipe",
+    "result": "pistol_lanyard",
+    "category": "CC_WEAPON",
+    "subcategory": "CSC_WEAPON_MODS",
+    "skill_used": "fabrication",
+    "difficulty": 1,
+    "time": "1 m",
+    "autolearn": true,
+    "qualities": [ { "id": "CUT", "level": 1 } ],
+    "components": [ [ [ "string_6", 1 ], [ "fabric_standard", 1, "LIST" ], [ "cordage", 2, "LIST" ] ] ]
+  },
+  {
+    "type": "recipe",
     "result": "makeshift_bayonet",
     "category": "CC_WEAPON",
     "subcategory": "CSC_WEAPON_MODS",
@@ -188,7 +200,8 @@
       [ "manual_smg", 4 ],
       [ "manual_rifle", 4 ]
     ],
-    "tools": [ [ [ "large_repairkit", 75 ] ], [ [ "swage", -1 ] ] ],
+    "qualities": [ { "id": "SWAGING", "level": 1 } ],
+    "tools": [ [ [ "large_repairkit", 75 ] ] ],
     "components": [ [ [ "pipe", 1 ] ] ]
   },
   {
@@ -238,7 +251,8 @@
     "difficulty": 8,
     "time": "1 h",
     "book_learn": [ [ "textbook_mechanics", 4 ], [ "manual_shotgun", 5 ], [ "manual_rifle", 5 ] ],
-    "tools": [ [ [ "large_repairkit", 150 ] ], [ [ "swage", -1 ] ] ],
+    "qualities": [ { "id": "SWAGING", "level": 1 } ],
+    "tools": [ [ [ "large_repairkit", 150 ] ] ],
     "components": [ [ [ "pipe", 1 ] ] ]
   },
   {
@@ -355,15 +369,50 @@
   },
   {
     "type": "recipe",
+    "result": "universal_autolink",
+    "category": "CC_WEAPON",
+    "subcategory": "CSC_WEAPON_MODS",
+    "skill_used": "fabrication",
+    "skills_required": [ [ "rifle", 4 ] ],
+    "difficulty": 5,
+    "time": "2 h",
+    "book_learn": [ [ "manual_rifle", 7 ], [ "textbook_anarch", 4 ] ],
+    "qualities": [ { "id": "SAW_M", "level": 1 }, { "id": "HAMMER", "level": 1 } ],
+    "tools": [ [ [ "small_repairkit", 60 ], [ "large_repairkit", 60 ] ] ],
+    "components": [ [ [ "sheet_metal_small", 3 ] ], [ [ "spring", 2 ] ], [ [ "bearing", 12 ] ] ]
+  },
+  {
+    "type": "recipe",
+    "result": "universal_auto_conversion_kit",
+    "category": "CC_WEAPON",
+    "subcategory": "CSC_WEAPON_MODS",
+    "skill_used": "fabrication",
+    "skills_required": [ [ "rifle", 5 ], [ "mechanics", 4 ] ],
+    "difficulty": 7,
+    "time": "6 h",
+    "book_learn": [ [ "manual_rifle", 8 ], [ "textbook_anarch", 6 ] ],
+    "using": [ [ "welding_standard", 15 ] ],
+    "qualities": [ { "id": "HAMMER", "level": 1 }, { "id": "SAW_M_FINE", "level": 1 }, { "id": "DRILL", "level": 1 } ],
+    "tools": [ [ [ "small_repairkit", 120 ], [ "large_repairkit", 120 ] ] ],
+    "components": [
+      [ [ "steel_plate", 2 ], [ "steel_lump", 6 ] ],
+      [ [ "sheet_metal_small", 6 ] ],
+      [ [ "spring", 4 ] ],
+      [ [ "bearing", 25 ] ],
+      [ [ "scrap", 6 ] ]
+    ]
+  },
+  {
+    "type": "recipe",
     "result": "glockswitch",
     "category": "CC_WEAPON",
     "subcategory": "CSC_WEAPON_MODS",
     "skill_used": "fabrication",
-    "skills_required": [ [ "pistol", 3 ] ],
-    "difficulty": 4,
+    "skills_required": [ [ "pistol", 2 ] ],
+    "difficulty": 3,
     "time": "1 h",
     "//": "Slightly hard to make but worth it if you want to turn your glock full auto.",
-    "book_learn": [ [ "textbook_anarch", 3 ] ],
+    "book_learn": [ [ "textbook_anarch", 3 ], [ "mag_pistol", 1 ], [ "manual_pistol", 3 ] ],
     "qualities": [ { "id": "SAW_M", "level": 1 }, { "id": "HAMMER", "level": 1 } ],
     "tools": [
       [
@@ -631,6 +680,20 @@
     "components": [ [ [ "muzzle_brake", 1 ] ], [ [ "scrap", 2 ] ] ]
   },
   {
+    "result": "beltfeed",
+    "type": "recipe",
+    "category": "CC_WEAPON",
+    "subcategory": "CSC_WEAPON_MODS",
+    "skill_used": "fabrication",
+    "difficulty": 5,
+    "skills_required": [ "rifle", 2 ],
+    "time": "1 h 30 m",
+    "book_learn": [ [ "manual_rifle", 3 ], [ "manual_fabrication", 5 ], [ "textbook_fabrication", 5 ] ],
+    "using": [ [ "welding_standard", 5 ], [ "steel_tiny", 2 ] ],
+    "qualities": [ { "id": "HAMMER", "level": 2 }, { "id": "SAW_M", "level": 1 }, { "id": "WRENCH_FINE", "level": 1 } ],
+    "components": [ [ [ "pipe", 2 ] ], [ [ "spring", 4 ] ] ]
+  },
+  {
     "result": "rifle_scope_mod",
     "type": "recipe",
     "category": "CC_WEAPON",
@@ -889,6 +952,28 @@
   },
   {
     "type": "recipe",
+    "result": "crossbow_draw_assist",
+    "category": "CC_WEAPON",
+    "subcategory": "CSC_WEAPON_MODS",
+    "skill_used": "mechanics",
+    "difficulty": 3,
+    "skills_required": [ [ "fabrication", 3 ], [ "electronics", 4 ] ],
+    "time": "30 m",
+    "autolearn": true,
+    "using": [ [ "blacksmithing_advanced", 10 ], [ "soldering_standard", 5 ], [ "steel_standard", 2 ] ],
+    "qualities": [ { "id": "SAW_M", "level": 1 }, { "id": "SCREW", "level": 1 } ],
+    "components": [
+      [ [ "duct_tape", 35 ], [ "medical_tape", 35 ] ],
+      [ [ "motor_tiny", 1 ] ],
+      [ [ "power_supply", 1 ] ],
+      [ [ "e_scrap", 1 ] ],
+      [ [ "cable", 4 ] ],
+      [ [ "string_6", 4 ] ],
+      [ [ "adhesive_proper", 2, "LIST" ] ]
+    ]
+  },
+  {
+    "type": "recipe",
     "result": "crossbow_lever",
     "category": "CC_WEAPON",
     "subcategory": "CSC_WEAPON_MODS",
@@ -937,7 +1022,7 @@
       [ [ "amplifier", 1 ] ],
       [ [ "power_supply", 1 ] ],
       [ [ "scrap", 2 ] ],
-      [ [ "cable", 100 ] ],
+      [ [ "cable", 500 ] ],
       [ [ "steel_lump", 1 ] ],
       [ [ "RAM", 1 ] ]
     ]
@@ -959,9 +1044,126 @@
       [ [ "amplifier", 1 ] ],
       [ [ "power_supply", 1 ] ],
       [ [ "scrap", 2 ] ],
-      [ [ "cable", 500 ] ],
+      [ [ "cable", 100 ] ],
       [ [ "steel_lump", 1 ] ],
       [ [ "RAM", 1 ] ]
     ]
+  },
+  {
+    "type": "recipe",
+    "result": "mod_flamethrower_nozzle",
+    "category": "CC_WEAPON",
+    "subcategory": "CSC_WEAPON_MODS",
+    "skill_used": "mechanics",
+    "difficulty": 5,
+    "skills_required": [ [ "fabrication", 4 ] ],
+    "time": "45 m",
+    "book_learn": [ [ "textbook_gaswarfare", 5 ], [ "book_icef", 5 ], [ "textbook_anarch", 6 ], [ "manual_launcher", 4 ] ],
+    "using": [ [ "welding_standard", 10 ], [ "steel_tiny", 1 ] ],
+    "qualities": [ { "id": "HAMMER", "level": 2 }, { "id": "SAW_M", "level": 1 }, { "id": "SCREW", "level": 1 } ],
+    "components": [ [ [ "pipe", 1 ] ], [ [ "sheet_metal_small", 2 ] ], [ [ "pump_complex", 1 ] ] ]
+  },
+  {
+    "result": "laser_sight",
+    "type": "recipe",
+    "category": "CC_WEAPON",
+    "subcategory": "CSC_WEAPON_MODS",
+    "skill_used": "electronics",
+    "difficulty": 6,
+    "skills_required": [ [ "fabrication", 4 ], [ "gun", 2 ] ],
+    "time": "1 h",
+    "autolearn": true,
+    "reversible": true,
+    "book_learn": [ [ "manual_rifle", 6 ], [ "textbook_anarch", 3 ] ],
+    "tools": [ [ [ "large_repairkit", 25 ], [ "small_repairkit", 45 ] ], [ [ "mold_plastic", -1 ] ] ],
+    "components": [
+      [ [ "e_scrap", 4 ] ],
+      [ [ "solder_wire", 10 ] ],
+      [ [ "cable", 5 ] ],
+      [ [ "diamond", 1 ], [ "sapphire", 1 ], [ "ruby", 1 ] ],
+      [ [ "light_minus_battery_cell", 1 ] ],
+      [ [ "plastic_chunk", 5 ] ],
+      [ [ "circuit", 1 ] ],
+      [ [ "lens", 1 ] ],
+      [ [ "amplifier", 1 ] ]
+    ]
+  },
+  {
+    "result": "rail_laser_sight",
+    "type": "recipe",
+    "category": "CC_WEAPON",
+    "subcategory": "CSC_WEAPON_MODS",
+    "skill_used": "electronics",
+    "difficulty": 6,
+    "skills_required": [ [ "fabrication", 4 ], [ "gun", 2 ] ],
+    "time": "1 h",
+    "autolearn": true,
+    "reversible": true,
+    "book_learn": [ [ "manual_rifle", 6 ], [ "textbook_anarch", 3 ] ],
+    "tools": [ [ [ "large_repairkit", 25 ], [ "small_repairkit", 45 ] ], [ [ "mold_plastic", -1 ] ] ],
+    "components": [
+      [ [ "e_scrap", 4 ] ],
+      [ [ "solder_wire", 10 ] ],
+      [ [ "cable", 5 ] ],
+      [ [ "diamond", 1 ], [ "sapphire", 1 ], [ "ruby", 1 ] ],
+      [ [ "light_minus_battery_cell", 1 ] ],
+      [ [ "plastic_chunk", 5 ] ],
+      [ [ "circuit", 1 ] ],
+      [ [ "lens", 1 ] ],
+      [ [ "amplifier", 1 ] ]
+    ]
+  },
+  {
+    "result": "mod_makeshift_capacitor",
+    "type": "recipe",
+    "category": "CC_WEAPON",
+    "subcategory": "CSC_WEAPON_MODS",
+    "skill_used": "electronics",
+    "difficulty": 8,
+    "skills_required": [ [ "fabrication", 4 ], [ "gun", 2 ] ],
+    "time": "1 h",
+    "autolearn": true,
+    "reversible": true,
+    "book_learn": [ [ "textbook_robots", 6 ], [ "textbook_anarch", 3 ] ],
+    "using": [ [ "soldering_standard", 20 ] ],
+    "tools": [ [ [ "electrolysis_kit", 750 ] ] ],
+    "components": [
+      [ [ "e_scrap", 4 ] ],
+      [ [ "cable", 50 ] ],
+      [ [ "plut_cell", 2 ] ],
+      [ [ "light_minus_battery_cell", 1 ], [ "light_battery_cell", 1 ] ],
+      [ [ "plastic_chunk", 5 ] ],
+      [ [ "circuit", 1 ] ],
+      [ [ "amplifier", 5 ] ],
+      [ [ "RAM", 2 ] ]
+    ]
+  },
+  {
+    "result": "g36_stanag_adapter",
+    "type": "recipe",
+    "category": "CC_WEAPON",
+    "subcategory": "CSC_WEAPON_MODS",
+    "skill_used": "computer",
+    "difficulty": 4,
+    "skills_required": [ [ "fabrication", 3 ] ],
+    "time": "1 h",
+    "book_learn": [ [ "manual_rifle", 4 ], [ "textbook_anarch", 3 ] ],
+    "tools": [ [ [ "hk_g36", -1 ], [ "large_repairkit", 25 ], [ "small_repairkit", 45 ] ], [ [ "mold_plastic", -1 ] ] ],
+    "using": [ [ "3d_printing_standard", 3 ] ],
+    "components": [ [ [ "plastic_chunk", 4 ] ] ]
+  },
+  {
+    "result": "aug_nato_conversion",
+    "type": "recipe",
+    "category": "CC_WEAPON",
+    "subcategory": "CSC_WEAPON_MODS",
+    "skill_used": "computer",
+    "difficulty": 4,
+    "skills_required": [ [ "fabrication", 4 ] ],
+    "time": "1 h",
+    "book_learn": [ [ "manual_rifle", 5 ], [ "textbook_anarch", 3 ] ],
+    "tools": [ [ [ "steyr_aug", -1 ], [ "large_repairkit", 25 ], [ "small_repairkit", 45 ] ], [ [ "mold_plastic", -1 ] ] ],
+    "using": [ [ "3d_printing_standard", 3 ] ],
+    "components": [ [ [ "plastic_chunk", 8 ] ], [ [ "sheet_metal_small", 1 ] ] ]
   }
 ]

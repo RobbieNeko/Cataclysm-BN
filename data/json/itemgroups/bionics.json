@@ -71,6 +71,7 @@
       [ "bio_time_freeze", 10 ],
       [ "bio_teleport", 10 ],
       [ "bio_probability_travel", 10 ],
+      [ "bio_wings", 10 ],
       [ "bio_laser", 10 ],
       [ "bio_emp_armgun", 10 ],
       [ "bio_railgun", 10 ],
@@ -85,10 +86,13 @@
       [ "bio_power_armor_interface_mkII", 5 ],
       [ "bio_remote", 10 ],
       [ "bio_cable", 10 ],
+      [ "bio_cable_mkII", 2 ],
+      [ "bio_cable_upgrade", 2 ],
       [ "bio_syringe", 10 ],
       [ "bio_weight", 10 ],
       [ "bio_shock_absorber", 10 ],
       [ "bio_jointservo", 10 ],
+      [ "bio_underwater_propellers", 10 ],
       [ "bio_shotgun", 10 ],
       [ "bio_taste_blocker", 10 ],
       [ "bio_soporific", 10 ],
@@ -203,6 +207,7 @@
       [ "bio_time_freeze", 10 ],
       [ "bio_teleport", 10 ],
       [ "bio_probability_travel", 10 ],
+      [ "bio_wings", 10 ],
       [ "bio_power_armor_interface", 10 ],
       [ "bio_cqb", 5 ],
       [ "bio_blade", 2 ],
@@ -212,11 +217,15 @@
       [ "bio_infolink", 20 ],
       [ "bio_power_armor_interface_mkII", 5 ],
       [ "bio_cable", 10 ],
+      [ "bio_cable_mkII", 3 ],
       [ "bio_weight", 10 ],
       [ "bio_jointservo", 10 ],
+      [ "bio_underwater_propellers", 5 ],
       [ "bio_shotgun", 10 ],
       [ "bio_blaster", 5 ],
       [ "afs_bio_dopamine_stimulators", 10 ],
+      [ "bio_atomic_battery", 5 ],
+      [ "bio_atomic_battery_upgrade", 5 ],
       [ "bio_electrosense", 10 ]
     ]
   },
@@ -229,6 +238,7 @@
       [ "bio_batteries", 10 ],
       [ "bio_blood_anal", 5 ],
       [ "bio_cable", 10 ],
+      [ "bio_cable_mkII", 6 ],
       [ "bio_cqb", 5 ],
       [ "bio_ethanol", 10 ],
       [ "bio_fuel_cell_gasoline", 10 ],
@@ -238,6 +248,7 @@
       [ "bio_heatsink", 10 ],
       [ "bio_hydraulics", 10 ],
       [ "bio_jointservo", 10 ],
+      [ "bio_underwater_propellers", 5 ],
       [ "bio_power_armor_interface", 15 ],
       [ "bio_power_armor_interface_mkII", 15 ],
       [ "bio_reactor", 10 ],
@@ -297,6 +308,7 @@
       [ "bio_time_freeze", 5 ],
       [ "bio_teleport", 5 ],
       [ "bio_probability_travel", 5 ],
+      [ "bio_wings", 5 ],
       [ "bio_power_armor_interface", 10 ],
       [ "bio_cqb", 5 ],
       [ "bio_blade", 5 ],
@@ -306,11 +318,15 @@
       [ "bio_infolink", 20 ],
       [ "bio_power_armor_interface_mkII", 5 ],
       [ "bio_cable", 10 ],
+      [ "bio_cable_mkII", 3 ],
       [ "bio_jointservo", 20 ],
+      [ "bio_underwater_propellers", 10 ],
       [ "bio_shotgun", 10 ],
       [ "bn_bio_solar", 15 ],
       [ "afs_bio_missiles", 10 ],
       [ "afs_bio_dopamine_stimulators", 10 ],
+      [ "bio_atomic_battery", 5 ],
+      [ "bio_atomic_battery_upgrade", 5 ],
       [ "bio_electrosense", 10 ]
     ]
   },
@@ -377,6 +393,9 @@
       [ "bio_speed", 10 ],
       [ "bio_ups", 10 ],
       [ "bio_weight", 10 ],
+      [ "bio_atomic_battery", 5 ],
+      [ "bio_atomic_battery_upgrade", 5 ],
+      [ "bio_reactor", 5 ],
       [ "bio_electrosense", 10 ]
     ]
   },
@@ -396,7 +415,8 @@
       [ "bio_weight", 20 ],
       [ "bio_shock_absorber", 20 ],
       [ "bio_soporific", 20 ],
-      [ "bio_electrosense", 5 ]
+      [ "bio_electrosense", 5 ],
+      [ "bio_cable_mkII", 5 ]
     ]
   },
   {
@@ -440,6 +460,7 @@
       [ "bio_leukocyte", 15 ],
       [ "bio_syringe", 2 ],
       [ "bio_jointservo", 10 ],
+      [ "bio_underwater_propellers", 10 ],
       [ "bio_soporific", 2 ],
       [ "bio_electrosense", 8 ]
     ]
@@ -465,6 +486,7 @@
       [ "bio_weight", 15 ],
       [ "afs_bio_missiles", 10 ],
       [ "afs_bio_dopamine_stimulators", 15 ],
+      [ "bio_cable_mkII", 10 ],
       [ "bio_reactor", 10 ]
     ]
   },
@@ -539,10 +561,13 @@
       [ "bio_time_freeze", 4 ],
       [ "bio_teleport", 4 ],
       [ "bio_probability_travel", 4 ],
+      [ "bio_wings", 4 ],
       [ "afs_bio_linguistic_coprocessor", 10 ],
       [ "afs_bio_dopamine_stimulators", 10 ],
       [ "bio_reactor", 10 ],
-      [ "bio_reactor_upgrade", 10 ]
+      [ "bio_reactor_upgrade", 10 ],
+      [ "bio_cable_mkII", 10 ],
+      [ "bio_cable_upgrade", 10 ]
     ]
   },
   {

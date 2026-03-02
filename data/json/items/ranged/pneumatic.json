@@ -14,7 +14,7 @@
     "ammo": "BB",
     "weight": "1723 g",
     "volume": "1500 ml",
-    "barrel_length": "150 ml",
+    "barrel_volume": "150 ml",
     "range": 12,
     "ranged_damage": { "damage_type": "bullet", "amount": 2 },
     "dispersion": 150,
@@ -53,7 +53,8 @@
     "recoil": 350,
     "durability": 7,
     "clip_size": 10,
-    "loudness": 16
+    "loudness": 16,
+    "extend": { "flags": [ "RELOAD_ONE" ] }
   },
   {
     "id": "tihar",
@@ -69,7 +70,7 @@
     "ammo": [ "pebble" ],
     "weight": "4211 g",
     "volume": "2750 ml",
-    "barrel_length": "250 ml",
+    "barrel_volume": "250 ml",
     "ranged_damage": { "damage_type": "bash", "amount": 15, "armor_penetration": 4 },
     "range": 15,
     "durability": 7,
@@ -104,7 +105,7 @@
     "durability": 7,
     "modes": [ [ "DEFAULT", "single", 1 ], [ "DOUBLE", "double", 2 ] ],
     "clip_size": 2,
-    "reload": 6000,
+    "reload": 1000,
     "loudness": 22,
     "valid_mod_locations": [
       [ "accessories", 4 ],

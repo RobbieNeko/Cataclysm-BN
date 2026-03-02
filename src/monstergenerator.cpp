@@ -2,6 +2,7 @@
 #include "monstergenerator.h" // IWYU pragma: associated
 
 #include <algorithm>
+#include <cmath>
 #include <cstdlib>
 #include <optional>
 #include <set>
@@ -25,9 +26,10 @@
 #include "mondeath.h"
 #include "mondefense.h"
 #include "monfaction.h"
+#include "monster.h"
 #include "mtype.h"
 #include "options.h"
-#include "pathfinding.h"
+#include "legacy_pathfinding.h"
 #include "rng.h"
 #include "string_id.h"
 #include "translations.h"
@@ -74,6 +76,7 @@ std::string enum_to_string<m_flag>( m_flag data )
         case MF_KEENNOSE: return "KEENNOSE";
         case MF_STUMBLES: return "STUMBLES";
         case MF_WARM: return "WARM";
+        case MF_NEMESIS: return "NEMESIS";
         case MF_NOHEAD: return "NOHEAD";
         case MF_HARDTOSHOOT: return "HARDTOSHOOT";
         case MF_GRABS: return "GRABS";
@@ -93,6 +96,7 @@ std::string enum_to_string<m_flag>( m_flag data )
         case MF_FLIES: return "FLIES";
         case MF_AQUATIC: return "AQUATIC";
         case MF_SWIMS: return "SWIMS";
+        case MF_UNUSED_76: return "UNUSED_76";
         case MF_FISHABLE: return "FISHABLE";
         case MF_ATTACKMON: return "ATTACKMON";
         case MF_ANIMAL: return "ANIMAL";
@@ -106,6 +110,9 @@ std::string enum_to_string<m_flag>( m_flag data )
         case MF_SLUDGEPROOF: return "SLUDGEPROOF";
         case MF_SLUDGETRAIL: return "SLUDGETRAIL";
         case MF_COLDPROOF: return "COLDPROOF";
+        case MF_DARKPROOF: return "DARKPROOF";
+        case MF_LIGHTPROOF: return "LIGHTPROOF";
+        case MF_PSIPROOF: return "PSIPROOF";
         case MF_BIOPROOF: return "BIOPROOF";
         case MF_FIREY: return "FIREY";
         case MF_QUEEN: return "QUEEN";
@@ -119,6 +126,7 @@ std::string enum_to_string<m_flag>( m_flag data )
         case MF_FAT: return "FAT";
         case MF_CONSOLE_DESPAWN: return "CONSOLE_DESPAWN";
         case MF_IMMOBILE: return "IMMOBILE";
+        case MF_STATIONARY: return "STATIONARY";
         case MF_ID_CARD_DESPAWN: return "ID_CARD_DESPAWN";
         case MF_RIDEABLE_MECH: return "RIDEABLE_MECH";
         case MF_CARD_OVERRIDE: return "CARD_OVERRIDE";
@@ -146,7 +154,6 @@ std::string enum_to_string<m_flag>( m_flag data )
         case MF_CBM_OP: return "CBM_OP";
         case MF_CBM_TECH: return "CBM_TECH";
         case MF_CBM_SUBS: return "CBM_SUBS";
-        case MF_FILTHY: return "FILTHY";
         case MF_SWARMS: return "SWARMS";
         case MF_CLIMBS: return "CLIMBS";
         case MF_GROUP_MORALE: return "GROUP_MORALE";
@@ -179,7 +186,23 @@ std::string enum_to_string<m_flag>( m_flag data )
         case MF_LOUDMOVES: return "LOUDMOVES";
         case MF_DROPS_AMMO: return "DROPS_AMMO";
         case MF_CAN_BE_ORDERED: return "CAN_BE_ORDERED";
-        // *INDENT-ON*
+        case MF_SMALL_HEAD: return "SMALL_HEAD";
+        case MF_TINY_HEAD: return "TINY_HEAD";
+        case MF_NO_HEAD_BONUS_CRIT: return "NO_HEAD_BONUS_CRIT";
+        case MF_HEAD_BONUS_MAX_CRIT_1: return "HEAD_BONUS_CRIT_1";
+        case MF_HEAD_BONUS_MAX_CRIT_2: return "HEAD_BONUS_CRIT_2";
+        case MF_TORSO_BONUS_MAX_CRIT_1: return "TORSO_BONUS_CRIT_1";
+        case MF_TORSO_BONUS_MAX_CRIT_2: return "TORSO_BONUS_CRIT_2";
+        case MF_PROJECTILE_RESISTANT_1: return "PROJECTILE_RESISTANT_1";
+        case MF_PROJECTILE_RESISTANT_2: return "PROJECTILE_RESISTANT_2";
+        case MF_PROJECTILE_RESISTANT_3: return "PROJECTILE_RESISTANT_3";
+        case MF_PROJECTILE_RESISTANT_4: return "PROJECTILE_RESISTANT_4";
+         case MF_VOLATILE: return "VOLATILE";
+         case MF_CANT_CLONE: return "CANT_CLONE";
+         case MF_MOUNTABLE_STAIRS: return "MOUNTABLE_STAIRS";
+         case MF_MOUNTABLE_OBSTACLES: return "MOUNTABLE_OBSTACLES";
+         case MF_FACTION_MEMORY: return "FACTION_MEMORY";
+         // *INDENT-ON*
         case m_flag::MF_MAX:
             break;
     }
@@ -348,6 +371,7 @@ static void build_behavior_tree( mtype &type )
 
 void MonsterGenerator::finalize_mtypes()
 {
+
     mon_templates->finalize();
     for( const auto &elem : mon_templates->get_all() ) {
         mtype &mon = const_cast<mtype &>( elem );
@@ -398,7 +422,7 @@ void MonsterGenerator::finalize_mtypes()
         mon.hp = std::max( mon.hp, 1 );
 
         build_behavior_tree( mon );
-        finalize_pathfinding_settings( mon );
+        mon.setup_pathfinding_deferred();
     }
 
     for( const auto &mon : mon_templates->get_all() ) {
@@ -427,29 +451,6 @@ void MonsterGenerator::apply_species_attributes( mtype &mon )
         mon.fear |= mspec.fear;
         mon.placate |= mspec.placate;
     }
-}
-
-void MonsterGenerator::finalize_pathfinding_settings( mtype &mon )
-{
-    if( mon.path_settings.max_length < 0 ) {
-        mon.path_settings.max_length = mon.path_settings.max_dist * 5;
-    }
-
-    if( mon.path_settings.bash_strength < 0 ) {
-        mon.path_settings.bash_strength = mon.bash_skill;
-    }
-
-    if( mon.has_flag( MF_CLIMBS ) ) {
-        mon.path_settings.climb_cost = 3;
-    }
-
-    pathfinding_settings buffed_settings = mon.path_settings;
-    buffed_settings.avoid_traps = true;
-    buffed_settings.avoid_sharp = true;
-    buffed_settings.allow_climb_stairs = true;
-    buffed_settings.max_length = std::max( 30, buffed_settings.max_length );
-    buffed_settings.max_dist = std::max( buffed_settings.max_length * 5, buffed_settings.max_dist );
-    mon.path_settings_buffed = buffed_settings;
 }
 
 void MonsterGenerator::init_phases()
@@ -716,6 +717,7 @@ void pet_food_data::load( const JsonObject &jo )
     mandatory( jo, was_loaded, "food", food );
     optional( jo, was_loaded, "feed", feed );
     optional( jo, was_loaded, "pet", pet );
+    optional( jo, was_loaded, "tamer_traits", tamer_traits );
 }
 
 void pet_food_data::deserialize( JsonIn &jsin )
@@ -781,6 +783,9 @@ void mtype::load( const JsonObject &jo, const std::string &src )
     assign( jo, "dodge", sk_dodge, strict, 0 );
     assign( jo, "armor_bash", armor_bash, strict, 0 );
     assign( jo, "armor_cut", armor_cut, strict, 0 );
+    assign( jo, "armor_dark", armor_dark, strict, 0 );
+    assign( jo, "armor_light", armor_light, strict, 0 );
+    assign( jo, "armor_psi", armor_psi, strict, 0 );
     assign( jo, "armor_bullet", armor_bullet, strict, 0 );
     assign( jo, "armor_stab", armor_stab, strict, 0 );
     assign( jo, "armor_acid", armor_acid, strict, 0 );
@@ -820,6 +825,7 @@ void mtype::load( const JsonObject &jo, const std::string &src )
     optional( jo, was_loaded, "mech_weapon", mech_weapon, itype_id() );
     optional( jo, was_loaded, "mech_str_bonus", mech_str_bonus, 0 );
     optional( jo, was_loaded, "mech_battery", mech_battery, itype_id() );
+    optional( jo, was_loaded, "aggro_character", aggro_character, true );
 
     // TODO: make this work with `was_loaded`
     if( jo.has_array( "melee_damage" ) ) {
@@ -856,9 +862,52 @@ void mtype::load( const JsonObject &jo, const std::string &src )
 
     assign( jo, "harvest", harvest );
 
-    const auto death_reader = make_flag_reader( gen.death_map, "monster death function" );
-    optional( jo, was_loaded, "death_function", dies, death_reader );
-    if( dies.empty() ) {
+    /* Load "on_death": object */
+    if( jo.has_object( "on_death" ) ) {
+        JsonObject od = jo.get_object( "on_death" );
+        // on_death::death_function
+        const auto death_reader = make_flag_reader( gen.death_map, "monster death function" );
+        optional( od, was_loaded, "death_function", dies, death_reader );
+
+        // on_death::spawn_mon
+        std::vector<std::pair<int, mtype_id>> mon_spawns;
+        if( od.has_string( "spawn_mon" ) ) {
+            mtype_id spawn_mon = mtype_id::NULL_ID();
+            assign( od, "spawn_mon", spawn_mon );
+
+            mon_spawns.emplace_back( 0, spawn_mon );
+        }
+
+        // on_death::spawn_mon_near
+        if( od.has_object( "spawn_mon_near" ) ) {
+            JsonObject od_smn = od.get_object( "spawn_mon_near" );
+            int dist;
+            assign( od_smn, "distance", dist );
+
+            std::vector<mtype_id> mons;
+            optional( od_smn, was_loaded, "ids", mons, auto_flags_reader<mtype_id> {} );
+
+            for( const auto &id : mons ) {
+                mon_spawns.emplace_back( dist, id );
+            }
+        }
+
+        // Set the function that generates the spawns.
+        if( !mon_spawns.empty() ) {
+            on_death.emplace_back( [mon_spawns]( monster & z ) {
+                for( const auto &pair : mon_spawns ) {
+                    g->place_critter_around( pair.second, z.pos(), pair.first );
+                }
+            } );
+        }
+    }
+    /* Load "death_function": instead*/
+    else {
+        const auto death_reader = make_flag_reader( gen.death_map, "monster death function" );
+        optional( jo, was_loaded, "death_function", dies, death_reader );
+    }
+
+    if( dies.empty() && on_death.empty() ) {
         // TODO: really needed? Is an empty `dies` container not allowed?
         dies.push_back( mdeath::normal );
     }
@@ -968,21 +1017,220 @@ void mtype::load( const JsonObject &jo, const std::string &src )
     optional( jo, was_loaded, "fear_triggers", fear, trigger_reader );
 
     if( jo.has_member( "path_settings" ) ) {
-        auto jop = jo.get_object( "path_settings" );
-        // Here rather than in pathfinding.cpp because we want monster-specific defaults and was_loaded
-        optional( jop, was_loaded, "max_dist", path_settings.max_dist, 0 );
-        optional( jop, was_loaded, "max_length", path_settings.max_length, -1 );
-        optional( jop, was_loaded, "bash_strength", path_settings.bash_strength, -1 );
-        optional( jop, was_loaded, "allow_open_doors", path_settings.allow_open_doors, false );
-        optional( jop, was_loaded, "avoid_traps", path_settings.avoid_traps, false );
-        optional( jop, was_loaded, "allow_climb_stairs", path_settings.allow_climb_stairs, true );
-        optional( jop, was_loaded, "avoid_sharp", path_settings.avoid_sharp, false );
+        JsonObject jop = jo.get_object( "path_settings" );
+
+        const auto inject_int = [&jop, this]( std::string field ) {
+            if( jop.has_member( field ) ) {
+                this->recorded_path_settings.insert_or_assign( field, jop.get_int( field ) );
+            }
+        };
+        const auto inject_float = [&jop, this]( std::string field ) {
+            if( jop.has_member( field ) ) {
+                this->recorded_path_settings.insert_or_assign( field,
+                        static_cast<float>( jop.get_float( field ) ) );
+            }
+        };
+        const auto inject_bool = [&jop, this]( std::string field ) {
+            if( jop.has_member( field ) ) {
+                this->recorded_path_settings.insert_or_assign( field, jop.get_bool( field ) );
+            }
+        };
+
+        inject_int( "max_dist" );
+        inject_int( "max_length" );
+        inject_int( "bash_strength" );
+        inject_bool( "allow_open_doors" );
+        inject_bool( "avoid_traps" );
+        inject_bool( "allow_climb_stairs" );
+        inject_bool( "avoid_sharp" );
+        // New fields start here
+        inject_bool( "avoid_rough" );
+        inject_float( "h_coeff" );
+        inject_float( "alpha" );
+        inject_float( "search_radius_coeff" );
+        inject_float( "search_cone_angle" );
+        inject_float( "max_f_coeff" );
+        inject_float( "mob_presence_penalty" );
+    }
+
+    // blacklisted_specials was originally ported from DDA PRs 75716 and 75804 and thus CC-BY-SA 3.0
+    std::unordered_set<std::string> blacklisted_specials {"PARROT", "PARROT_AT_DANGER", "EAT_CROP", "EAT_FOOD"};
+    int special_attacks_diff = 0;
+    for( const auto &special : special_attacks ) {
+        if( !blacklisted_specials.contains( special.first ) ) {
+            special_attacks_diff++;
+        }
     }
     difficulty = ( melee_skill + 1 ) * melee_dice * ( bonus_cut + melee_sides ) * 0.04 +
                  ( sk_dodge + 1 ) * ( 3 + armor_bash + armor_cut ) * 0.04 +
-                 ( difficulty_base + special_attacks.size() + 8 * emit_fields.size() );
+                 ( difficulty_base + special_attacks_diff + 8 * emit_fields.size() );
     difficulty *= ( hp + speed - attack_cost + ( morale + agro ) * 0.1 ) * 0.01 +
                   ( vision_day + 2 * vision_night ) * 0.01;
+}
+
+void mtype::setup_pathfinding_deferred()
+{
+    // Initialize with default settings
+    this->path_settings.mob_presence_penalty =
+        get_option<float>( "PATHFINDING_MOB_PRESENCE_PENALTY_DEFAULT" );
+    this->route_settings.h_coeff = get_option<float>( "PATHFINDING_H_COEFF_DEFAULT" );
+    this->route_settings.alpha = get_option<float>( "PATHFINDING_ALPHA_DEFAULT" );
+    this->route_settings.search_radius_coeff =
+        get_option<float>( "PATHFINDING_SEARCH_RADIUS_COEFF_DEFAULT" );
+    this->route_settings.search_cone_angle =
+        get_option<float>( "PATHFINDING_SEARCH_CONE_ANGLE_DEFAULT" );
+    this->route_settings.max_f_coeff = get_option<float>( "PATHFINDING_MAX_F_COEFF_DEFAULT" );
+    this->route_settings.f_limit_based_on_max_dist =
+        get_option<bool>( "PATHFINDING_MAX_F_LIMIT_BASED_ON_MAX_DIST" );
+
+    const bool default_override = get_option<bool>( "PATHFINDING_DEFAULT_IS_OVERRIDE" );
+    const float range_mult = get_option<float>( "PATHFINDING_RANGE_MULT" );
+
+    if( this->has_flag( MF_CLIMBS ) ) {
+        this->legacy_path_settings.climb_cost = 3;
+        this->path_settings.climb_cost = 3.0;
+    }
+
+    if( this->has_flag( MF_FLIES ) ) {
+        this->path_settings.can_fly = true;
+    }
+
+    const auto extract_into = [this]<typename T>( std::string field, T & out ) {
+        if( this->recorded_path_settings.contains( field ) ) {
+            out = std::get<T>( this->recorded_path_settings[field] );
+        }
+    };
+
+    const auto extract_into_with_default =
+    [this]<typename T>( std::string field, T & out, T default_val ) {
+        if( this->recorded_path_settings.contains( field ) ) {
+            out = std::get<T>( this->recorded_path_settings[field] );
+        } else {
+            out = default_val;
+        }
+    };
+
+    // Legacy init
+    extract_into_with_default( "max_dist", legacy_path_settings.max_dist, 0 );
+    extract_into_with_default( "max_length",
+                               legacy_path_settings.max_length,
+                               this->legacy_path_settings.max_dist * 5 );
+    extract_into_with_default( "bash_strength", legacy_path_settings.bash_strength, this->bash_skill );
+    extract_into_with_default( "allow_open_doors", legacy_path_settings.allow_open_doors, false );
+    extract_into_with_default( "avoid_traps", legacy_path_settings.avoid_traps, false );
+    extract_into_with_default( "allow_climb_stairs", legacy_path_settings.allow_climb_stairs, true );
+    extract_into_with_default( "avoid_sharp", legacy_path_settings.avoid_sharp, false );
+
+    // New pathfinding init
+    extract_into_with_default( "bash_strength", this->path_settings.bash_strength_val,
+                               this->bash_skill );
+    this->path_settings.bash_strength_val /= this->path_settings.bash_strength_quanta;
+
+    extract_into_with_default( "allow_climb_stairs", this->path_settings.can_climb_stairs, true );
+
+    {
+        bool allow_open_doors;
+        extract_into_with_default( "allow_open_doors", allow_open_doors, false );
+        this->path_settings.door_open_cost = allow_open_doors ? 2.0 : INFINITY;
+    }
+    {
+        bool avoid_traps;
+        extract_into_with_default( "avoid_traps", avoid_traps, false );
+        this->path_settings.trap_cost = avoid_traps ? INFINITY : 0.0;
+    }
+    {
+        bool avoid_sharp;
+        extract_into_with_default( "avoid_sharp", avoid_sharp, false );
+        this->path_settings.sharp_terrain_cost = avoid_sharp ? INFINITY : 0.0;
+    }
+    {
+        int max_dist;
+        extract_into_with_default( "max_dist", max_dist, 0 );
+        this->route_settings.max_dist = static_cast<float>( max_dist );
+    }
+    {
+        int max_length;
+        extract_into_with_default( "max_length", max_length, -1 );
+        if( max_length >= 0 ) {
+            // Explicitly defined max_length requires special handling
+            //   and implies f_limit_based_on_max_dist
+            if( this->route_settings.max_dist > 0 ) {
+                this->route_settings.f_limit_based_on_max_dist = true;
+                // multiplied by 0.5 because legacy pathfinding's max_length is scaled by 2.
+                this->route_settings.max_f_coeff = 0.5 *
+                                                   static_cast<float>( max_length ) /
+                                                   this->route_settings.max_dist;
+            }
+        }
+    }
+    this->path_settings.move_cost_coeff = this->speed != 0 ? 1.0 / this->speed : INFINITY;
+
+    // Entirely new settings that are not present in legacy pathfinding
+    {
+        bool avoid_rough;
+        extract_into_with_default( "avoid_rough", avoid_rough, false );
+        this->path_settings.rough_terrain_cost = avoid_rough ? 16.0 : 0.0;
+    }
+
+    if( !default_override ) {
+        extract_into( "h_coeff", this->route_settings.h_coeff );
+        extract_into( "alpha", this->route_settings.alpha );
+        extract_into( "search_radius_coeff", this->route_settings.search_radius_coeff );
+        extract_into( "search_cone_angle", this->route_settings.search_cone_angle );
+        extract_into( "max_f_coeff", this->route_settings.max_f_coeff );
+        extract_into( "mob_presence_penalty", this->path_settings.mob_presence_penalty );
+    }
+
+    if( range_mult < 0 ) {
+        this->legacy_path_settings.max_dist = INT_MAX;
+        this->legacy_path_settings.max_length = INT_MAX;
+        this->route_settings.max_dist = INFINITY;
+    } else {
+        this->legacy_path_settings.max_dist *= range_mult;
+        this->legacy_path_settings.max_length *= range_mult;
+        this->route_settings.max_dist *= range_mult;
+        if( this->route_settings.f_limit_based_on_max_dist ) {
+            this->route_settings.max_f_coeff *= range_mult;
+        }
+    }
+    if( this->route_settings.max_f_coeff < 0 ) {
+        this->route_settings.max_f_coeff = INFINITY;
+    }
+    if( this->route_settings.search_radius_coeff < 0 ) {
+        this->route_settings.search_radius_coeff = INFINITY;
+    }
+    if( this->path_settings.mob_presence_penalty < 0 ) {
+        this->path_settings.mob_presence_penalty = INFINITY;
+    }
+
+    // Set up buffed settings
+    pathfinding_settings buffed_legacy_settings = this->legacy_path_settings;
+
+    buffed_legacy_settings.avoid_traps = true;
+    buffed_legacy_settings.avoid_sharp = true;
+    buffed_legacy_settings.allow_climb_stairs = true;
+    buffed_legacy_settings.max_length = std::max( 30, buffed_legacy_settings.max_length );
+    buffed_legacy_settings.max_dist = std::max( buffed_legacy_settings.max_length * 5,
+                                      buffed_legacy_settings.max_dist );
+    this->legacy_path_settings_buffed = buffed_legacy_settings;
+
+    PathfindingSettings buffed_path_settings = this->path_settings;
+    RouteSettings buffed_route_settings = this->route_settings;
+    // TODO: Make it assign a stockfish preset instead
+    buffed_path_settings.bash_cost = 1.0;
+    buffed_path_settings.trap_cost = INFINITY;
+    buffed_path_settings.sharp_terrain_cost = INFINITY;
+    buffed_path_settings.can_climb_stairs = true;
+    buffed_route_settings.max_dist = INFINITY;
+    buffed_route_settings.max_f_coeff = INFINITY;
+    buffed_route_settings.max_s_coeff = INFINITY;
+    buffed_route_settings.search_cone_angle = 180.0;
+    buffed_route_settings.search_radius_coeff = INFINITY;
+
+    this->path_settings_buffed = buffed_path_settings;
+    this->route_settings_buffed = buffed_route_settings;
+
+    this->recorded_path_settings.clear();
 }
 
 void MonsterGenerator::load_species( const JsonObject &jo, const std::string &src )
@@ -998,7 +1246,7 @@ void species_type::load( const JsonObject &jo, const std::string & )
     }
     optional( jo, was_loaded, "name", name, no_translation( id.c_str() ) );
     optional( jo, was_loaded, "description", description );
-    optional( jo, was_loaded, "footsteps", footsteps, to_translation( "footsteps." ) );
+    optional( jo, was_loaded, "footsteps", footsteps );
     const auto flag_reader = enum_flags_reader<m_flag> { "monster flag" };
     optional( jo, was_loaded, "flags", flags, flag_reader );
 
@@ -1134,8 +1382,8 @@ void mtype::add_special_attack( const JsonObject &obj, const std::string &src )
 
     if( special_attacks.contains( new_attack->id ) ) {
         special_attacks.erase( new_attack->id );
-        const auto iter = std::find( special_attacks_names.begin(), special_attacks_names.end(),
-                                     new_attack->id );
+        const auto iter = std::ranges::find( special_attacks_names,
+                                             new_attack->id );
         if( iter != special_attacks_names.end() ) {
             special_attacks_names.erase( iter );
         }
@@ -1160,7 +1408,7 @@ void mtype::add_special_attack( JsonArray inner, const std::string & )
 
     if( special_attacks.contains( name ) ) {
         special_attacks.erase( name );
-        const auto iter = std::find( special_attacks_names.begin(), special_attacks_names.end(), name );
+        const auto iter = std::ranges::find( special_attacks_names, name );
         if( iter != special_attacks_names.end() ) {
             special_attacks_names.erase( iter );
         }
@@ -1199,7 +1447,7 @@ void mtype::remove_special_attacks( const JsonObject &jo, const std::string &mem
 {
     for( const std::string &name : jo.get_tags( member_name ) ) {
         special_attacks.erase( name );
-        const auto iter = std::find( special_attacks_names.begin(), special_attacks_names.end(), name );
+        const auto iter = std::ranges::find( special_attacks_names, name );
         if( iter != special_attacks_names.end() ) {
             special_attacks_names.erase( iter );
         }

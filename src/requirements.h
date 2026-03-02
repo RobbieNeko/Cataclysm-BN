@@ -1,9 +1,9 @@
 #pragma once
-#ifndef CATA_SRC_REQUIREMENTS_H
-#define CATA_SRC_REQUIREMENTS_H
 
-#include <list>
+#include "catalua_type_operators.h"
+
 #include <map>
+#include <set>
 #include <string>
 #include <tuple>
 #include <vector>
@@ -19,7 +19,7 @@ class JsonValue;
 class inventory;
 class item;
 class nc_color;
-class player;
+class Character;
 
 enum class available_status : int {
     a_true = +1, // yes, it's available
@@ -46,12 +46,19 @@ struct quality {
     quality_id id;
     translation name;
 
+    float crafting_speed_bonus_per_level = 0.0f;
+    int crafting_speed_level_offset = 0;
+
+    /** Materials it can salvage */
+    std::set<material_id> salvagable_materials;
     std::vector<std::pair<int, std::string>> usages;
 
     void load( const JsonObject &jo, const std::string &src );
 
     static void reset();
     static void load_static( const JsonObject &jo, const std::string &src );
+
+    LUA_TYPE_OPS( quality, id );
 };
 
 struct component {
@@ -449,11 +456,11 @@ class deduped_requirement_data
             int batch = 1, cost_adjustment = static_cast<cost_adjustment>( 0 ) ) const;
 
         const requirement_data *select_alternative(
-            player &, const std::function<bool( const item & )> &filter, int batch = 1,
+            Character &, const std::function<bool( const item & )> &filter, int batch = 1,
             cost_adjustment = static_cast<cost_adjustment>( 0 ) ) const;
 
         const requirement_data *select_alternative(
-            player &, const inventory &, const std::function<bool( const item & )> &filter,
+            Character &, const inventory &, const std::function<bool( const item & )> &filter,
             int batch = 1, cost_adjustment = static_cast<cost_adjustment>( 0 ) ) const;
 
         bool can_make_with_inventory(
@@ -467,5 +474,3 @@ class deduped_requirement_data
         bool is_too_complex_ = false;
         std::vector<requirement_data> alternatives_;
 };
-
-#endif // CATA_SRC_REQUIREMENTS_H

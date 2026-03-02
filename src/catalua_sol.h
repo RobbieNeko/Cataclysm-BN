@@ -1,6 +1,4 @@
 #pragma once
-#ifndef CATA_SRC_CATALUA_SOL_H
-#define CATA_SRC_CATALUA_SOL_H
 
 #ifdef __clang__
 #  pragma clang diagnostic push
@@ -15,8 +13,18 @@
 
 #undef CATALUA_SOL_WRAPPED
 
+#include "detached_ptr.h"
+template <typename T>
+struct sol::unique_usertype_traits<detached_ptr<T>> {
+    using type = T;
+    using actual_type = detached_ptr<T>;
+    static constexpr bool value = true;
+    static bool is_null( const actual_type &ptr ) { return ptr == nullptr; }
+    static type *get( const actual_type &ptr ) { return ptr.get(); }
+};
+
 #ifdef __clang__
 #  pragma clang diagnostic pop
 #endif
 
-#endif // CATA_SRC_CATALUA_SOL_H
+

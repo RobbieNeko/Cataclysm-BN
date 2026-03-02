@@ -1,6 +1,4 @@
 #pragma once
-#ifndef CATA_SRC_MAGIC_ENCHANTMENT_H
-#define CATA_SRC_MAGIC_ENCHANTMENT_H
 
 #include <map>
 #include <optional>
@@ -42,6 +40,9 @@ enum class mod : int {
     BONUS_DODGE,
     ARMOR_BASH,
     ARMOR_CUT,
+    ARMOR_DARK,
+    ARMOR_LIGHT,
+    ARMOR_PSI,
     ARMOR_STAB,
     ARMOR_BULLET,
     ARMOR_HEAT,
@@ -53,8 +54,21 @@ enum class mod : int {
     ITEM_DAMAGE_BASH,
     ITEM_DAMAGE_CUT,
     ITEM_DAMAGE_STAB,
+    ITEM_DAMAGE_FIRE,
+    ITEM_DAMAGE_ACID,
+    ITEM_DAMAGE_BIO,
+    ITEM_DAMAGE_COLD,
+    ITEM_DAMAGE_DARK,
+    ITEM_DAMAGE_LIGHT,
+    ITEM_DAMAGE_PSI,
+    ITEM_DAMAGE_BULLET,
+    ITEM_DAMAGE_ELECTRIC,
+    ITEM_DAMAGE_TRUE,
     ITEM_ARMOR_BASH,
     ITEM_ARMOR_CUT,
+    ITEM_ARMOR_DARK,
+    ITEM_ARMOR_LIGHT,
+    ITEM_ARMOR_PSI,
     ITEM_ARMOR_STAB,
     ITEM_ARMOR_BULLET,
     ITEM_ARMOR_HEAT,
@@ -63,6 +77,13 @@ enum class mod : int {
     ITEM_ARMOR_ACID,
     ITEM_ARMOR_BIO,
     ITEM_ATTACK_COST,
+    // effects for ranged bonuses
+    RANGED_DISPERSION,
+    RANGED_DAMAGE_BULLET,
+    RANGED_ARMOR_PENETRATION,
+    RANGED_RANGE,
+    RANGED_RECOIL,
+    RANGED_RELOAD_TIME,
     NUM_MOD
 };
 } // namespace enchant_vals
@@ -83,8 +104,14 @@ class enchantment
         enum condition {
             ALWAYS,
             UNDERGROUND,
+            ABOVEGROUND,
             UNDERWATER,
+            NIGHT,
+            DAY,
+            DUSK,
+            DAWN,
             ACTIVE, // the item, mutation, etc. is active
+            INACTIVE,
             NUM_CONDITION
         };
 
@@ -172,4 +199,4 @@ class enchantment
                                      const fake_spell &sp ) const;
 };
 
-#endif // CATA_SRC_MAGIC_ENCHANTMENT_H
+

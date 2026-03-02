@@ -4,10 +4,13 @@
 #include <algorithm>
 #include <memory>
 
+#include "ammo_effect.h"
 #include "avatar.h"
 #include "avatar_action.h"
 #include "creature.h"
+#include "creature_functions.h"
 #include "debug.h"
+#include "field_type.h"
 #include "enums.h"
 #include "game.h"
 #include "gun_mode.h"
@@ -23,6 +26,7 @@
 #include "ui.h"
 #include "value_ptr.h"
 #include "veh_type.h"
+#include "vehicle_functions.h"
 #include "vehicle_selector.h"
 #include "vpart_position.h"
 #include "vpart_range.h"
@@ -265,14 +269,14 @@ turret_data::status turret_data::query() const
     return status::ready;
 }
 
-void turret_data::prepare_fire( player &p )
+void turret_data::prepare_fire( Character &who )
 {
     // prevent turrets from shooting their own vehicles
-    p.add_effect( effect_on_roof, 1_turns );
+    who.add_effect( effect_on_roof, 1_turns );
 
     // turrets are subject only to recoil_vehicle()
-    cached_recoil = p.recoil;
-    p.recoil = 0;
+    cached_recoil = who.recoil;
+    who.recoil = 0;
 
     // set fuel tank fluid as ammo, if appropriate
     if( part->info().has_flag( "USE_TANKS" ) ) {
@@ -283,11 +287,11 @@ void turret_data::prepare_fire( player &p )
     }
 }
 
-void turret_data::post_fire( player &p, int shots )
+void turret_data::post_fire( Character &who, int shots )
 {
     // remove any temporary recoil adjustments
-    p.remove_effect( effect_on_roof );
-    p.recoil = cached_recoil;
+    who.remove_effect( effect_on_roof );
+    who.recoil = cached_recoil;
 
     auto mode = base().gun_current_mode();
 
@@ -300,7 +304,7 @@ void turret_data::post_fire( player &p, int shots )
     veh->drain( fuel_type_battery, mode->get_gun_ups_drain() * shots );
 }
 
-int turret_data::fire( player &p, const tripoint &target )
+int turret_data::fire( Character &who, const tripoint &target )
 {
     if( !veh || !part ) {
         return 0;
@@ -308,9 +312,9 @@ int turret_data::fire( player &p, const tripoint &target )
     int shots = 0;
     auto mode = base().gun_current_mode();
 
-    prepare_fire( p );
-    shots = ranged::fire_gun( p, target, mode.qty, *mode, nullptr );
-    post_fire( p, shots );
+    prepare_fire( who );
+    shots = ranged::fire_gun( who, target, mode.qty, *mode, nullptr );
+    post_fire( who, shots );
     return shots;
 }
 
@@ -318,10 +322,6 @@ void vehicle::turrets_aim_and_fire_single( avatar &you )
 {
     std::vector<std::string> option_names;
     std::vector<vehicle_part *> options;
-
-    if( !avatar_action::will_fire_turret( you ) ) {
-        return;
-    }
 
     // Find all turrets that are ready to fire
     for( auto &t : turrets() ) {
@@ -342,6 +342,9 @@ void vehicle::turrets_aim_and_fire_single( avatar &you )
         return;
     }
     vehicle_part *turret = options[idx];
+    if( !avatar_action::will_fire_turret( you, turret_query( *turret ) ) ) {
+        return;
+    }
 
     std::vector<vehicle_part *> turrets;
     turrets.push_back( turret );
@@ -351,9 +354,6 @@ void vehicle::turrets_aim_and_fire_single( avatar &you )
 bool vehicle::turrets_aim_and_fire_mult( avatar &you, const turret_filter_types turret_filter,
         const bool show_msg )
 {
-    if( !avatar_action::will_fire_turret( you ) ) {
-        return false;
-    }
     std::vector<vehicle_part *> turrets = find_all_ready_turrets( turret_filter );
 
     if( turrets.empty() ) {
@@ -373,6 +373,12 @@ bool vehicle::turrets_aim_and_fire_mult( avatar &you, const turret_filter_types 
             }
         }
         return false;
+    }
+
+    for( auto turret : turrets ) {
+        if( !avatar_action::will_fire_turret( you, turret_query( *turret ) ) ) {
+            return false;
+        }
     }
 
     turrets_aim_and_fire( turrets );
@@ -554,6 +560,7 @@ std::unique_ptr<npc> vehicle::get_targeting_npc( const vehicle_part &pt )
     cpu->setpos( global_part_pos3( pt ) );
     // Assume vehicle turrets are friendly to the player.
     cpu->set_attitude( NPCATT_FOLLOW );
+    cpu->set_fac( faction_id( "your_followers" ) );
     cpu->set_fac( get_owner() );
     return cpu;
 }
@@ -563,6 +570,13 @@ int vehicle::automatic_fire_turret( vehicle_part &pt )
     turret_data gun = turret_query( pt );
 
     int shots = 0;
+
+    // Try to automatically reload if out of ammo and autoloader is present
+    if( gun.query() == turret_data::status::no_ammo ) {
+        vehicle_funcs::try_autoload_turret( *this, pt );
+        // Refresh turret data after potential reload
+        gun = turret_query( pt );
+    }
 
     if( gun.query() != turret_data::status::ready ) {
         return shots;
@@ -589,13 +603,20 @@ int vehicle::automatic_fire_turret( vehicle_part &pt )
         // BEWARE: Calling turret_data.fire on tripoint min coordinates starts a crash
         //      triggered at `trajectory.insert( trajectory.begin(), source )` at ranged.cpp:236
         pt.reset_target( pos );
-        int boo_hoo;
 
         // TODO: calculate chance to hit and cap range based upon this
         int max_range = 20;
         int range = std::min( gun.range(), max_range );
-        Creature *auto_target = cpu->auto_find_hostile_target( range, boo_hoo, area );
-        if( auto_target == nullptr ) {
+
+        // Check if weapon leaves dangerous trail (e.g., lasers)
+        const auto ammo_fx = gun.ammo_effects();
+        const bool has_trail = std::ranges::any_of( ammo_fx, []( const ammo_effect_str_id & ae ) {
+            return ae->trail_field_type && ae->trail_field_type != fd_null;
+        } );
+
+        auto res = creature_functions::auto_find_hostile_target( *cpu, { .range = range, .trail = has_trail, .area = area } );
+        if( !res ) {
+            const int boo_hoo = res.error();
             if( boo_hoo ) {
                 cpu->name = string_format( pgettext( "vehicle turret", "The %s" ), pt.name() );
                 // check if the player can see or hear then print chooses a message accordingly
@@ -615,7 +636,7 @@ int vehicle::automatic_fire_turret( vehicle_part &pt )
             return shots;
         }
 
-        target.second = auto_target->pos();
+        target.second = res.value().get().pos();
 
     } else {
         // Target is already set, make sure we didn't move after aiming (it's a bug if we did).

@@ -6,6 +6,7 @@
 #include <set>
 
 #include "bodypart.h"
+#include "calendar.h"
 #include "character.h"
 #include "creature.h"
 #include "debug.h"
@@ -59,8 +60,14 @@ namespace io
         switch ( data ) {
         case enchantment::condition::ALWAYS: return "ALWAYS";
         case enchantment::condition::UNDERGROUND: return "UNDERGROUND";
+        case enchantment::condition::ABOVEGROUND: return "ABOVEGROUND";
         case enchantment::condition::UNDERWATER: return "UNDERWATER";
+        case enchantment::condition::DAY: return "DAY";
+        case enchantment::condition::NIGHT: return "NIGHT";
+        case enchantment::condition::DUSK: return "DUSK";
+        case enchantment::condition::DAWN: return "DAWN";
         case enchantment::condition::ACTIVE: return "ACTIVE";
+        case enchantment::condition::INACTIVE: return "INACTIVE";
         case enchantment::condition::NUM_CONDITION: break;
         }
         debugmsg( "Invalid enchantment::condition" );
@@ -91,6 +98,9 @@ namespace io
             case enchant_vals::mod::ARMOR_BIO: return "ARMOR_BIO";
             case enchant_vals::mod::ARMOR_COLD: return "ARMOR_COLD";
             case enchant_vals::mod::ARMOR_CUT: return "ARMOR_CUT";
+            case enchant_vals::mod::ARMOR_DARK: return "ARMOR_DARK";
+            case enchant_vals::mod::ARMOR_LIGHT: return "ARMOR_LIGHT";
+            case enchant_vals::mod::ARMOR_PSI: return "ARMOR_PSI";
             case enchant_vals::mod::ARMOR_ELEC: return "ARMOR_ELEC";
             case enchant_vals::mod::ARMOR_HEAT: return "ARMOR_HEAT";
             case enchant_vals::mod::ARMOR_STAB: return "ARMOR_STAB";
@@ -98,8 +108,21 @@ namespace io
             case enchant_vals::mod::ITEM_DAMAGE_BASH: return "ITEM_DAMAGE_BASH";
             case enchant_vals::mod::ITEM_DAMAGE_CUT: return "ITEM_DAMAGE_CUT";
             case enchant_vals::mod::ITEM_DAMAGE_STAB: return "ITEM_DAMAGE_STAB";
+            case enchant_vals::mod::ITEM_DAMAGE_FIRE: return "ITEM_DAMAGE_FIRE";
+            case enchant_vals::mod::ITEM_DAMAGE_ACID: return "ITEM_DAMAGE_ACID";
+            case enchant_vals::mod::ITEM_DAMAGE_BIO: return "ITEM_DAMAGE_BIO";
+            case enchant_vals::mod::ITEM_DAMAGE_COLD: return "ITEM_DAMAGE_COLD";
+            case enchant_vals::mod::ITEM_DAMAGE_DARK: return "ITEM_DAMAGE_DARK";
+            case enchant_vals::mod::ITEM_DAMAGE_LIGHT: return "ITEM_DAMAGE_LIGHT";
+            case enchant_vals::mod::ITEM_DAMAGE_PSI: return "ITEM_DAMAGE_PSI";
+            case enchant_vals::mod::ITEM_DAMAGE_BULLET: return "ITEM_DAMAGE_BULLET";
+            case enchant_vals::mod::ITEM_DAMAGE_ELECTRIC: return "ITEM_DAMAGE_ELECTRIC";
+            case enchant_vals::mod::ITEM_DAMAGE_TRUE: return "ITEM_DAMAGE_TRUE";
             case enchant_vals::mod::ITEM_ARMOR_BASH: return "ITEM_ARMOR_BASH";
             case enchant_vals::mod::ITEM_ARMOR_CUT: return "ITEM_ARMOR_CUT";
+            case enchant_vals::mod::ITEM_ARMOR_DARK: return "ITEM_ARMOR_DARK";
+            case enchant_vals::mod::ITEM_ARMOR_LIGHT: return "ITEM_ARMOR_LIGHT";
+            case enchant_vals::mod::ITEM_ARMOR_PSI: return "ITEM_ARMOR_PSI";
             case enchant_vals::mod::ITEM_ARMOR_STAB: return "ITEM_ARMOR_STAB";
             case enchant_vals::mod::ITEM_ARMOR_BULLET: return "ITEM_ARMOR_BULLET";
             case enchant_vals::mod::ITEM_ARMOR_HEAT: return "ITEM_ARMOR_HEAT";
@@ -108,6 +131,12 @@ namespace io
             case enchant_vals::mod::ITEM_ARMOR_ACID: return "ITEM_ARMOR_ACID";
             case enchant_vals::mod::ITEM_ARMOR_BIO: return "ITEM_ARMOR_BIO";
             case enchant_vals::mod::ITEM_ATTACK_COST: return "ITEM_ATTACK_COST";
+            case enchant_vals::mod::RANGED_DISPERSION: return "RANGED_DISPERSION";
+            case enchant_vals::mod::RANGED_DAMAGE_BULLET: return "RANGED_DAMAGE_BULLET";
+            case enchant_vals::mod::RANGED_ARMOR_PENETRATION: return "RANGED_ARMOR_PENETRATION";
+            case enchant_vals::mod::RANGED_RANGE: return "RANGED_RANGE";
+            case enchant_vals::mod::RANGED_RECOIL: return "RANGED_RECOIL";
+            case enchant_vals::mod::RANGED_RELOAD_TIME: return "RANGED_RELOAD_TIME";
             case enchant_vals::mod::NUM_MOD: break;
         }
         debugmsg( "Invalid enchant_vals::mod" );
@@ -184,12 +213,36 @@ bool enchantment::is_active( const Character &guy, const bool active ) const
         return active;
     }
 
+    if( active_conditions.second == condition::INACTIVE ) {
+        return !active;
+    }
+
     if( active_conditions.second == condition::ALWAYS ) {
         return true;
     }
 
+    if( active_conditions.second == condition::NIGHT ) {
+        return is_night( calendar::turn );
+    }
+
+    if( active_conditions.second == condition::DAY ) {
+        return is_day( calendar::turn );
+    }
+
+    if( active_conditions.second == condition::DUSK ) {
+        return is_dusk( calendar::turn );
+    }
+
+    if( active_conditions.second == condition::DAWN ) {
+        return is_dawn( calendar::turn );
+    }
+
     if( active_conditions.second == condition::UNDERGROUND ) {
         return guy.pos().z < 0;
+    }
+
+    if( active_conditions.second == condition::ABOVEGROUND ) {
+        return guy.pos().z > -1;
     }
 
     if( active_conditions.second == condition::UNDERWATER ) {

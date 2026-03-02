@@ -1,6 +1,4 @@
 #pragma once
-#ifndef CATA_SRC_AVATAR_ACTION_H
-#define CATA_SRC_AVATAR_ACTION_H
 
 #include <optional>
 
@@ -76,7 +74,7 @@ bool can_fire_weapon( avatar &you, const map &m, const item &weapon );
  * Only call outside of can_fire_turret if using turret from vehicle controls.
  * As can_fire_turret also checks things like "do you have two hands to fire the M2HB?"
  */
-bool will_fire_turret( avatar &you );
+bool will_fire_turret( avatar &you, const turret_data &turret );
 
 /**
  * Checks if the turret is valid and if the player meets certain conditions for manually firing it.
@@ -110,4 +108,4 @@ void plthrow( avatar &you, item *loc,
 void use_item( avatar &you, item *loc = nullptr );
 } // namespace avatar_action
 
-#endif // CATA_SRC_AVATAR_ACTION_H
+

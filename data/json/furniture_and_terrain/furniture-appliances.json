@@ -10,6 +10,7 @@
     "move_cost_mod": -1,
     "coverage": 55,
     "required_str": -1,
+    "flags": [ "ADV_DECONSTRUCT" ],
     "deconstruct": {
       "items": [
         { "item": "ac_unit_item", "count": 1 },
@@ -47,6 +48,7 @@
     "coverage": 50,
     "required_str": -1,
     "looks_like": "f_air_conditioner",
+    "flags": [ "ADV_DECONSTRUCT" ],
     "deconstruct": {
       "items": [
         { "item": "scrap", "count": [ 2, 6 ] },
@@ -90,7 +92,7 @@
     "coverage": 60,
     "required_str": 13,
     "max_volume": "200 L",
-    "flags": [ "CONTAINER", "PLACE_ITEM", "BLOCKSDOOR", "FLAT_SURF", "MINEABLE", "TRANSPARENT" ],
+    "flags": [ "CONTAINER", "PLACE_ITEM", "BLOCKSDOOR", "FLAT_SURF", "MINEABLE", "TRANSPARENT", "ADV_DECONSTRUCT" ],
     "deconstruct": {
       "items": [
         { "item": "pipe", "count": 1 },
@@ -135,7 +137,7 @@
     "coverage": 60,
     "required_str": 12,
     "max_volume": "37500 ml",
-    "flags": [ "CONTAINER", "PLACE_ITEM", "BLOCKSDOOR", "FLAT_SURF", "MINEABLE", "TRANSPARENT" ],
+    "flags": [ "CONTAINER", "PLACE_ITEM", "BLOCKSDOOR", "FLAT_SURF", "MINEABLE", "TRANSPARENT", "ADV_DECONSTRUCT" ],
     "deconstruct": {
       "items": [
         { "item": "scrap", "count": [ 2, 6 ] },
@@ -182,7 +184,7 @@
         { "item": "cable", "charges": 2 },
         { "item": "power_supply", "count": 1 },
         { "item": "light_bulb", "count": 1 },
-        { "item": "steel_lump", "count": 1 },
+        { "item": "steel_chunk", "count": 5 },
         { "item": "pipe", "count": 1 }
       ]
     },
@@ -571,7 +573,7 @@
     "move_cost_mod": -1,
     "coverage": 60,
     "required_str": -1,
-    "flags": [ "CONTAINER", "PLACE_ITEM", "FIRE_CONTAINER", "SUPPRESS_SMOKE", "BLOCKSDOOR" ],
+    "flags": [ "CONTAINER", "PLACE_ITEM", "FIRE_CONTAINER", "SUPPRESS_SMOKE", "BLOCKSDOOR", "ADV_DECONSTRUCT" ],
     "examine_action": "fireplace",
     "deconstruct": {
       "items": [
@@ -614,7 +616,7 @@
     "coverage": 60,
     "required_str": 12,
     "max_volume": "30 L",
-    "flags": [ "CONTAINER", "PLACE_ITEM", "BLOCKSDOOR", "FLAT_SURF", "MINEABLE", "TRANSPARENT" ],
+    "flags": [ "CONTAINER", "PLACE_ITEM", "BLOCKSDOOR", "FLAT_SURF", "MINEABLE", "TRANSPARENT", "ADV_DECONSTRUCT" ],
     "deconstruct": {
       "items": [
         { "item": "pipe", "count": 1 },
@@ -801,7 +803,7 @@
     "move_cost_mod": 5,
     "required_str": 6,
     "looks_like": "f_filing_cabinet",
-    "flags": [ "TRANSPARENT", "CONTAINER", "PLACE_ITEM", "BLOCKSDOOR" ],
+    "flags": [ "TRANSPARENT", "CONTAINER", "PLACE_ITEM", "BLOCKSDOOR", "ADV_DECONSTRUCT" ],
     "deconstruct": {
       "items": [
         { "item": "scrap", "count": [ 2, 6 ] },
@@ -838,7 +840,7 @@
     "id": "f_server",
     "looks_like": "f_utility_shelf",
     "name": "server stack",
-    "description": "This is a big pile of computers.  They're all turned off.",
+    "description": "This is a big pile of computers.  They're all turned off, but if you can get power going it might be useful for training your Computers skill.",
     "symbol": ":",
     "color": "blue_white",
     "move_cost_mod": -1,
@@ -854,6 +856,8 @@
         { "item": "cable", "charges": [ 5, 10 ] }
       ]
     },
+    "crafting_pseudo_item": "fake_training_server",
+    "examine_action": "use_furn_fake_item",
     "bash": {
       "str_min": 16,
       "str_max": 40,
@@ -925,15 +929,14 @@
     "color": "yellow",
     "move_cost_mod": -1,
     "required_str": -1,
-    "//": "10 watts, all of these below are staggered across 5 minutes to avoid lag.  Todo: convert to not rely on steady_consumer hacks",
+    "//": "30 watts, all of these below are staggered across 5 minutes to avoid lag.  Todo: convert to not rely on steady_consumer hacks",
     "//2": "Please keep steady_consumer to 300 s or more to avoid lag.",
-    "active": [ "steady_consumer", { "power": -3, "consume_every": "300 s" } ],
+    "active": [ "steady_consumer", { "power": -9, "consume_every": "300 s" } ],
     "flags": [ "TRANSPARENT" ],
     "deconstruct": {
       "items": [
         { "item": "solder_wire", "charges": 20 },
         { "item": "plastic_chunk", "count": 2 },
-        { "item": "steel_chunk", "count": 5 },
         { "item": "wind_turbine", "count": 1 }
       ]
     },
@@ -963,15 +966,14 @@
     "move_cost_mod": -1,
     "coverage": 30,
     "required_str": -1,
-    "//": "30 watts",
+    "//": "90 watts",
     "//2": "Please keep steady_consumer to 300 s or more to avoid lag.",
-    "active": [ "steady_consumer", { "power": -9, "consume_every": "300 s" } ],
+    "active": [ "steady_consumer", { "power": -27, "consume_every": "300 s" } ],
     "flags": [ "TRANSPARENT" ],
     "deconstruct": {
       "items": [
         { "item": "solder_wire", "charges": 20 },
         { "item": "plastic_chunk", "count": 2 },
-        { "item": "steel_chunk", "count": 5 },
         { "item": "xl_wind_turbine", "count": 1 }
       ]
     },
@@ -985,7 +987,6 @@
         { "item": "2x4", "count": [ 1, 30 ] },
         { "item": "scrap", "count": [ 3, 6 ] },
         { "item": "cable", "charges": [ 10, 15 ] },
-        { "item": "scrap", "count": [ 4, 6 ] },
         { "item": "pipe", "count": [ 0, 3 ] }
       ],
       "//": "Variable reduction, destroy_threshold equal to str_min instead of str_max due to delicate electronics",
@@ -1003,15 +1004,14 @@
     "move_cost_mod": -1,
     "coverage": 30,
     "required_str": -1,
-    "//": "80 watts",
+    "//": "240 watts",
     "//2": "Please keep steady_consumer to 300 s or more to avoid lag.",
-    "active": [ "steady_consumer", { "power": -24, "consume_every": "300 s" } ],
+    "active": [ "steady_consumer", { "power": -72, "consume_every": "300 s" } ],
     "flags": [ "TRANSPARENT" ],
     "deconstruct": {
       "items": [
         { "item": "solder_wire", "charges": 20 },
         { "item": "plastic_chunk", "count": 2 },
-        { "item": "steel_chunk", "count": 5 },
         { "item": "water_wheel", "count": 1 }
       ]
     },
@@ -1025,7 +1025,6 @@
         { "item": "2x4", "count": [ 1, 5 ] },
         { "item": "scrap", "count": [ 3, 6 ] },
         { "item": "cable", "charges": [ 10, 15 ] },
-        { "item": "scrap", "count": [ 4, 6 ] },
         { "item": "pipe", "count": [ 0, 3 ] }
       ],
       "//": "Variable, destroy_threshold equal to str_min instead of str_max due to delicate electronics",
@@ -1041,14 +1040,13 @@
     "symbol": "#",
     "color": "yellow",
     "coverage": 60,
-    "//": "30 watts",
+    "//": "90 watts",
     "//2": "Please keep steady_consumer to 300 s or more to avoid lag.",
-    "active": [ "steady_consumer", { "power": -54, "consume_every": "300 s" } ],
+    "active": [ "steady_consumer", { "power": -162, "consume_every": "300 s" } ],
     "deconstruct": {
       "items": [
         { "item": "solder_wire", "charges": 20 },
         { "item": "plastic_chunk", "count": 2 },
-        { "item": "steel_chunk", "count": 5 },
         { "item": "xl_water_wheel", "count": 1 }
       ]
     },
@@ -1062,7 +1060,6 @@
         { "item": "2x4", "count": [ 1, 30 ] },
         { "item": "scrap", "count": [ 3, 6 ] },
         { "item": "cable", "charges": [ 10, 15 ] },
-        { "item": "scrap", "count": [ 4, 6 ] },
         { "item": "pipe", "count": [ 0, 3 ] }
       ],
       "//": "Variable reduction, destroy_threshold equal to str_min instead of str_max due to delicate electronics",
@@ -1143,6 +1140,45 @@
         { "item": "scrap", "count": [ 4, 6 ] },
         { "item": "plastic_chunk", "count": [ 1, 2 ] },
         { "item": "steel_chunk", "count": 3 }
+      ]
+    }
+  },
+  {
+    "type": "furniture",
+    "id": "f_foldable_solar_unit",
+    "name": "mounted foldable solar panel",
+    "description": "A mounted foldable solar panel connected to building's electric grid.",
+    "symbol": "#",
+    "looks_like": "f_solar_unit",
+    "color": "yellow",
+    "move_cost_mod": 2,
+    "required_str": -1,
+    "active": [ "solar", { "power": 40 } ],
+    "flags": [ "TRANSPARENT" ],
+    "deconstruct": {
+      "items": [
+        { "item": "solder_wire", "charges": 10 },
+        { "item": "plastic_chunk", "count": 2 },
+        { "item": "steel_chunk", "count": 2 },
+        { "item": "pipe", "count": 2 },
+        { "item": "foldable_solar_panel", "count": 1 }
+      ]
+    },
+    "bash": {
+      "str_min": 10,
+      "str_max": 20,
+      "sound": "whack!",
+      "sound_fail": "clang!",
+      "items": [
+        { "item": "solder_wire", "charges": [ 5, 10 ] },
+        { "item": "solar_cell", "count": [ 1, 2 ] },
+        { "item": "scrap", "count": [ 1, 3 ] },
+        { "item": "amplifier", "prob": 50 },
+        { "item": "cable", "charges": [ 5, 10 ] },
+        { "item": "power_supply", "prob": 50 },
+        { "item": "scrap", "count": [ 2, 3 ] },
+        { "item": "plastic_chunk", "count": [ 1, 2 ] },
+        { "item": "steel_chunk", "count": 2 }
       ]
     }
   },
@@ -1371,26 +1407,14 @@
     "coverage": 10,
     "required_str": -1,
     "active": [ "charger", { "power": 15 } ],
-    "flags": [ "TRANSPARENT" ],
-    "deconstruct": {
-      "items": [
-        { "item": "solder_wire", "charges": 20 },
-        { "item": "cable", "charges": 5 },
-        { "item": "battery_charger", "count": 1 },
-        { "item": "power_supply", "count": 1 }
-      ]
-    },
+    "flags": [ "TRANSPARENT", "EASY_DECONSTRUCT" ],
+    "deconstruct": { "items": [ { "item": "battery_charger", "count": 1 } ] },
     "bash": {
       "str_min": 16,
       "str_max": 40,
       "sound": "metal screeching!",
       "sound_fail": "clang!",
-      "items": [
-        { "item": "solder_wire", "charges": [ 10, 20 ] },
-        { "item": "e_scrap", "count": [ 0, 1 ] },
-        { "item": "plastic_chunk", "count": [ 0, 1 ] },
-        { "item": "cable", "charges": [ 2, 8 ] }
-      ]
+      "items": [ { "item": "battery_charger", "count": 1 } ]
     }
   },
   {
@@ -1464,26 +1488,36 @@
     "crafting_pseudo_item": "fake_gridwelder",
     "examine_action": "use_furn_fake_item",
     "flags": [ "TRANSPARENT", "MOUNTABLE", "EASY_DECONSTRUCT" ],
-    "deconstruct": {
-      "items": [
-        { "item": "solder_wire", "charges": 20 },
-        { "item": "welder", "count": 1 },
-        { "item": "cable", "charges": 5 },
-        { "item": "power_supply", "count": 1 }
-      ]
-    },
+    "deconstruct": { "items": [ { "item": "welder", "count": 1 } ] },
     "bash": {
       "str_min": 4,
       "str_max": 30,
       "sound": "metal screeching!",
       "sound_fail": "clang!",
-      "items": [
-        { "item": "solder_wire", "charges": [ 10, 20 ] },
-        { "item": "power_supply", "count": [ 1, 4 ] },
-        { "item": "scrap", "count": [ 0, 2 ] },
-        { "item": "cable", "charges": [ 1, 4 ] },
-        { "item": "plastic_chunk", "count": [ 1, 2 ] }
-      ]
+      "items": [ { "item": "welder", "count": 1 } ]
+    }
+  },
+  {
+    "type": "furniture",
+    "id": "f_gridgunkit",
+    "looks_like": "large_repairkit",
+    "name": "grid gunsmith repair kit",
+    "symbol": "#",
+    "description": "A gunsmith kit connected to an electrical grid.",
+    "color": "red",
+    "move_cost_mod": -1,
+    "coverage": 10,
+    "required_str": -1,
+    "crafting_pseudo_item": "fake_gridgunkit",
+    "examine_action": "use_furn_fake_item",
+    "flags": [ "TRANSPARENT", "MOUNTABLE", "EASY_DECONSTRUCT" ],
+    "deconstruct": { "items": [ { "item": "large_repairkit", "count": 1 } ] },
+    "bash": {
+      "str_min": 4,
+      "str_max": 30,
+      "sound": "metal screeching!",
+      "sound_fail": "clang!",
+      "items": [ { "item": "large_repairkit", "count": 1 } ]
     }
   },
   {
@@ -1640,27 +1674,13 @@
     "required_str": -1,
     "crafting_pseudo_item": "fake_griddehydrator",
     "flags": [ "TRANSPARENT", "MOUNTABLE", "EASY_DECONSTRUCT" ],
-    "deconstruct": {
-      "items": [
-        { "item": "solder_wire", "charges": 20 },
-        { "item": "dehydrator", "count": 1 },
-        { "item": "cable", "charges": 5 },
-        { "item": "power_supply", "count": 1 }
-      ]
-    },
+    "deconstruct": { "items": [ { "item": "dehydrator", "count": 1 } ] },
     "bash": {
       "str_min": 8,
       "str_max": 16,
       "sound": "crunch!",
       "sound_fail": "whump.",
-      "items": [
-        { "item": "solder_wire", "charges": [ 10, 20 ] },
-        { "item": "power_supply", "count": [ 1, 4 ] },
-        { "item": "scrap", "count": [ 0, 4 ] },
-        { "item": "plastic_chunk", "count": [ 0, 9 ] },
-        { "item": "cable", "charges": [ 1, 4 ] },
-        { "item": "element", "count": [ 2, 6 ] }
-      ]
+      "items": [ { "item": "dehydrator", "count": 1 } ]
     }
   },
   {
@@ -1676,27 +1696,35 @@
     "required_str": -1,
     "crafting_pseudo_item": "fake_gridfood_processor",
     "flags": [ "TRANSPARENT", "MOUNTABLE", "EASY_DECONSTRUCT" ],
-    "deconstruct": {
-      "items": [
-        { "item": "solder_wire", "charges": 20 },
-        { "item": "food_processor", "count": 1 },
-        { "item": "cable", "charges": 5 },
-        { "item": "power_supply", "count": 1 }
-      ]
-    },
+    "deconstruct": { "items": [ { "item": "food_processor", "count": 1 } ] },
     "bash": {
       "str_min": 8,
       "str_max": 16,
       "sound": "crunch!",
       "sound_fail": "whump.",
-      "items": [
-        { "item": "solder_wire", "charges": [ 10, 20 ] },
-        { "item": "power_supply", "count": [ 1, 4 ] },
-        { "item": "scrap", "count": [ 0, 4 ] },
-        { "item": "plastic_chunk", "count": [ 0, 9 ] },
-        { "item": "cable", "charges": [ 1, 4 ] },
-        { "item": "element", "count": [ 2, 6 ] }
-      ]
+      "items": [ { "item": "food_processor", "count": 1 } ]
+    }
+  },
+  {
+    "type": "furniture",
+    "id": "f_gridsoda_machine",
+    "looks_like": "food_processor",
+    "name": "soda machine",
+    "symbol": "U",
+    "description": "A soda machine connected to a electrical grid.  Capable of creating carbonated drinks.",
+    "color": "blue",
+    "move_cost_mod": -1,
+    "coverage": 10,
+    "required_str": -1,
+    "crafting_pseudo_item": "fake_gridsoda_machine",
+    "flags": [ "TRANSPARENT", "MOUNTABLE", "EASY_DECONSTRUCT" ],
+    "deconstruct": { "items": [ { "item": "soda_machine", "count": 1 } ] },
+    "bash": {
+      "str_min": 8,
+      "str_max": 16,
+      "sound": "crunch!",
+      "sound_fail": "whump.",
+      "items": [ { "item": "soda_machine", "count": 1 } ]
     }
   },
   {
@@ -1712,27 +1740,13 @@
     "required_str": -1,
     "crafting_pseudo_item": "fake_gridvac_sealer",
     "flags": [ "TRANSPARENT", "MOUNTABLE", "EASY_DECONSTRUCT" ],
-    "deconstruct": {
-      "items": [
-        { "item": "solder_wire", "charges": 20 },
-        { "item": "vac_sealer", "count": 1 },
-        { "item": "cable", "charges": 5 },
-        { "item": "power_supply", "count": 1 }
-      ]
-    },
+    "deconstruct": { "items": [ { "item": "vac_sealer", "count": 1 } ] },
     "bash": {
       "str_min": 8,
       "str_max": 16,
       "sound": "crunch!",
       "sound_fail": "whump.",
-      "items": [
-        { "item": "solder_wire", "charges": [ 10, 20 ] },
-        { "item": "power_supply", "count": [ 1, 4 ] },
-        { "item": "scrap", "count": [ 0, 4 ] },
-        { "item": "plastic_chunk", "count": [ 0, 9 ] },
-        { "item": "cable", "charges": [ 1, 4 ] },
-        { "item": "element", "count": [ 2, 6 ] }
-      ]
+      "items": [ { "item": "vac_sealer", "count": 1 } ]
     }
   },
   {
@@ -1784,24 +1798,13 @@
     "required_str": -1,
     "crafting_pseudo_item": "fake_gridelectrolysis_kit",
     "flags": [ "TRANSPARENT", "MOUNTABLE", "EASY_DECONSTRUCT" ],
-    "deconstruct": {
-      "items": [
-        { "item": "solder_wire", "charges": 20 },
-        { "item": "electrolysis_kit", "count": 1 },
-        { "item": "cable", "charges": 5 },
-        { "item": "power_supply", "count": 1 }
-      ]
-    },
+    "deconstruct": { "items": [ { "item": "electrolysis_kit", "count": 1 } ] },
     "bash": {
       "str_min": 8,
       "str_max": 30,
       "sound": "metal screeching!",
       "sound_fail": "clang!",
-      "items": [
-        { "item": "solder_wire", "charges": [ 10, 20 ] },
-        { "item": "scrap", "count": [ 0, 2 ] },
-        { "item": "cable", "charges": [ 1, 4 ] }
-      ]
+      "items": [ { "item": "electrolysis_kit", "count": 1 } ]
     }
   },
   {
@@ -1817,25 +1820,13 @@
     "required_str": -1,
     "crafting_pseudo_item": [ "fake_oven", "fake_chemistry_set" ],
     "flags": [ "TRANSPARENT", "MOUNTABLE", "EASY_DECONSTRUCT" ],
-    "deconstruct": {
-      "items": [
-        { "item": "solder_wire", "charges": 20 },
-        { "item": "chemistry_set", "count": 1 },
-        { "item": "cable", "charges": 5 },
-        { "item": "power_supply", "count": 1 }
-      ]
-    },
+    "deconstruct": { "items": [ { "item": "chemistry_set", "count": 1 } ] },
     "bash": {
       "str_min": 8,
       "str_max": 30,
       "sound": "metal screeching!",
       "sound_fail": "clang!",
-      "items": [
-        { "item": "solder_wire", "charges": [ 10, 20 ] },
-        { "item": "scrap", "count": [ 0, 2 ] },
-        { "item": "glass_shard", "count": [ 0, 2 ] },
-        { "item": "cable", "charges": [ 1, 4 ] }
-      ]
+      "items": [ { "item": "chemistry_set", "count": 1 } ]
     }
   },
   {
@@ -1887,24 +1878,13 @@
     "crafting_pseudo_item": "fake_gridsolderingiron",
     "examine_action": "use_furn_fake_item",
     "flags": [ "TRANSPARENT", "MOUNTABLE", "EASY_DECONSTRUCT" ],
-    "deconstruct": {
-      "items": [
-        { "item": "solder_wire", "charges": 20 },
-        { "item": "soldering_iron", "count": 1 },
-        { "item": "cable", "charges": 5 },
-        { "item": "power_supply", "count": 1 }
-      ]
-    },
+    "deconstruct": { "items": [ { "item": "soldering_iron", "count": 1 } ] },
     "bash": {
       "str_min": 2,
       "str_max": 10,
       "sound": "metal screeching!",
       "sound_fail": "clang!",
-      "items": [
-        { "item": "solder_wire", "charges": [ 10, 20 ] },
-        { "item": "scrap", "count": [ 0, 2 ] },
-        { "item": "cable", "charges": [ 1, 4 ] }
-      ]
+      "items": [ { "item": "soldering_iron", "count": 1 } ]
     }
   },
   {
@@ -2034,6 +2014,96 @@
     "active": [
       "steady_consumer",
       { "power": 25, "consume_every": "600 s", "transform": { "id": "f_freezer", "msg": "The freezer shuts down." } }
+    ]
+  },
+  {
+    "type": "furniture",
+    "id": "f_freezer_industrial",
+    "name": "industrial freezer",
+    "symbol": "}",
+    "color": "blue",
+    "description": "An industrial grade freezer, capable preserving huge amounts of food, as long as it's powered.  It has no power.",
+    "examine_action": "transform",
+    "looks_like": "f_fridge",
+    "transforms_into": "f_freezer_industrial_off",
+    "prompt": "Switch off the freezer.",
+    "message": "You switch off the freezer.",
+    "active": [
+      "charge_watcher",
+      { "min_power": 150, "transform": { "id": "f_freezer_industrial_on", "msg": "The freezer starts up." } }
+    ],
+    "move_cost_mod": -1,
+    "required_str": -1,
+    "coverage": 90,
+    "flags": [ "CONTAINER", "PLACE_ITEM", "BLOCKSDOOR", "MINEABLE" ],
+    "max_volume": "1000 L",
+    "deconstruct": {
+      "items": [
+        { "item": "sheet_metal", "count": 36 },
+        { "item": "sheet_metal_small", "count": 10 },
+        { "item": "steel_chunk", "count": 10 },
+        { "item": "cable", "count": 5 },
+        { "item": "hose", "count": 1 },
+        { "item": "condensor_coil", "count": 2 },
+        { "item": "evaporator_coil", "count": 2 },
+        { "item": "refrigerant_tank", "count": 2 },
+        { "item": "thermostat", "count": 1 },
+        { "item": "light_bulb", "count": 1 },
+        { "item": "motor_tiny", "count": 2 }
+      ]
+    },
+    "bash": {
+      "str_min": 20,
+      "str_max": 60,
+      "sound": "metal screeching!",
+      "sound_fail": "clang!",
+      "items": [
+        { "item": "sheet_metal", "count": [ 10, 30 ] },
+        { "item": "sheet_metal_small", "count": [ 8, 20 ] },
+        { "item": "steel_chunk", "count": [ 2, 10 ] },
+        { "item": "scrap", "count": [ 2, 10 ] },
+        { "item": "cable", "charges": [ 2, 5 ] },
+        { "item": "hose", "count": [ 1, 2 ] },
+        { "item": "cu_pipe", "count": [ 2, 8 ] },
+        { "item": "scrap_copper", "count": [ 1, 4 ] },
+        { "item": "motor_tiny", "count": [ 0, 2 ] }
+      ],
+      "//": "Variable reduction since might hit more or less material.",
+      "ranged": { "reduction": [ 9, 18 ], "destroy_threshold": 50 }
+    }
+  },
+  {
+    "type": "furniture",
+    "id": "f_freezer_industrial_off",
+    "name": "industrial freezer (off)",
+    "symbol": "}",
+    "color": "blue",
+    "copy-from": "f_freezer_industrial",
+    "description": "An industrial grade freezer, capable preserving huge amounts of food, as long as it's powered.  It is switched off.",
+    "transforms_into": "f_freezer_industrial_on",
+    "prompt": "Switch on the freezer.",
+    "message": "You switch on the freezer.",
+    "//": "Removes autostart action",
+    "active": [ null ]
+  },
+  {
+    "type": "furniture",
+    "id": "f_freezer_industrial_on",
+    "name": "industrial freezer (on)",
+    "symbol": "}",
+    "color": "blue",
+    "copy-from": "f_freezer_industrial",
+    "description": "An industrial grade freezer, capable preserving huge amounts of food, as long as it's powered.  It is switched on.",
+    "transforms_into": "f_freezer_industrial_off",
+    "extend": { "flags": [ "FREEZER" ] },
+    "//": "Please keep steady_consumer to 300 s or more to avoid lag.",
+    "active": [
+      "steady_consumer",
+      {
+        "power": 100,
+        "consume_every": "600 s",
+        "transform": { "id": "f_freezer_industrial", "msg": "The freezer shuts down." }
+      }
     ]
   },
   {
@@ -2252,7 +2322,7 @@
     "move_cost_mod": -1,
     "coverage": 55,
     "required_str": -1,
-    "flags": [ "NOITEM", "NO_SCENT", "BLOCK_WIND", "EASY_DECONSTRUCT" ],
+    "flags": [ "NOITEM", "NO_SCENT", "BLOCK_WIND" ],
     "deconstruct": {
       "items": [
         { "item": "ac_unit_item", "count": 1 },
@@ -2345,26 +2415,13 @@
     "move_cost_mod": 2,
     "required_str": -1,
     "flags": [ "TRANSPARENT", "EASY_DECONSTRUCT" ],
-    "deconstruct": {
-      "items": [
-        { "item": "solder_wire", "charges": 20 },
-        { "item": "small_space_heater", "count": 1 },
-        { "item": "cable", "charges": 5 },
-        { "item": "power_supply", "count": 1 }
-      ]
-    },
+    "deconstruct": { "items": [ { "item": "small_space_heater", "count": 1 } ] },
     "bash": {
       "str_min": 8,
       "str_max": 30,
       "sound": "metal screeching!",
       "sound_fail": "clang!",
-      "items": [
-        { "item": "solder_wire", "charges": [ 10, 20 ] },
-        { "item": "power_supply", "count": [ 1, 4 ] },
-        { "item": "scrap", "count": [ 0, 2 ] },
-        { "item": "cable", "charges": [ 1, 4 ] },
-        { "item": "element", "count": [ 2, 6 ] }
-      ]
+      "items": [ { "item": "small_space_heater", "count": 1 } ]
     }
   },
   {
@@ -2424,6 +2481,7 @@
     "type": "furniture",
     "id": "f_space_heater_large",
     "copy-from": "f_space_heater_base",
+    "looks_like": "large_space_heater",
     "symbol": ";",
     "color": "light_gray",
     "name": "large space heater (no power)",
@@ -2435,19 +2493,20 @@
       "charge_watcher",
       { "min_power": 5, "transform": { "id": "f_space_heater_large_on", "msg": "The space heater warms up." } }
     ],
-    "deconstruct": {
-      "items": [
-        { "item": "solder_wire", "charges": 20 },
-        { "item": "large_space_heater", "count": 1 },
-        { "item": "cable", "charges": 5 },
-        { "item": "power_supply", "count": 1 }
-      ]
+    "deconstruct": { "items": [ { "item": "large_space_heater", "count": 1 } ] },
+    "bash": {
+      "str_min": 8,
+      "str_max": 30,
+      "sound": "metal screeching!",
+      "sound_fail": "clang!",
+      "items": [ { "item": "large_space_heater", "count": 1 } ]
     }
   },
   {
     "type": "furniture",
     "id": "f_space_heater_large_off",
     "copy-from": "f_space_heater_base",
+    "looks_like": "large_space_heater",
     "symbol": ";",
     "color": "light_gray",
     "name": "large space heater (off)",
@@ -2455,13 +2514,13 @@
     "examine_action": "transform",
     "transforms_into": "f_space_heater_large",
     "message": "You turn the heater on.",
-    "deconstruct": {
-      "items": [
-        { "item": "solder_wire", "charges": 20 },
-        { "item": "large_space_heater", "count": 1 },
-        { "item": "cable", "charges": 5 },
-        { "item": "power_supply", "count": 1 }
-      ]
+    "deconstruct": { "items": [ { "item": "large_space_heater", "count": 1 } ] },
+    "bash": {
+      "str_min": 8,
+      "str_max": 30,
+      "sound": "metal screeching!",
+      "sound_fail": "clang!",
+      "items": [ { "item": "large_space_heater", "count": 1 } ]
     }
   },
   {
@@ -2488,13 +2547,13 @@
     ],
     "flags": [ "TRANSPARENT", "EASY_DECONSTRUCT", "EMITTER" ],
     "emissions": [ "emit_hot_air2_blast" ],
-    "deconstruct": {
-      "items": [
-        { "item": "solder_wire", "charges": 20 },
-        { "item": "large_space_heater", "count": 1 },
-        { "item": "cable", "charges": 5 },
-        { "item": "power_supply", "count": 1 }
-      ]
+    "deconstruct": { "items": [ { "item": "large_space_heater", "count": 1 } ] },
+    "bash": {
+      "str_min": 8,
+      "str_max": 30,
+      "sound": "metal screeching!",
+      "sound_fail": "clang!",
+      "items": [ { "item": "large_space_heater", "count": 1 } ]
     }
   },
   {
@@ -2508,7 +2567,14 @@
     "move_cost_mod": -1,
     "coverage": 60,
     "required_str": -1,
-    "flags": [ "TRANSPARENT", "NOITEM", "REDUCE_SCENT", "PERMEABLE", "EASY_DECONSTRUCT" ],
+    "flags": [ "TRANSPARENT", "NOITEM", "REDUCE_SCENT", "PERMEABLE", "ADV_DECONSTRUCT" ],
+    "deconstruct": {
+      "items": [
+        { "item": "plut_generator_item", "count": 1 },
+        { "item": "cable", "charges": 15 },
+        { "item": "power_supply", "count": 3 }
+      ]
+    },
     "bash": {
       "str_min": 50,
       "str_max": 400,
@@ -2523,13 +2589,6 @@
       ],
       "//": "Variable reduction, destroy_threshold equal to str_min instead of str_max due to delicate electronics",
       "ranged": { "reduction": [ 25, 50 ], "destroy_threshold": 50, "block_unaimed_chance": "50%" }
-    },
-    "deconstruct": {
-      "items": [
-        { "item": "plut_generator_item", "count": 1 },
-        { "item": "cable", "charges": 15 },
-        { "item": "power_supply", "count": 3 }
-      ]
     },
     "//2": "Please keep steady_consumer to 300 s or more to avoid lag.",
     "active": [ "steady_consumer", { "power": -100, "consume_every": "300 s" } ]
@@ -2548,24 +2607,13 @@
     "crafting_pseudo_item": [ "fake_3d_printer" ],
     "examine_action": "use_furn_fake_item",
     "flags": [ "TRANSPARENT", "MOUNTABLE", "EASY_DECONSTRUCT" ],
-    "deconstruct": {
-      "items": [
-        { "item": "solder_wire", "charges": 20 },
-        { "item": "3d_printer_basic", "count": 1 },
-        { "item": "cable", "charges": 5 },
-        { "item": "power_supply", "count": 1 }
-      ]
-    },
+    "deconstruct": { "items": [ { "item": "3d_printer_basic", "count": 1 } ] },
     "bash": {
       "str_min": 8,
       "str_max": 30,
       "sound": "metal screeching!",
       "sound_fail": "clang!",
-      "items": [
-        { "item": "solder_wire", "charges": [ 10, 20 ] },
-        { "item": "scrap", "count": [ 0, 2 ] },
-        { "item": "cable", "charges": [ 1, 4 ] }
-      ]
+      "items": [ { "item": "3d_printer_basic", "count": 1 } ]
     }
   },
   {
@@ -2656,7 +2704,7 @@
         { "item": "cable", "charges": 2 },
         { "item": "power_supply", "count": 1 },
         { "item": "light_bulb", "count": 1 },
-        { "item": "steel_lump", "count": 1 }
+        { "item": "steel_chunk", "count": 5 }
       ]
     },
     "bash": {
@@ -2768,5 +2816,167 @@
     "examine_action": "toggle_lights",
     "transforms_into": "f_light_switch",
     "message": "You switched off the lights."
+  },
+  {
+    "type": "furniture",
+    "id": "f_adv_butchery",
+    "looks_like": "f_scan_bed",
+    "name": "advanced butchering station",
+    "symbol": "#",
+    "description": "An advanced butchering station connected to a electrical grid.",
+    "color": "red",
+    "move_cost_mod": -1,
+    "coverage": 10,
+    "required_str": -1,
+    "crafting_pseudo_item": "fake_adv_butchery",
+    "flags": [ "TRANSPARENT", "MOUNTABLE", "EASY_DECONSTRUCT", "FLAT_SURF", "PLACE_ITEM", "TRANSPARENT", "BUTCHER_EQ" ],
+    "deconstruct": {
+      "items": [
+        { "item": "solder_wire", "charges": 20 },
+        { "item": "adv_butchery", "count": 1 },
+        { "item": "cable", "charges": 5 },
+        { "item": "power_supply", "count": 1 }
+      ]
+    },
+    "bash": {
+      "str_min": 35,
+      "str_max": 80,
+      "sound": "metal screeching!",
+      "sound_fail": "clang!",
+      "items": [
+        { "item": "solder_wire", "charges": [ 10, 20 ] },
+        { "item": "power_supply", "count": [ 1, 4 ] },
+        { "item": "scrap", "count": [ 0, 2 ] },
+        { "item": "cable", "charges": [ 1, 4 ] },
+        { "item": "element", "count": [ 2, 6 ] },
+        { "item": "broken_dissector", "count": [ 1, 1 ] },
+        { "item": "pipe", "count": [ 4, 6 ] },
+        { "item": "sheet_metal", "count": [ 0, 1 ] },
+        { "item": "sheet_metal_small", "count": [ 12, 24 ] },
+        { "item": "steel_chunk", "count": [ 4, 8 ] },
+        { "item": "scrap", "count": [ 12, 24 ] }
+      ],
+      "ranged": { "reduction": [ 35, 35 ], "destroy_threshold": 80, "block_unaimed_chance": "50%" }
+    }
+  },
+  {
+    "type": "furniture",
+    "id": "f_hydraulic_press",
+    "name": "grid hydraulic press",
+    "looks_like": "t_machinery_light",
+    "description": "If you really want to squash something a lot, this would be exactly the right industrial tool for you.",
+    "symbol": "9",
+    "color": "black_red",
+    "move_cost_mod": -1,
+    "coverage": 75,
+    "required_str": 16,
+    "flags": [ "BLOCKSDOOR", "TRANSPARENT", "EASY_DECONSTRUCT" ],
+    "bash": {
+      "str_min": 40,
+      "str_max": 150,
+      "sound_fail": "clang!",
+      "items": [
+        { "item": "cable", "charges": [ 0, 4 ] },
+        { "item": "scrap", "count": [ 8, 12 ] },
+        { "item": "steel_chunk", "count": [ 2, 4 ] },
+        { "item": "steel_lump", "count": [ 1, 2 ] },
+        { "item": "steel_plate", "count": [ 1, 2 ] }
+      ],
+      "//": "Variable reduction since might hit more or less material.",
+      "ranged": { "reduction": [ 20, 40 ], "destroy_threshold": 150, "block_unaimed_chance": "75%" }
+    },
+    "crafting_pseudo_item": [ "grid_hydraulic_press" ],
+    "deconstruct": { "items": [ { "item": "hydraulic_press", "count": 1 } ] }
+  },
+  {
+    "type": "furniture",
+    "id": "f_recycler",
+    "name": "metal compactor",
+    "description": "A hydraulic compactor that can accept items made of various metals, and press them into basic shapes, ready for further crafting.  If you're very careful, you can even uninstall it to transport it elsewhere.",
+    "looks_like": "t_recycler",
+    "symbol": "&",
+    "color": "green",
+    "move_cost_mod": -1,
+    "coverage": 75,
+    "required_str": 20,
+    "max_volume": "2000 L",
+    "flags": [ "TRANSPARENT", "BLOCKSDOOR", "ADV_DECONSTRUCT", "CONTAINER", "PLACE_ITEM" ],
+    "examine_action": "recycle_compactor",
+    "deconstruct": {
+      "items": [ { "item": "recycler_item", "count": 1 }, { "item": "cable", "charges": 15 }, { "item": "power_supply", "count": 3 } ]
+    },
+    "bash": {
+      "str_min": 20,
+      "str_max": 150,
+      "sound": "metal screeching!",
+      "sound_fail": "clang!",
+      "items": [
+        { "item": "steel_lump", "count": [ 0, 2 ] },
+        { "item": "steel_chunk", "count": [ 1, 4 ] },
+        { "item": "scrap", "count": [ 3, 12 ] }
+      ]
+    }
+  },
+  {
+    "type": "furniture",
+    "id": "f_cloning_vat",
+    "name": "cloning vat",
+    "description": "A vat full of solution, probably intended to hold growing clones of people or other life forms.  Requires a steady, strong power supply to avoid failure.  Examine it to activate, requires a sterile artificial womb and viable DNA, the latter produced via a genome workstation from stored sample data off USB and sufficient growth medium.",
+    "symbol": "0",
+    "color": "light_cyan",
+    "looks_like": "t_vat",
+    "move_cost_mod": -1,
+    "required_str": 6,
+    "coverage": 75,
+    "flags": [ "TRANSPARENT", "SEALED", "PLACE_ITEM", "WALL", "EASY_DECONSTRUCT" ],
+    "deconstruct": { "items": [ { "item": "cloning_vat", "count": 1 } ] },
+    "examine_action": "cloning_vat_examine",
+    "bash": {
+      "str_min": 6,
+      "str_max": 80,
+      "sound": "ker-rash!",
+      "sound_fail": "plunk.",
+      "sound_vol": 16,
+      "sound_fail_vol": 12,
+      "items": [ { "item": "glass_shard", "count": [ 3, 6 ] }, { "item": "scrap", "count": [ 0, 2 ] } ],
+      "//": "reduction and destroy_threshold are lower for plain glass",
+      "ranged": { "reduction": [ 1, 6 ], "reduction_laser": [ 0, 5 ], "destroy_threshold": 6, "block_unaimed_chance": "75%" }
+    }
+  },
+  {
+    "type": "furniture",
+    "id": "f_cloning_vat_active",
+    "name": "active cloning vat",
+    "description": "A vat full of solution, its surface rippling as bubbles rise to the top.  It hums softly, the liquid churning as if something inside is taking shape.",
+    "symbol": "0",
+    "color": "light_cyan",
+    "looks_like": "t_vat",
+    "move_cost_mod": -1,
+    "required_str": 6,
+    "coverage": 75,
+    "flags": [ "TRANSPARENT", "SEALED", "PLACE_ITEM", "WALL" ],
+    "examine_action": "cloning_vat_examine",
+    "bash": {
+      "str_min": 6,
+      "str_max": 80,
+      "sound": "ker-rash!",
+      "sound_fail": "plunk.",
+      "sound_vol": 16,
+      "sound_fail_vol": 12,
+      "items": [ { "item": "glass_shard", "count": [ 3, 6 ] }, { "item": "scrap", "count": [ 0, 2 ] } ],
+      "//": "reduction and destroy_threshold are lower for plain glass",
+      "ranged": { "reduction": [ 1, 6 ], "reduction_laser": [ 0, 5 ], "destroy_threshold": 6, "block_unaimed_chance": "75%" }
+    },
+    "active": [
+      "steady_consumer",
+      {
+        "power": 100,
+        "consume_every": "600 s",
+        "transform": {
+          "id": "f_cloning_vat",
+          "msg": "<color_red>The cloning vat shuts down unexpectedly, destroying the materials in the process.</color>"
+        }
+      }
+    ]
   }
 ]

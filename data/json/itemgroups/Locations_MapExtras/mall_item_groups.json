@@ -4,7 +4,8 @@
     "type": "item_group",
     "items": [
       [ "flyer", 10 ],
-      [ "bag_plastic", 10 ],
+      [ "bag_plastic", 8 ],
+      [ "bag_zipper", 2 ],
       [ "bottle_plastic", 10 ],
       [ "cup_plastic", 10 ],
       [ "bottle_glass", 10 ],
@@ -103,6 +104,8 @@
       [ "magic_8_ball", 30 ],
       [ "novel_pulp", 20 ],
       [ "folding_bicycle", 5 ],
+      [ "folding_skateboard", 5 ],
+      [ "folding_wagon", 5 ],
       [ "sunglasses", 25 ],
       [ "wolfsuit", 5 ],
       [ "dinosuit", 5 ],
@@ -237,17 +240,30 @@
   {
     "id": "smoke_shop",
     "type": "item_group",
+    "//": "slight bits of weed in here because of current legal loophole",
     "items": [
-      [ "pipe_tobacco", 60 ],
       [ "tobacco", 70 ],
+      [ "pipe_tobacco", 60 ],
+      [ "cig", 60 ],
+      [ "chaw", 60 ],
+      [ "rolling_paper", 45 ],
+      [ "seed_tobacco", 45 ],
+      [ "nicotine_liquid", 20 ],
+      [ "ecig", 20 ],
+      [ "pipe_glass", 20 ],
+      [ "pipe_glass_bong", 20 ],
+      { "item": "chem_butane", "prob": 40, "container-item": "bottle_plastic" },
+      { "item": "chem_butane", "prob": 5, "container-item": "metal_tank_little" },
+      [ "nectar_collector", 10 ],
+      [ "advanced_ecig", 5 ],
       [ "weed", 5 ],
       [ "joint", 5 ],
+      [ "candy3_weed", 5 ],
       [ "seed_weed", 5 ],
-      [ "seed_tobacco", 5 ],
-      [ "rolling_paper", 45 ],
-      [ "pipe_glass", 20 ],
-      [ "cig", 60 ],
-      [ "chaw", 60 ]
+      { "item": "light_battery_cell", "charges": 100, "container-item": "dab_pen", "prob": 3 },
+      [ "dab_pen_disposable", 3 ],
+      [ "thc_liquid", 3 ],
+      [ "thc_wax", 3 ]
     ]
   },
   {
@@ -264,7 +280,8 @@
       [ "manual_electronics", 20 ],
       [ "cable", 60 ],
       [ "cell_phone", 1 ],
-      [ "smart_phone", 120 ],
+      [ "smart_phone", 90 ],
+      [ "wrist_comp_budget", 30 ],
       [ "wristwatch", 60 ],
       [ "mobile_memory_card_used", 10 ]
     ]

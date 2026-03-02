@@ -84,7 +84,7 @@ bool is_mouse_enabled()
 std::string get_input_string_from_file( const std::string &fname )
 {
     std::string ret;
-    read_from_file_optional( fname, [&ret]( std::istream & fin ) {
+    read_from_file( fname, [&ret]( std::istream & fin ) {
         getline( fin, ret );
         //remove utf8 bmm
         if( !ret.empty() && static_cast<unsigned char>( ret[0] ) == 0xef ) {
@@ -93,7 +93,7 @@ std::string get_input_string_from_file( const std::string &fname )
         while( !ret.empty() && ( ret.back() == '\r' ||  ret.back() == '\n' ) ) {
             ret.erase( ret.size() - 1, 1 );
         }
-    } );
+    }, true );
     return ret;
 }
 
@@ -420,7 +420,7 @@ int input_manager::get_keycode( const std::string &name ) const
         return a->second;
     }
     // Not found in map, try to parse as int
-    if( name.compare( 0, 8, "UNKNOWN_" ) == 0 ) {
+    if( name.starts_with( "UNKNOWN_" ) ) {
         return str_to_int( name.substr( 8 ) );
     }
     return 0;
@@ -561,7 +561,7 @@ input_manager::t_input_event_list &input_manager::get_or_create_event_list(
 
     // A new action is created in the event that the user creates a local
     // keymapping that masks a global one.
-    if( actions.find( action_descriptor ) == actions.end() ) {
+    if( !actions.contains( action_descriptor ) ) {
         action_attributes &attributes = actions[action_descriptor];
         attributes.name = get_default_action_name( action_descriptor );
         attributes.is_user_created = true;

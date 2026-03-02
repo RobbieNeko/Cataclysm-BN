@@ -1,6 +1,4 @@
 #pragma once
-#ifndef CATA_SRC_AVATAR_H
-#define CATA_SRC_AVATAR_H
 
 #include <cstddef>
 #include <memory>
@@ -71,6 +69,7 @@ class avatar : public player
         // newcharacter.cpp
         bool create( character_type type, const std::string &tempname = "" );
         void randomize( bool random_scenario, points_left &points, bool play_now = false );
+        void randomize_cosmetics();
         bool load_template( const std::string &template_name, points_left &points );
         void save_template( const std::string &name, const points_left &points );
         void character_to_template( const std::string &name );
@@ -91,6 +90,12 @@ class avatar : public player
         void set_save_id( const std::string &id ) {
             save_id = id;
         }
+
+        /**
+        * Makes the avatar "take over" the given NPC, while the current avatar character
+        * becomes an NPC.
+        */
+        void control_npc( npc & );
 
         void toggle_map_memory();
         bool should_show_map_memory();
@@ -124,7 +129,11 @@ class avatar : public player
          * Returns the target of the active mission or @ref overmap::invalid_tripoint if there is
          * no active mission.
          */
+        std::unique_ptr<tripoint_abs_omt> custom_waypoint = nullptr;
         tripoint_abs_omt get_active_mission_target() const;
+        /** Returns the custom mission target directly set by the player */
+        auto get_custom_mission_target() -> tripoint_abs_omt;
+        auto get_custom_mission_target() const -> tripoint_abs_omt;
         /**
          * Set which mission is active. The mission must be listed in @ref active_missions.
          */
@@ -150,7 +159,7 @@ class avatar : public player
          * @returns nullptr, if neither the player nor his followers can read to the player, otherwise the player/NPC
          * who can read and can read the fastest
          */
-        const player *get_book_reader( const item &book, std::vector<std::string> &reasons ) const;
+        const Character *get_book_reader( const item &book, std::vector<std::string> &reasons ) const;
         /**
          * Helper function for get_book_reader
          * @warning This function assumes that the everyone is able to read
@@ -159,7 +168,8 @@ class avatar : public player
          * @param reader the player/NPC who's reading to the caller
          * @param learner if not nullptr, assume that the caller and reader read at a pace that isn't too fast for him
          */
-        int time_to_read( const item &book, const player &reader, const player *learner = nullptr ) const;
+        int time_to_read( const item &book, const Character &reader,
+                          const Character *learner = nullptr ) const;
         /** Handles reading effects and returns true if activity started */
         bool read( item *loc, bool continuous = false );
         /** Completes book reading action. **/
@@ -167,7 +177,11 @@ class avatar : public player
         /** Note that we've read a book at least once. **/
         bool has_identified( const itype_id &item_id ) const;
 
-        void wake_up();
+        void add_snippet( snippet_id snippet );
+        bool has_seen_snippet( const snippet_id &snippet ) const;
+        const std::set<snippet_id> &get_snippets();
+
+        void wake_up() override;
         // Grab furniture / vehicle
         void grab( object_type grab_type, const tripoint &grab_point = tripoint_zero );
         object_type get_grab_type() const;
@@ -175,6 +189,8 @@ class avatar : public player
         void vomit();
 
         bool is_hallucination() const override;
+
+        auto is_dead_state() const -> bool override;
 
         pimpl<teleporter_list> translocators;
 
@@ -187,8 +203,8 @@ class avatar : public player
         int free_upgrade_points() const;
         // how much "kill xp" you have
         int kill_xp() const;
-        // how much "kill xp" needed for next point (empty if reached max level)
-        std::optional<int> kill_xp_for_next_point() const;
+        // how much "kill xp" needed for next point
+        int kill_xp_for_next_point() const;
         // upgrade stat from kills
         void upgrade_stat( character_stat stat );
 
@@ -274,8 +290,29 @@ class avatar : public player
 
         /** Warnings from factions about bad behavior */
         std::map<faction_id, std::pair<int, time_point>> warning_record;
+        /**
+        * The NPC that would control the avatar's character in the avatar's absence.
+        * The Character data in this object is not relevant/used.
+        */
+        std::unique_ptr<npc> shadow_npc;
+
+    public:
+        // ---------------VALUES-----------------
+        tripoint view_offset;
+
+        // Snippets the player has seen
+        std::set<snippet_id> snippets_read;
+
+        bool random_start_location = false;
+        start_location_id start_location;
+
+        int movecounter = 0;
+
+        vproto_id starting_vehicle = vproto_id::NULL_ID();
+        std::vector<mtype_id> starting_pets;
+
+        std::set<character_id> follower_ids;
 };
 
 avatar &get_avatar();
 
-#endif // CATA_SRC_AVATAR_H

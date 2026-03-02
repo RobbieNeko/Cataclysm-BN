@@ -12,6 +12,8 @@
 #include "bodypart.h"
 #include "calendar.h"
 #include "cata_utility.h"
+#include "catalua_hooks.h"
+#include "catalua_sol.h"
 #include "coordinate_conversions.h"
 #include "coordinates.h"
 #include "enums.h"
@@ -102,7 +104,7 @@ void glare( const weather_type_id &w )
         if( g->u.has_trait( trait_CEPH_VISION ) ) {
             dur = dur * 2;
         }
-        g->u.add_env_effect( *effect, body_part_eyes, 2, dur );
+        g->u.add_effect( *effect, dur );
     }
 }
 
@@ -389,16 +391,16 @@ void weather_effect::wet_player( int amount )
         return;
     }
     std::map<bodypart_id, std::vector<const item *>> clothing_map;
-    for( const bodypart_id &bp : target.get_all_body_parts() ) {
+    const auto &all_bps = target.get_all_body_parts();
+    for( const bodypart_id &bp : all_bps ) {
         clothing_map.emplace( bp, std::vector<const item *>() );
     }
     for( const item * const &it : target.worn ) {
         // TODO: Port body part set id changes
         const body_part_set &covered = it->get_covered_body_parts();
-        for( size_t i = 0; i < num_bp; i++ ) {
-            body_part token = static_cast<body_part>( i );
-            if( covered.test( convert_bp( token ) ) ) {
-                clothing_map[convert_bp( token )].emplace_back( it );
+        for( const bodypart_id &bp : all_bps ) {
+            if( covered.test( bp.id() ) ) {
+                clothing_map[bp.id()].emplace_back( it );
             }
         }
     }
@@ -459,60 +461,87 @@ void weather_effect::lightning( int intensity )
         get_weather().lightning_active = false;
     }
 }
-/**
- * Acid drizzle.
- * Causes minor pain only.
- */
-void weather_effect::light_acid( int intensity )
-{
-    if( calendar::once_every( time_duration::from_seconds( intensity ) ) && is_player_outside() ) {
-        if( g->u.primary_weapon().has_flag( json_flag_RAIN_PROTECT ) && !one_in( 3 ) ) {
-            add_msg( _( "Your %s protects you from the acidic drizzle." ), g->u.primary_weapon().tname() );
-        } else {
-            if( g->u.worn_with_flag( json_flag_RAINPROOF ) && !one_in( 4 ) ) {
-                add_msg( _( "Your clothing protects you from the acidic drizzle." ) );
-            } else {
-                bool has_helmet = false;
-                if( g->u.is_wearing_power_armor( &has_helmet ) && ( has_helmet || !one_in( 4 ) ) ) {
-                    add_msg( _( "Your power armor protects you from the acidic drizzle." ) );
-                } else {
-                    add_msg( m_warning, _( "The acid rain stings, but is mostly harmless for now…" ) );
-                    if( one_in( 10 ) && ( g->u.get_pain() < 10 ) ) {
-                        g->u.mod_pain( 1 );
-                    }
-                }
-            }
-        }
-    }
-}
 
 /**
- * Acid rain.
- * Causes major pain. Damages non acid-proof mobs. Very wet (acid).
+ * Morale.
+ * Causes the player to feel a morale effect.
  */
-void weather_effect::acid( int intensity )
+void weather_effect::morale( int intensity, int bonus, int bonus_max, time_duration duration,
+                             time_duration decay_start,
+                             const std::string &morale_id_str,
+                             const std::string &morale_msg, int morale_msg_frequency, game_message_type message_type )
 {
     if( !( calendar::once_every( time_duration::from_seconds( intensity ) ) && is_player_outside() ) ) {
         return;
     }
 
-    auto &you = get_avatar();
-    if( you.primary_weapon().has_flag( json_flag_RAIN_PROTECT ) && one_in( 4 ) ) {
-        return add_msg( _( "Your umbrella protects you from the acid rain." ) );
+    static const morale_type morale_id( morale_id_str );
+    if( !morale_id.is_valid() ) {
+        debugmsg( "Invalid morale ID: %s", morale_id_str.c_str() );
+        return;
     }
 
-    if( you.worn_with_flag( json_flag_RAINPROOF ) && one_in( 2 ) ) {
-        return add_msg( _( "Your clothing protects you from the acid rain." ) );
+    get_avatar().add_morale( morale_id, bonus, bonus_max, duration, decay_start,
+                             true );
+    if( one_in( morale_msg_frequency ) ) {
+        add_msg( message_type, _( morale_msg ) );
+    }
+}
+
+/**
+ * Effect.
+ * Causes the player to feel a status effect.
+ */
+void weather_effect::effect( int intensity, time_duration duration,
+                             bodypart_str_id bp_id, int effect_intensity,
+                             const std::string &effect_id_str,
+                             const std::string &effect_msg, int effect_msg_frequency, int effect_msg_blocked_frequency,
+                             game_message_type message_type,
+                             std::string precipitation_name, bool ignore_armor, int clothing_protection,
+                             int umbrella_protection )
+{
+    if( !( calendar::once_every( time_duration::from_seconds( intensity ) ) && is_player_outside() ) ) {
+        return;
     }
 
-    bool has_helmet = false;
-    if( you.is_wearing_power_armor( &has_helmet ) && ( has_helmet || !one_in( 2 ) ) ) {
-        return add_msg( _( "Your power armor protects you from the acid rain." ) );
+    if( !ignore_armor ) {
+        auto &you = get_avatar();
+        bool has_helmet = false;
+        if( one_in( umbrella_protection ) && you.primary_weapon().has_flag( json_flag_RAIN_PROTECT ) ) {
+            if( one_in( effect_msg_blocked_frequency ) ) {
+                add_msg( _( "Your umbrella protects you from the %s." ), precipitation_name );
+            }
+            return;
+        } else if( one_in( umbrella_protection ) && you.worn_with_flag( json_flag_RAINPROOF ) ) {
+            if( one_in( effect_msg_blocked_frequency ) ) {
+                add_msg( _( "Your rainproof clothing protects you from the %s." ), precipitation_name );
+            }
+            return;
+        } else if( one_in( clothing_protection ) ) {
+            if( one_in( effect_msg_blocked_frequency ) ) {
+                add_msg( _( "Your clothing protects you from the %s." ), precipitation_name );
+            }
+            return;
+        } else if( you.is_wearing_power_armor( &has_helmet ) && ( has_helmet ||
+                   !one_in( clothing_protection ) ) ) {
+            if( one_in( effect_msg_blocked_frequency ) ) {
+                add_msg( _( "Your power armor protects you from the %s." ), precipitation_name );
+            }
+            return;
+        }
     }
 
-    add_msg( m_bad, _( "The acid rain burns!" ) );
-    if( one_in( 2 ) && ( you.get_pain() < 100 ) ) {
-        you.mod_pain( rng( 1, 5 ) );
+    const efftype_id effect_id( effect_id_str );
+    if( !effect_id.is_valid() ) {
+        debugmsg( "Invalid effect ID: %s", effect_id_str.c_str() );
+        return;
+    }
+
+    get_avatar().add_effect( effect_id, duration, bp_id, effect_intensity,
+                             false, false );
+
+    if( one_in( effect_msg_frequency ) ) {
+        add_msg( message_type, _( effect_msg ) );
     }
 }
 
@@ -1062,8 +1091,8 @@ void weather_manager::update_weather()
     ZoneScoped;
 
     w_point &w = weather_precise;
-    winddirection = wind_direction_override ? *wind_direction_override : w.winddirection;
-    windspeed = windspeed_override ? *windspeed_override : w.windpower;
+    winddirection = wind_direction_override.value_or( w.winddirection );
+    windspeed = windspeed_override.value_or( w.windpower );
     if( weather_id && calendar::turn < nextweather ) {
         return;
     }
@@ -1104,6 +1133,35 @@ void weather_manager::update_weather()
     water_temperature = weather_gen.get_water_temperature(
                             tripoint_abs_ms( g->u.global_square_location() ),
                             calendar::turn, calendar::config, g->get_seed() ) ;
+
+    // Only call on_weather_changed if old_weather was a valid weather type (not initial state)
+    if( weather_id != old_weather && old_weather != weather_type_id::NULL_ID() ) {
+        cata::run_hooks( "on_weather_changed", [ &, this]( auto & params ) {
+            params["weather_id"] = weather_id.str();
+            params["old_weather_id"] = old_weather.str();
+            params["temperature"] = units::to_celsius( temperature );
+            params["temperature_f"] = units::to_fahrenheit( temperature );
+            params["windspeed"] = windspeed;
+            params["winddirection"] = winddirection; // 360 degrees
+            params["humidity"] = w.humidity;
+            params["pressure"] = w.pressure;
+            params["is_sheltered"] = !is_player_outside();
+        } );
+    }
+
+    // Only call on_weather_updated if old_weather was valid (not initial state)
+    if( old_weather != weather_type_id::NULL_ID() ) {
+        cata::run_hooks( "on_weather_updated", [ &, this]( auto & params ) {
+            params["weather_id"] = weather_id.str();
+            params["temperature"] = units::to_celsius( temperature );
+            params["temperature_f"] = units::to_fahrenheit( temperature );
+            params["windspeed"] = windspeed;
+            params["winddirection"] = winddirection;
+            params["humidity"] = w.humidity;
+            params["pressure"] = w.pressure;
+            params["is_sheltered"] = !is_player_outside();
+        } );
+    }
 }
 
 void weather_manager::set_nextweather( time_point t )
@@ -1128,8 +1186,33 @@ auto weather_manager::get_temperature( const tripoint &location ) const -> units
     }
 
     const int added_f = g->new_game ? 0 : g->m.get_temperature( location ) + temp_mod;
-    const int base_f = units::to_fahrenheit(
-                           location.z < 0 ? temperatures::annual_average : temperature );
+
+    // Calculate base temperature with underground influence
+    units::temperature base_temp;
+    if( location.z >= 0 ) {
+        // Surface: full influence from current weather
+        base_temp = temperature;
+    } else if( !get_option<bool>( "UNDERGROUND_TEMPERATURE_INFLUENCED_BY_SURFACE" ) ) {
+        // Default behavior: underground is always annual average
+        base_temp = temperatures::annual_average;
+    } else {
+        // Underground: gradual transition to annual average
+        if( location.z <= -3 ) {
+            // Deep underground: always annual average (0% surface influence)
+            base_temp = temperatures::annual_average;
+        } else {
+            // z=-1: 50%, z=-2: 25%
+            const double influence_factor = location.z == -1 ? 0.5 : 0.25;
+
+            const double annual_avg_c = units::to_celsius( temperatures::annual_average );
+            const double current_temp_c = units::to_celsius( temperature );
+            const double temp_diff_c = current_temp_c - annual_avg_c;
+            const double base_temp_c = annual_avg_c + temp_diff_c * influence_factor;
+            base_temp = units::from_celsius( base_temp_c );
+        }
+    }
+
+    const int base_f = units::to_fahrenheit( base_temp );
 
     // Hack: adding temperatures between temperatures makes no sense
     return units::from_celsius( std::round( units::fahrenheit_to_celsius( base_f + added_f ) ) );
@@ -1138,13 +1221,34 @@ auto weather_manager::get_temperature( const tripoint &location ) const -> units
 auto weather_manager::get_temperature( const tripoint_abs_omt &location ) const ->
 units::temperature
 {
-    if( location.z() < 0 ) {
+    if( location.z() < 0 && !get_option<bool>( "UNDERGROUND_TEMPERATURE_INFLUENCED_BY_SURFACE" ) ) {
+        // Default behavior: underground is always annual average
         return temperatures::annual_average;
     }
 
     tripoint abs_ms = project_to<coords::ms>( location ).raw();
     w_point w = get_cur_weather_gen().get_weather( abs_ms, calendar::turn, g->get_seed() );
-    return w.temperature;
+
+    if( location.z() >= 0 ) {
+        // Surface: full influence from current weather
+        return w.temperature;
+    }
+
+    // Underground: gradual transition to annual average
+    if( location.z() <= -3 ) {
+        // Deep underground: always annual average (0% surface influence)
+        return temperatures::annual_average;
+    }
+
+    // z=-1: 50%, z=-2: 25%
+    const double influence_factor = location.z() == -1 ? 0.5 : 0.25;
+
+    const double annual_avg_c = units::to_celsius( temperatures::annual_average );
+    const double current_temp_c = units::to_celsius( w.temperature );
+    const double temp_diff_c = current_temp_c - annual_avg_c;
+    const double base_temp_c = annual_avg_c + temp_diff_c * influence_factor;
+
+    return units::from_celsius( base_temp_c );
 }
 
 auto weather_manager::get_water_temperature( const tripoint & ) const -> units::temperature

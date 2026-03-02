@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <bitset>
+#include <cmath>
 #include <cstddef>
 #include <functional>
 #include <map>
@@ -10,6 +11,7 @@
 #include <optional>
 #include <set>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 #include "avatar.h"
@@ -36,6 +38,8 @@
 #include "itype.h"
 #include "iuse.h"
 #include "iuse_actor.h"
+#include "item_category.h"
+#include "material.h"
 #include "map.h"
 #include "npc.h"
 #include "options.h"
@@ -58,6 +62,7 @@
 #include "units.h"
 #include "units_utility.h"
 #include "value_ptr.h"
+#include "salvage.h"
 
 static const activity_id ACT_EAT_MENU( "ACT_EAT_MENU" );
 static const activity_id ACT_CONSUME_FOOD_MENU( "ACT_CONSUME_FOOD_MENU" );
@@ -82,6 +87,7 @@ static const trait_id trait_SAPROVORE( "SAPROVORE" );
 static const trait_id trait_INFRESIST( "INFRESIST" );
 
 static const std::string flag_LIQUIDCONT( "LIQUIDCONT" );
+static const std::string iuse_TOGGLE_UPS_CHARGING( "TOGGLE_UPS_CHARGING" );
 
 static const flag_id flag_BIONIC_NPC_USABLE( "BIONIC_NPC_USABLE" );
 
@@ -135,7 +141,8 @@ bool inventory_filter_preset::is_shown( const item *location ) const
 static item *inv_internal( player &u, const inventory_selector_preset &preset,
                            const std::string &title, int radius,
                            const std::string &none_message,
-                           const std::string &hint = std::string() )
+                           const std::string &hint = std::string(),
+                           bool include_fake_bionics = false )
 {
     inventory_pick_selector inv_s( u, preset );
 
@@ -171,6 +178,9 @@ static item *inv_internal( player &u, const inventory_selector_preset &preset,
         inv_s.add_character_items( u );
         inv_s.add_nearby_items( radius );
 
+        if( include_fake_bionics ) {
+            inv_s.add_bionics_items( u );
+        }
         if( has_init_filter ) {
             inv_s.set_filter( init_filter );
             has_init_filter = false;
@@ -372,7 +382,7 @@ class take_off_inventory_preset: public armor_inventory_preset
 item *game_menus::inv::take_off( avatar &you )
 {
     return inv_internal( you, take_off_inventory_preset( you, "color_red" ), _( "Take off item" ), 1,
-                         _( "You don't wear anything." ) );
+                         _( "You aren't wearing anything." ) );
 }
 
 item *game::inv_map_splice( const item_filter &filter, const std::string &title, int radius,
@@ -385,6 +395,16 @@ item *game::inv_map_splice( const item_filter &filter, const std::string &title,
 item *game_menus::inv::container_for( avatar &you, const item &liquid, int radius )
 {
     const auto filter = [ &liquid ]( const item & location ) {
+        // Reject containers that already contain a different liquid (different set_vars)
+        if( location.is_container() && !location.is_container_empty() ) {
+            const item &cont_liq = location.get_contained();
+
+            // Compare set_vars – if they don't match, skip this container. used for DNA comparison
+            if( cont_liq.get_var( "specimen_sample" ) != liquid.get_var( "specimen_sample" ) ) {
+                return false;
+            }
+        }
+
         if( location.where() == item_location_type::character ) {
             Character *character = g->critter_at<Character>( location.position() );
             if( character == nullptr ) {
@@ -841,7 +861,7 @@ class activatable_inventory_preset : public pickup_inventory_preset
                 return _( "Your biology is not compatible with that item." );
             }
 
-            if( !p.has_enough_charges( it, false ) ) {
+            if( !p.has_enough_charges( it, false ) && !uses.contains( iuse_TOGGLE_UPS_CHARGING ) ) {
                 return string_format(
                            vgettext( "Needs at least %d charge",
                                      "Needs at least %d charges", loc->ammo_required() ),
@@ -876,7 +896,8 @@ item *game_menus::inv::use( avatar &you )
 {
     return inv_internal( you, activatable_inventory_preset( you ),
                          _( "Use item" ), 1,
-                         _( "You don't have any items you can use." ) );
+                         _( "You don't have any items you can use." ),
+                         std::string(), true );
 }
 
 class gunmod_inventory_preset : public inventory_selector_preset
@@ -995,7 +1016,7 @@ class read_inventory_preset final: public inventory_selector_preset
 
                 // This is terrible and needs to be removed asap when this entire file is refactored
                 // to use the new avatar class
-                const player *reader = nullptr;
+                const Character *reader = nullptr;
                 if( const avatar *av = p.as_avatar() ) {
                     reader = av->get_book_reader( *loc, dummy );
                 } else if( const npc *n = p.as_npc() ) {
@@ -1408,38 +1429,106 @@ class saw_stock_inventory_preset : public weapon_inventory_preset
         const saw_stock_actor &actor;
 };
 
-class salvage_inventory_preset: public inventory_selector_preset
+class salvage_inventory_preset : public pickup_inventory_preset
 {
     public:
-        salvage_inventory_preset( const salvage_actor *actor ) :
-            actor( actor ) {
+        salvage_inventory_preset( const player &p, const inventory &inv ):
+            pickup_inventory_preset( p ),
+            qualities( inv.get_quality_cache() ) {
 
-            append_cell( [ actor ]( const item * loc ) {
-                return to_string_clipped( time_duration::from_turns( actor->time_to_cut_up(
+            append_cell( []( const item * loc ) {
+                auto components = salvage::salvage_results( *loc );
+                return enumerate_as_string( components.begin(), components.end(),
+                []( const decltype( components )::value_type & comps ) {
+                    int c = std::floor( comps.second );
+                    //%1$s: item name, % 2$d :  count
+                    return string_format( "%1$d %2$s", c, comps.first->nname( c ) );
+                } );
+            }, _( "YIELD" ) );
+
+            append_cell( []( const item * loc ) {
+                return to_string_clipped( time_duration::from_turns( salvage::moves_to_salvage(
                                               *loc ) / 100 ) );
             }, _( "TIME" ) );
         }
 
+        std::string get_denial( const item *loc ) const override {
+            auto q_cache = qualities;
+            const ret_val<bool> ret = salvage::try_salvage( *loc, q_cache );
+            if( !ret.success() ) {
+                return ret.str();
+            }
+            return pickup_inventory_preset::get_denial( loc );
+        }
+
         bool is_shown( const item *loc ) const override {
-            return actor->valid_to_cut_up( *loc );
+            return loc->is_salvageable();
         }
 
     private:
-        const salvage_actor *actor;
+        salvage::quality_cache qualities;
 };
 
-item *game_menus::inv::salvage( player &p, const salvage_actor *actor )
+item *game_menus::inv::salvage( player &p )
 {
-    return inv_internal( p, salvage_inventory_preset( actor ),
-                         _( "Cut up what?" ), 1,
-                         _( "You have nothing to cut up." ) );
+
+    return inv_internal( p, salvage_inventory_preset( p, p.crafting_inventory() ),
+                         _( "Salvage what?" ), 1,
+                         _( "You have nothing to salvage." ) );
 }
 
 class repair_inventory_preset: public inventory_selector_preset
 {
     public:
-        repair_inventory_preset( const repair_item_actor *actor, const item *main_tool ) :
-            actor( actor ), main_tool( main_tool ) {
+        repair_inventory_preset( const repair_item_actor *actor, const item *main_tool,
+                                 player &character ) :
+            actor( actor ), main_tool( main_tool ), character( character ) {
+            append_cell( [ this, actor, &character ]( const item * loc ) {
+                const auto comp_needed = std::max<int>( 1,
+                                                        std::ceil( loc->volume() / 250_ml * actor->cost_scaling ) );
+                auto valid_entries = std::set<material_id> {};
+                std::ranges::for_each( actor->materials, [ &valid_entries, &loc ]( const auto & mat ) {
+                    if( loc->made_of( mat ) ) {
+                        valid_entries.emplace( mat );
+                    }
+                } );
+
+                const auto &crafting_inv = character.crafting_inventory();
+                auto listed_components = std::set<itype_id> {};
+                auto material_list = std::vector<std::string> {};
+                std::ranges::for_each( valid_entries, [ this, &listed_components, &material_list, &crafting_inv,
+                      &comp_needed ]( const auto & entry ) {
+                    const auto &component_id = entry.obj().repaired_with();
+                    if( listed_components.contains( component_id ) ) {
+                        return;
+                    }
+                    listed_components.emplace( component_id );
+                    const auto num_comp = get_cached_component_count( crafting_inv, component_id );
+                    if( num_comp > 0 ) {
+                        material_list.emplace_back( colorize( string_format( _( "%s (%d)" ), item::nname( component_id ),
+                                                              num_comp ), num_comp < comp_needed ? c_red : c_unset ) );
+                    }
+                } );
+
+                auto ret = join( material_list, ", " );
+                if( ret.empty() ) {
+                    ret = _( "<color_red>NONE</color>" );
+                }
+                return ret;
+            }, _( "MATERIALS AVAILABLE" ) );
+
+            append_cell( [ this ]( const item * loc ) {
+                const auto chance = get_cached_repair_chance( *loc );
+                return colorize( string_format( "%0.1f%%", 100.0f * chance.first ),
+                                 chance.first == 0 ? c_yellow : ( chance.second == 0 ? c_light_green : c_unset ) );
+            }, _( "SUCCESS" ) );
+
+            append_cell( [ this ]( const item * loc ) {
+                const auto chance = get_cached_repair_chance( *loc );
+                return colorize( string_format( "%0.1f%%", 100.0f * chance.second ),
+                                 chance.second > chance.first ? c_yellow : ( chance.second == 0 &&
+                                         chance.first > 0 ? c_light_green : c_unset ) );
+            }, _( "DMG" ) );
         }
 
         bool is_shown( const item *loc ) const override {
@@ -1448,17 +1537,60 @@ class repair_inventory_preset: public inventory_selector_preset
         }
 
     private:
+        auto get_cached_component_count( const inventory &crafting_inv,
+                                         const itype_id &component_id ) const -> int {
+            auto [ iter, inserted ] = component_count_cache.try_emplace( component_id, 0 );
+            if( !inserted ) {
+                return iter->second;
+            }
+
+            if( item::count_by_charges( component_id ) ) {
+                if( crafting_inv.has_charges( component_id, 1 ) ) {
+                    iter->second = crafting_inv.charges_of( component_id );
+                }
+            } else if( crafting_inv.has_amount( component_id, 1, false, is_crafting_component ) ) {
+                iter->second = crafting_inv.amount_of( component_id, false );
+            }
+            return iter->second;
+        }
+
+        auto get_cached_repair_chance( const item &loc ) const -> std::pair<float, float> {
+            auto [ iter, inserted ] = chance_cache.try_emplace( &loc );
+            if( inserted ) {
+                const auto level = character.get_skill_level( actor->used_skill );
+                const auto action_type = actor->default_action( loc, level );
+                iter->second = actor->repair_chance( character, loc, action_type );
+            }
+            return iter->second;
+        }
+
         const repair_item_actor *actor;
         const item *main_tool;
+        player &character;
+        mutable std::unordered_map<const item *, std::pair<float, float>> chance_cache;
+        mutable std::unordered_map<itype_id, int> component_count_cache;
 };
+
+static auto get_repair_hint( const player &character, const repair_item_actor *actor,
+                             const item *main_tool ) -> std::string
+{
+    auto hint = std::string{};
+    hint.append( string_format( _( "Tool: <color_cyan>%s</color>" ), main_tool->display_name() ) );
+    hint.append( " | " );
+    hint.append( string_format( _( "Skill used: <color_cyan>%s (%d)</color>" ),
+                                actor->used_skill.obj().name(),
+                                character.get_skill_level( actor->used_skill ) ) );
+    return hint;
+}
 
 item *game_menus::inv::repair( player &p, const repair_item_actor *actor,
                                const item *main_tool )
 {
-    return inv_internal( p, repair_inventory_preset( actor, main_tool ),
+    return inv_internal( p, repair_inventory_preset( actor, main_tool, p ),
                          _( "Repair what?" ), 1,
                          string_format( _( "You have no items that could be repaired with a %s." ),
-                                        main_tool->type_name( 1 ) ) );
+                                        main_tool->type_name( 1 ) ),
+                         get_repair_hint( p, actor, main_tool ) );
 }
 
 item *game_menus::inv::saw_barrel( player &p, item &tool )
@@ -1540,45 +1672,6 @@ drop_locations game_menus::inv::multidrop( player &p )
     }
 }
 
-iuse_locations game_menus::inv::multiwash( Character &ch, int water, int cleanser, bool do_soft,
-        bool do_hard )
-{
-    const inventory_filter_preset preset( [do_soft, do_hard]( const item & location ) {
-        return location.has_flag( flag_FILTHY ) && ( ( do_soft && location.is_soft() ) ||
-                ( do_hard && !location.is_soft() ) );
-    } );
-    auto make_raw_stats = [water, cleanser](
-                              const std::map<const item *, int> &items
-    ) {
-        units::volume total_volume = 0_ml;
-        for( const auto &it : items ) {
-            total_volume += it.first->volume() * it.second / it.first->count();
-        }
-        washing_requirements required = washing_requirements_for_volume( total_volume );
-        auto to_string = []( int val ) -> std::string {
-            if( val == INT_MAX )
-            {
-                return "inf";
-            }
-            return string_format( "%3d", val );
-        };
-        using stats = inventory_selector::stats;
-        return stats{ {
-                display_stat( _( "Water" ), required.water, water, to_string ),
-                display_stat( _( "Cleanser" ), required.cleanser, cleanser, to_string )
-            } };
-    };
-    inventory_iuse_selector inv_s( *ch.as_player(), _( "ITEMS TO CLEAN" ), preset, make_raw_stats );
-    inv_s.add_character_items( ch );
-    inv_s.add_nearby_items( PICKUP_RANGE );
-    inv_s.set_title( _( "Multiclean" ) );
-    inv_s.set_hint( _( "To clean x items, type a number before selecting." ) );
-    if( inv_s.empty() ) {
-        popup( std::string( _( "You have nothing to clean." ) ), PF_GET_KEY );
-        return {};
-    }
-    return inv_s.execute();
-}
 
 void game_menus::inv::compare( player &p, const std::optional<tripoint> &offset )
 {
@@ -1773,6 +1866,8 @@ static item *autodoc_internal( player &u, player &patient,
             hint = _( "<color_yellow>Patient has Deadened nerves.  Anesthesia unneeded.</color>" );
         } else if( patient.has_bionic( bio_painkiller ) ) {
             hint = _( "<color_yellow>Patient has Sensory Dulling CBM installed.  Anesthesia unneeded.</color>" );
+        } else if( patient.has_trait( trait_DEBUG_BIONICS ) ) {
+            hint = _( "<color_yellow>Bug-hunters don't need anesthetics to withstand pain.</color>" );
         } else {
             const inventory &crafting_inv = u.crafting_inventory();
             std::vector<item *> a_filter = crafting_inv.items_with( []( const item & it ) {
@@ -1853,10 +1948,10 @@ class bionic_install_preset: public inventory_selector_preset
             const itype *itemtype = it->type;
             const bionic_id &bid = itemtype->bionic->id;
 
-            if( it->has_fault( fault_bionic_nonsterile ) && !p.has_trait( trait_INFRESIST ) ) {
+            if( it->has_fault( fault_bionic_nonsterile ) && !pa.has_trait( trait_INFRESIST ) ) {
                 // NOLINTNEXTLINE(cata-text-style): single space after the period for symmetry
                 return _( "/!\\ CBM is not sterile. /!\\ Please use autoclave or other methods to sterilize." );
-            } else if( pa.has_bionic( bid ) ) {
+            } else if( !bid->has_flag( flag_MULTIINSTALL ) && pa.has_bionic( bid ) ) {
                 return _( "CBM already installed" );
             } else if( !pa.can_install_cbm_on_bp( get_occupied_bodyparts( bid ) ) ) {
                 return _( "CBM not compatible with patient's body." );
@@ -1864,16 +1959,13 @@ class bionic_install_preset: public inventory_selector_preset
                        !pa.has_bionic( bid->upgraded_bionic ) &&
                        it->is_upgrade() ) {
                 return _( "No base version installed" );
-            } else if( std::any_of( bid->available_upgrades.begin(),
-                                    bid->available_upgrades.end(),
-                                    std::bind( &player::has_bionic, &pa,
-                                               std::placeholders::_1 ) ) ) {
+            } else if( character_funcs::has_upgraded_bionic( pa, bid ) ) {
                 return _( "Superior version installed" );
             } else if( pa.is_npc() && !bid->has_flag( flag_BIONIC_NPC_USABLE ) ) {
-                return _( "CBM not compatible with patient" );
+                return _( "CBM not usable by NPC's" );
             } else if( units::energy_max - pa.get_max_power_level() < bid->capacity ) {
                 return _( "Max power capacity already reached" );
-            } else if( !p.has_enough_anesth( itemtype, pa ) ) {
+            } else if( !has_enough_anesthesia( itemtype, p, pa ) ) {
                 const int weight = 7;
                 const int duration = loc->type->bionic->difficulty * 2;
                 return string_format( _( "%i mL" ), anesthetic_requirement( duration * weight ) );
@@ -1922,7 +2014,9 @@ class bionic_install_preset: public inventory_selector_preset
         }
 
         std::string get_anesth_amount( const item *loc ) {
-
+            if( !cbm_needs_anesthesia( pa ) ) {
+                return std::string( "-" );
+            }
             const int weight = 7;
             const int duration = loc->type->bionic->difficulty * 2;
             return string_format( _( "%i mL" ), anesthetic_requirement( duration * weight ) );
@@ -1959,7 +2053,7 @@ class bionic_install_surgeon_preset : public inventory_selector_preset
 
             if( it->has_fault( fault_bionic_nonsterile ) ) {
                 return _( "CBM is not sterile." );
-            } else if( pa.has_bionic( bid ) ) {
+            } else if( !bid->has_flag( flag_MULTIINSTALL ) && pa.has_bionic( bid ) ) {
                 return _( "CBM is already installed." );
             } else if( bid->upgraded_bionic &&
                        !pa.has_bionic( bid->upgraded_bionic ) &&
@@ -2052,7 +2146,7 @@ class bionic_uninstall_preset : public inventory_selector_preset
         std::string get_denial( const item *loc ) const override {
             const itype *itemtype = loc->type;
 
-            if( !p.has_enough_anesth( itemtype, pa ) ) {
+            if( !has_enough_anesthesia( itemtype, p, pa ) ) {
                 const int weight = 7;
                 const int duration = loc->type->bionic->difficulty * 2;
                 return string_format( _( "%i mL" ), anesthetic_requirement( duration * weight ) );
@@ -2096,6 +2190,9 @@ class bionic_uninstall_preset : public inventory_selector_preset
         }
 
         std::string get_anesth_amount( const item *loc ) {
+            if( !cbm_needs_anesthesia( pa ) ) {
+                return std::string( "-" );
+            }
             const int weight = 7;
             const int duration = loc->type->bionic->difficulty * 2;
             return string_format( _( "%i mL" ), anesthetic_requirement( duration * weight ) );
@@ -2116,16 +2213,9 @@ class bionic_sterilize_preset : public inventory_selector_preset
         }
 
         bool is_shown( const item *loc ) const override {
-            return loc->has_fault( fault_bionic_nonsterile ) && loc->is_bionic();
+            return loc->has_fault( fault_bionic_nonsterile );
         }
 
-        std::string get_denial( const item *loc ) const override {
-            if( loc->has_flag( flag_FILTHY ) ) {
-                return  _( "CBM is filthy.  Wash it first." );
-            }
-
-            return std::string();
-        }
 
     protected:
         player &p;
@@ -2137,7 +2227,7 @@ static item *autoclave_internal( player &u,
 {
     inventory_pick_selector inv_s( u, preset );
     inv_s.set_title( _( "Sterilization" ) );
-    inv_s.set_hint( _( "<color_yellow>Select one CBM to sterilize</color>" ) );
+    inv_s.set_hint( _( "<color_yellow>Select a device to sterilize:</color>" ) );
     inv_s.set_display_stats( false );
 
     do {
@@ -2148,7 +2238,7 @@ static item *autoclave_internal( player &u,
         inv_s.add_nearby_items( radius );
 
         if( inv_s.empty() ) {
-            popup( _( "You don't have any CBM to sterilize." ), PF_GET_KEY );
+            popup( _( "You don't have any devices to sterilize." ), PF_GET_KEY );
             return nullptr;
         }
 

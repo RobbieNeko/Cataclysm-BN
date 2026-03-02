@@ -1,6 +1,4 @@
 #pragma once
-#ifndef CATA_SRC_OPTIONS_H
-#define CATA_SRC_OPTIONS_H
 
 #include <functional>
 #include <map>
@@ -189,6 +187,7 @@ class options_manager
         void add_options_general();
         void add_options_interface();
         void add_options_graphics();
+        void add_options_performance();
         void add_options_debug();
         void add_options_world_default();
         void add_options_android();
@@ -371,4 +370,4 @@ inline T get_option( const std::string &name )
     return get_options().get_option( name ).value_as<T>();
 }
 
-#endif // CATA_SRC_OPTIONS_H
+

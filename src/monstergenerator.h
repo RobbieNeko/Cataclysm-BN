@@ -1,6 +1,4 @@
 #pragma once
-#ifndef CATA_SRC_MONSTERGENERATOR_H
-#define CATA_SRC_MONSTERGENERATOR_H
 
 #include <map>
 #include <memory>
@@ -32,14 +30,11 @@ struct species_type {
     translation name;
     bool was_loaded = false;
     translation description;
-    translation footsteps;
+    std::vector<translation> footsteps;
     enum_bitset<m_flag> flags;
     enum_bitset<mon_trigger> anger;
     enum_bitset<mon_trigger> fear;
     enum_bitset<mon_trigger> placate;
-    std::string get_footsteps() const {
-        return footsteps.translated();
-    }
 
     species_type(): id( species_id::NULL_ID() ) {
 
@@ -118,4 +113,4 @@ class MonsterGenerator
 void load_monster_adjustment( const JsonObject &jsobj );
 void reset_monster_adjustment();
 
-#endif // CATA_SRC_MONSTERGENERATOR_H
+

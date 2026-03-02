@@ -1,6 +1,4 @@
 #pragma once
-#ifndef CATA_SRC_WEATHER_TYPE_H
-#define CATA_SRC_WEATHER_TYPE_H
 
 #include <climits>
 #include <string>
@@ -10,7 +8,7 @@
 #include "translations.h"
 #include "type_id.h"
 
-using weather_effect_fn = void ( * )( int intensity );
+using weather_effect_fn = std::function<void( int )>;
 
 template<typename E> struct enum_traits;
 template<typename T> class generic_factory;
@@ -144,4 +142,4 @@ void load( const JsonObject &jo, const std::string &src );
 /** Checks all loaded from JSON are valid */
 void check_consistency();
 } // namespace weather_types
-#endif // CATA_SRC_WEATHER_TYPE_H
+

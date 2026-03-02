@@ -1,6 +1,4 @@
 #pragma once
-#ifndef CATA_SRC_NEWCHARACTER_H
-#define CATA_SRC_NEWCHARACTER_H
 
 #include <string>
 
@@ -46,6 +44,8 @@ trait_id random_bad_trait();
 void add_traits( Character &ch );
 void add_traits( Character &ch, points_left &points );
 
+/** Returns true if character has a conflicting trait to the bionic. */
+bool bionic_has_conflict( const Character &ch, const bionic_id &b );
 /** Returns true if character has a conflicting trait to the entered trait. */
 bool has_conflicting_trait( const Character &ch, const trait_id &t );
 /** Returns true if charcater has a trait which upgrades into the entered trait. */
@@ -56,4 +56,4 @@ bool has_higher_trait( const Character &ch, const trait_id &t );
 bool has_same_type_trait( const Character &ch, const trait_id &t );
 } // namespace newcharacter
 
-#endif // CATA_SRC_NEWCHARACTER_H
+

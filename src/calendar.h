@@ -1,6 +1,4 @@
 #pragma once
-#ifndef CATA_SRC_CALENDAR_H
-#define CATA_SRC_CALENDAR_H
 
 #include <string>
 #include <utility>
@@ -28,7 +26,7 @@ struct enum_traits<season_type> {
 };
 
 /** Phases of the moon */
-enum moon_phase {
+enum moon_phase : int {
     /** New (completely dark) moon */
     MOON_NEW = 0,
     /** One quarter of moon lit, amount lit is increasing every day */
@@ -47,6 +45,11 @@ enum moon_phase {
     MOON_WANING_CRESCENT,
     /** Not a valid moon phase, but can be used for iterating through enum */
     MOON_PHASE_MAX
+};
+
+template<>
+struct enum_traits<moon_phase> {
+    static constexpr moon_phase last = moon_phase::MOON_PHASE_MAX;
 };
 
 /**
@@ -343,27 +346,27 @@ bool x_in_y( const time_duration &a, const time_duration &b );
  * `time_duration::from_*` function.
  */
 /**@{*/
-constexpr time_duration operator"" _turns( const unsigned long long int v )
+constexpr time_duration operator""_turns( const unsigned long long int v )
 {
     return time_duration::from_turns( v );
 }
-constexpr time_duration operator"" _seconds( const unsigned long long int v )
+constexpr time_duration operator""_seconds( const unsigned long long int v )
 {
     return time_duration::from_seconds( v );
 }
-constexpr time_duration operator"" _minutes( const unsigned long long int v )
+constexpr time_duration operator""_minutes( const unsigned long long int v )
 {
     return time_duration::from_minutes( v );
 }
-constexpr time_duration operator"" _hours( const unsigned long long int v )
+constexpr time_duration operator""_hours( const unsigned long long int v )
 {
     return time_duration::from_hours( v );
 }
-constexpr time_duration operator"" _days( const unsigned long long int v )
+constexpr time_duration operator""_days( const unsigned long long int v )
 {
     return time_duration::from_days( v );
 }
-constexpr time_duration operator"" _weeks( const unsigned long long int v )
+constexpr time_duration operator""_weeks( const unsigned long long int v )
 {
     return time_duration::from_weeks( v );
 }
@@ -619,4 +622,4 @@ enum class weekdays : int {
 
 weekdays day_of_week( const time_point &p );
 
-#endif // CATA_SRC_CALENDAR_H
+

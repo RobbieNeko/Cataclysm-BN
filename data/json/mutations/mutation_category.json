@@ -256,5 +256,32 @@
     "mutagen_message": "You feel a desire to curl up in a nice, warm pile of… shredded paper.",
     "iv_message": "You feel… small.  But comfortable.",
     "memorial_message": "Found the cheese."
+  },
+  {
+    "type": "mutation_category",
+    "id": "RABBIT",
+    "name": "Rabbit",
+    "threshold_mut": "THRESH_RABBIT",
+    "mutagen_message": "Walking is overrated.  It's time to start hopping.",
+    "iv_message": "You are craving beta carotene.",
+    "memorial_message": "Acquired a taste for carrots."
+  },
+  {
+    "type": "mutation_category",
+    "id": "SERPENT",
+    "name": "Serpent",
+    "threshold_mut": "THRESH_SERPENT",
+    "mutagen_message": "You feel a slithering feeling.",
+    "iv_message": "You hiss, left reeling from the strange sensations.",
+    "memorial_message": "Seized opportunity in their coils."
+  },
+  {
+    "type": "mutation_category",
+    "id": "MYCUS",
+    "name": "Mycus",
+    "threshold_mut": "THRESH_MYCUS",
+    "mutagen_message": "",
+    "memorial_message": "Dissolved into the collective.",
+    "iv_message": ""
   }
 ]

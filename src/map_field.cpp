@@ -56,6 +56,7 @@
 #include "translations.h"
 #include "type_id.h"
 #include "units.h"
+#include "veh_type.h"
 #include "vehicle.h"
 #include "vehicle_part.h"
 #include "vpart_position.h"
@@ -1377,12 +1378,9 @@ void map::player_in_field( player &u )
                     } else {
                         // Lying in the fire is BAAAD news, hits every body part.
                         msg_num = 3;
-                        const std::vector<bodypart_id> &all_parts = u.get_all_body_parts();
-                        // HACK: Skip num_bp part
-                        for( auto bp : all_parts ) {
-                            if( bp->token != num_bp ) {
-                                parts_burned.push_back( bp );
-                            }
+                        const auto &all_bps = u.get_all_body_parts( true );
+                        for( const auto &bp : all_bps ) {
+                            parts_burned.emplace_back( bp );
                         }
                     }
 
@@ -1580,6 +1578,10 @@ void map::creature_in_field( Creature &critter )
                     if( vp->is_inside() ) {
                         inside_vehicle = true;
                     }
+                    if( vp->part_with_feature( VPFLAG_NOFIELDS, true ) ) {
+                        // Same as just skipping each time in the loop below
+                        return;
+                    }
                 }
             }
             player_in_field( *u );
@@ -1656,7 +1658,7 @@ void map::monster_in_field( monster &z )
         const field_type_id cur_field_type = cur.get_field_type();
         if( cur_field_type == fd_web ) {
             if( !z.has_flag( MF_WEBWALK ) ) {
-                z.add_effect( effect_webbed, 1_turns, num_bp, cur.get_field_intensity() );
+                z.add_effect( effect_webbed, 1_turns, bodypart_str_id::NULL_ID(), cur.get_field_intensity() );
                 cur.set_field_intensity( 0 );
             }
         }

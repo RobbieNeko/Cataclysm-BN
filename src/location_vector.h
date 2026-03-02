@@ -1,6 +1,4 @@
 #pragma once
-#ifndef CATA_SRC_LOCATION_VECTOR_H
-#define CATA_SRC_LOCATION_VECTOR_H
 
 #include <vector>
 #include <functional>
@@ -85,6 +83,11 @@ class location_vector
 
                 iterator &operator+=( difference_type t ) {
                     it += t;
+                    return *this;
+                }
+
+                iterator &operator-=( difference_type t ) {
+                    it -= t;
                     return *this;
                 }
 
@@ -181,6 +184,11 @@ class location_vector
                     return *this;
                 }
 
+                const_iterator &operator-=( difference_type t ) {
+                    it -= t;
+                    return *this;
+                }
+
                 difference_type operator-( const const_iterator &rhs ) const {
                     return it - rhs.it;
                 }
@@ -273,4 +281,4 @@ class location_vector
         void on_destroy();
 };
 
-#endif // CATA_SRC_LOCATION_VECTOR_H
+

@@ -29,6 +29,11 @@
     "//": "Always hits torso."
   },
   {
+    "id": "THROWN",
+    "type": "ammo_effect",
+    "//": "Used to distinguish thrown ranged attacks."
+  },
+  {
     "id": "FLAME",
     "type": "ammo_effect",
     "aoe": { "field_type": "fd_fire", "intensity_min": 1, "intensity_max": 1, "size": 3 }
@@ -177,16 +182,16 @@
       "field_type": "fd_nuke_gas",
       "intensity_min": 3,
       "intensity_max": 3,
-      "radius": 18,
+      "radius": 24,
       "size": 1,
       "check_passable": true,
       "check_sees": true,
       "check_sees_radius": 3
     },
     "explosion": {
-      "damage": 300,
+      "damage": 3000,
       "radius": 20,
-      "fragment": { "impact": { "damage_type": "heat", "amount": 300, "armor_multiplier": 2 }, "range": 24 }
+      "fragment": { "impact": { "damage_type": "heat", "amount": 3000, "armor_multiplier": 2 }, "range": 24 }
     }
   },
   {
@@ -393,6 +398,11 @@
     "id": "TANGLE",
     "type": "ammo_effect",
     "//": "Applies tied effect and may be recovered after the critter breaks free."
+  },
+  {
+    "id": "NET_TANGLE",
+    "type": "ammo_effect",
+    "//": "Applies tied effect to all creatures in a radius with disposable nets."
   },
   {
     "id": "WHIP",

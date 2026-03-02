@@ -27,6 +27,7 @@
 #include "npc_class.h"
 #include "overmap.h"
 #include "overmapbuffer.h"
+#include "profile.h"
 #include "requirements.h"
 #include "string_formatter.h"
 #include "translations.h"
@@ -97,6 +98,7 @@ void mission::add_existing( const mission &m )
 
 void mission::process_all()
 {
+    ZoneScoped;
     for( auto &e : world_missions ) {
         e.second.process();
     }
@@ -136,6 +138,16 @@ void mission::on_creature_death( Creature &poor_dead_dude )
     }
     monster *mon = dynamic_cast<monster *>( &poor_dead_dude );
     if( mon != nullptr ) {
+        if( mon->is_nemesis() ) {
+            // The nemesis monster doesn't have a mission attached because it's an overmap horde.
+            for( std::pair<const int, mission> &e : world_missions ) {
+                mission &i = e.second;
+                if( i.type->goal == MGOAL_KILL_NEMESIS && g->u.getID() == i.player_id ) {
+                    i.step_complete( 1 );
+                    return;
+                }
+            }
+        }
         if( mon->mission_id == -1 ) {
             return;
         }
@@ -146,6 +158,11 @@ void mission::on_creature_death( Creature &poor_dead_dude )
         }
         if( type->goal == MGOAL_KILL_MONSTER ) {
             mission->step_complete( 1 );
+        }
+        if( type->goal == MGOAL_KILL_MONSTERS ) {
+            if( --mission->monster_kill_goal <= 0 ) {
+                mission->step_complete( 1 );
+            }
         }
         return;
     }
@@ -266,6 +283,7 @@ void mission::step_complete( const int _step )
         case MGOAL_FIND_MONSTER:
         case MGOAL_ASSASSINATE:
         case MGOAL_KILL_MONSTER:
+        case MGOAL_KILL_MONSTERS:
         case MGOAL_COMPUTER_TOGGLE:
         case MGOAL_TALK_TO_NPC:
             // Go back and report.
@@ -426,6 +444,8 @@ bool mission::is_complete( const character_id &_npc_id ) const
         case MGOAL_TALK_TO_NPC:
         case MGOAL_ASSASSINATE:
         case MGOAL_KILL_MONSTER:
+        case MGOAL_KILL_NEMESIS:
+        case MGOAL_KILL_MONSTERS:
         case MGOAL_COMPUTER_TOGGLE:
             return step >= 1;
 
@@ -487,8 +507,8 @@ void mission::get_all_item_group_matches( std::vector<item *> &items,
             std::vector<item *> content = std::vector<item *>();
 
             //list of item into list item*
-            std::transform(
-                content_list.begin(), content_list.end(),
+            std::ranges::transform(
+                content_list,
                 std::back_inserter( content ),
             []( item * p ) {
                 return p;
@@ -693,6 +713,11 @@ mission::mission()
     bad_fac_id = -1;
     step = 0;
     player_id = character_id();
+}
+
+void mission::register_kill_needed()
+{
+    monster_kill_goal++;
 }
 
 namespace io

@@ -1,6 +1,4 @@
 #pragma once
-#ifndef CATA_SRC_VITAMIN_H
-#define CATA_SRC_VITAMIN_H
 
 #include <map>
 #include <set>
@@ -9,13 +7,14 @@
 #include <vector>
 
 #include "calendar.h"
+#include "catalua_type_operators.h"
 #include "translations.h"
 #include "type_id.h"
 
 class JsonObject;
 template <typename T> struct enum_traits;
 
-enum vitamin_type {
+enum vitamin_type : int {
     VITAMIN,
     TOXIN,
     DRUG,
@@ -108,6 +107,8 @@ class vitamin
         std::vector<std::pair<int, int>> disease_;
         std::vector<std::pair<int, int>> disease_excess_;
         std::set<std::string> flags_;
+    public:
+        LUA_TYPE_OPS( vitamin, id_ );
 };
 
-#endif // CATA_SRC_VITAMIN_H
+

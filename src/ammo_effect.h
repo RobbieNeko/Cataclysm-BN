@@ -1,6 +1,4 @@
 #pragma once
-#ifndef CATA_SRC_AMMO_EFFECT_H
-#define CATA_SRC_AMMO_EFFECT_H
 
 #include <cstddef>
 #include <string>
@@ -46,11 +44,13 @@ struct ammo_effect {
 
     public:
         // Used by generic_factory
-        string_id<ammo_effect> id;
+        ammo_effect_str_id id;
         bool was_loaded = false;
 
     public:
         static size_t count();
+
+        LUA_TYPE_OPS( ammo_effect, id );
 };
 
 namespace ammo_effects
@@ -67,4 +67,3 @@ const std::vector<ammo_effect> &get_all();
 
 extern ammo_effect_id AE_NULL;
 
-#endif // CATA_SRC_AMMO_EFFECT_H

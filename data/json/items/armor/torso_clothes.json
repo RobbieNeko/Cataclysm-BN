@@ -20,8 +20,8 @@
     "warmth": 15,
     "material_thickness": 3,
     "environmental_protection": 1,
-    "valid_mods": [ "steel_padded", "alloy_padded", "resized_large" ],
-    "flags": [ "POCKETS", "OUTER", "WATER_FRIENDLY" ]
+    "valid_mods": [ "steel_padded", "hard_steel_padded", "alloy_padded", "resized_large", "resized_small" ],
+    "flags": [ "POCKETS", "OUTER", "WATER_FRIENDLY", "ALLOWS_TAIL_SNAKE", "ALLOWS_WINGS" ]
   },
   {
     "id": "blazer",
@@ -42,8 +42,8 @@
     "storage": "500 ml",
     "warmth": 20,
     "material_thickness": 3,
-    "valid_mods": [ "steel_padded", "alloy_padded" ],
-    "flags": [ "VARSIZE", "FANCY" ]
+    "valid_mods": [ "steel_padded", "hard_steel_padded", "alloy_padded" ],
+    "flags": [ "VARSIZE", "FANCY", "ALLOWS_WINGS" ]
   },
   {
     "id": "dress",
@@ -65,7 +65,7 @@
     "encumbrance": 7,
     "warmth": 15,
     "material_thickness": 2,
-    "flags": [ "VARSIZE", "FANCY" ]
+    "flags": [ "VARSIZE", "FANCY", "ALLOWS_TAIL_SNAKE", "ALLOWS_WINGS" ]
   },
   {
     "id": "dress_shirt",
@@ -87,7 +87,7 @@
     "storage": "250 ml",
     "warmth": 10,
     "material_thickness": 1,
-    "flags": [ "VARSIZE", "FANCY" ]
+    "flags": [ "VARSIZE", "FANCY", "ALLOWS_WINGS" ]
   },
   {
     "id": "dress_wedding",
@@ -108,7 +108,7 @@
     "encumbrance": 45,
     "warmth": 30,
     "material_thickness": 2,
-    "flags": [ "VARSIZE", "SUPER_FANCY" ]
+    "flags": [ "VARSIZE", "SUPER_FANCY", "ALLOWS_TAIL_SNAKE", "ALLOWS_WINGS" ]
   },
   {
     "id": "flag_shirt",
@@ -150,7 +150,7 @@
     "encumbrance": 40,
     "warmth": 5,
     "material_thickness": 4,
-    "flags": [ "FLOTATION", "WATER_FRIENDLY", "OUTER" ]
+    "flags": [ "FLOTATION", "WATER_FRIENDLY", "OUTER", "ALLOWS_WINGS" ]
   },
   {
     "id": "flotation_vest_ms",
@@ -172,7 +172,7 @@
     "encumbrance": 45,
     "warmth": 5,
     "material_thickness": 2,
-    "flags": [ "FLOTATION", "WATER_FRIENDLY", "OUTER", "OVERSIZE" ]
+    "flags": [ "FLOTATION", "WATER_FRIENDLY", "OUTER", "OVERSIZE", "ALLOWS_WINGS" ]
   },
   {
     "id": "gown",
@@ -193,7 +193,7 @@
     "encumbrance": 14,
     "warmth": 5,
     "material_thickness": 1,
-    "flags": [ "VARSIZE", "SUPER_FANCY" ]
+    "flags": [ "VARSIZE", "SUPER_FANCY", "ALLOWS_TAIL_SNAKE", "ALLOWS_WINGS" ]
   },
   {
     "id": "halter_top",
@@ -235,7 +235,7 @@
     "storage": "2250 ml",
     "warmth": 30,
     "material_thickness": 3,
-    "valid_mods": [ "steel_padded", "alloy_padded" ],
+    "valid_mods": [ "steel_padded", "hard_steel_padded", "alloy_padded" ],
     "flags": [ "VARSIZE", "OUTER", "POCKETS", "HOOD" ]
   },
   {
@@ -410,7 +410,7 @@
     "storage": "500 ml",
     "warmth": 5,
     "material_thickness": 1,
-    "flags": [ "VARSIZE", "FANCY" ]
+    "flags": [ "VARSIZE", "FANCY", "ALLOWS_TAIL_SNAKE", "ALLOWS_WINGS" ]
   },
   {
     "id": "polo_shirt",
@@ -451,7 +451,7 @@
     "storage": "1 L",
     "warmth": 5,
     "material_thickness": 1,
-    "flags": [ "VARSIZE" ]
+    "flags": [ "VARSIZE", "ALLOWS_WINGS" ]
   },
   {
     "id": "sheriffshirt",
@@ -473,7 +473,7 @@
     "storage": "500 ml",
     "warmth": 15,
     "material_thickness": 1,
-    "flags": [ "VARSIZE" ]
+    "flags": [ "VARSIZE", "ALLOWS_WINGS" ]
   },
   {
     "id": "striped_shirt",
@@ -513,7 +513,7 @@
     "covers": [ "legs", "torso" ],
     "coverage": 65,
     "material_thickness": 1,
-    "flags": [ "VARSIZE", "FANCY" ]
+    "flags": [ "VARSIZE", "FANCY", "ALLOWS_TAIL_SNAKE", "ALLOWS_WINGS" ]
   },
   {
     "id": "sweater",
@@ -533,7 +533,7 @@
     "encumbrance": 10,
     "warmth": 40,
     "material_thickness": 3,
-    "valid_mods": [ "steel_padded", "alloy_padded" ],
+    "valid_mods": [ "steel_padded", "hard_steel_padded", "alloy_padded" ],
     "flags": [ "VARSIZE" ]
   },
   {
@@ -555,7 +555,7 @@
     "encumbrance": 10,
     "warmth": 30,
     "material_thickness": 3,
-    "valid_mods": [ "steel_padded", "alloy_padded" ],
+    "valid_mods": [ "steel_padded", "hard_steel_padded", "alloy_padded" ],
     "flags": [ "VARSIZE" ]
   },
   {
@@ -666,6 +666,39 @@
     ]
   },
   {
+    "id": "hoodie_drugrug",
+    "repairs_like": "hoodie",
+    "type": "ARMOR",
+    "copy-from": "wool_hoodie",
+    "name": { "str": "drug rug" },
+    "description": "A hooded pullover made of a coarse, woven fabric.  Popular among festival-goers and chill backpackers.  Smells faintly of patchouli.",
+    "price": "40 USD",
+    "price_postapoc": "2 USD",
+    "environmental_protection": 1,
+    "snippet_category": [
+      {
+        "id": "earthtone",
+        "text": "A cozy hoodie patterned with thick earth-toned stripes—burnt umber, forest green, and sand.  The texture is rough but comforting."
+      },
+      {
+        "id": "sunset_trip",
+        "text": "A hoodie woven with psychedelic sunset colors—deep orange, radiant purple, and hints of electric pink.  It radiates good vibes."
+      },
+      {
+        "id": "rasta_vibe",
+        "text": "A green, yellow, and red striped drug rug hoodie.  Slightly faded, like it's seen a few beach fires and late-night jam sessions."
+      },
+      {
+        "id": "mystic_pattern",
+        "text": "A hoodie decorated with vaguely Aztec patterns in black and gray.  You feel wiser just wearing it, or maybe that’s the edibles."
+      },
+      {
+        "id": "desert_dream",
+        "text": "Tan and teal stripes dance across the weave of this soft, oversized hoodie.  Looks perfect for stargazing in the desert."
+      }
+    ]
+  },
+  {
     "id": "vest_leather",
     "type": "ARMOR",
     "name": { "str": "leather vest" },
@@ -686,8 +719,8 @@
     "warmth": 20,
     "material_thickness": 3,
     "environmental_protection": 1,
-    "valid_mods": [ "steel_padded", "alloy_padded" ],
-    "flags": [ "VARSIZE", "POCKETS", "OUTER" ]
+    "valid_mods": [ "steel_padded", "hard_steel_padded", "alloy_padded" ],
+    "flags": [ "VARSIZE", "POCKETS", "OUTER", "ALLOWS_WINGS" ]
   },
   {
     "id": "wool_hoodie",
@@ -708,7 +741,7 @@
     "storage": "2250 ml",
     "warmth": 45,
     "material_thickness": 3,
-    "valid_mods": [ "steel_padded", "alloy_padded" ],
+    "valid_mods": [ "steel_padded", "hard_steel_padded", "alloy_padded" ],
     "flags": [ "VARSIZE", "OUTER", "POCKETS", "HOOD" ]
   }
 ]

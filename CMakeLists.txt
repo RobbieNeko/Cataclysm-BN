@@ -15,14 +15,25 @@ set(CMAKE_TLS_VERIFY ON)
 
 # Build options
 include(CMakeDependentOption)
+include(ExternalProject)
 option(TILES "Build graphical tileset version." "OFF")
+cmake_dependent_option(DYNAMIC_ATLAS
+    "Enable dynamic atlas generation" ON
+    TILES OFF
+)
 option(CURSES "Build curses version." "ON")
 option(SOUND "Support for in-game sounds & music." "OFF")
-option(LUA "Support for in-game scripting with Lua." "OFF")
 option(BACKTRACE "Support for printing stack backtraces on crash" "ON")
 option(LIBBACKTRACE "Print backtrace with libbacktrace." "OFF")
 option(USE_XDG_DIR "Use XDG directories for save and config files." "OFF")
-option(USE_HOME_DIR "Use user's home directory for save and config files." "ON")
+# On Windows, default to current directory for backwards compatibility
+# On other platforms, use home directory
+if(WIN32)
+    set(USE_HOME_DIR_DEFAULT OFF)
+else()
+    set(USE_HOME_DIR_DEFAULT ON)
+endif()
+option(USE_HOME_DIR "Use user's home directory for save and config files." ${USE_HOME_DIR_DEFAULT})
 cmake_dependent_option(USE_PREFIX_DATA_DIR
     "Use UNIX system directories for game data in release build." ON
     "UNIX" OFF
@@ -37,6 +48,13 @@ option(USE_UNITY_BUILD "Use unity build." "OFF")
 option(JSON_FORMAT "Build JSON formatter" "OFF")
 option(CATA_CCACHE "Try to find and build with ccache" "ON")
 option(TESTS "Compile Cata's tests" "ON")
+find_program(DENO_BINARY deno)
+if(DENO_BINARY)
+    set(LUA_DOCS_DEFAULT ON)
+else()
+    set(LUA_DOCS_DEFAULT OFF)
+endif()
+option(LUA_DOCS_ON_BUILD "Generate Lua reference/annotations after building cataclysm-bn-tiles (requires deno)." ${LUA_DOCS_DEFAULT})
 option(CATA_CLANG_TIDY_PLUGIN "Build Cata's custom clang-tidy plugin" "OFF")
 option(USE_TRACY "Use Tracy profiler" "OFF")
 set(CATA_CLANG_TIDY_INCLUDE_DIR "" CACHE STRING
@@ -57,7 +75,10 @@ if (LINKER)
     add_link_options("-fuse-ld=${LINKER}")
 endif ()
 
-if (NOT CMAKE_BUILD_TYPE)
+# For multi-config generators (e.g. Visual Studio), CMAKE_BUILD_TYPE is not used;
+# the configuration is selected at build time via --config flag.
+get_property(_is_multi_config GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
+if (NOT CMAKE_BUILD_TYPE AND NOT _is_multi_config)
     set(CMAKE_BUILD_TYPE Debug)
 endif ()
 
@@ -67,8 +88,9 @@ include(GetGitRevisionDescription)
 git_describe(GIT_VERSION --tags --always --match "[0-9A-Z]*.[0-9A-Z]*")
 if (NOT "${GIT_VERSION}" MATCHES "GIT-NOTFOUND")
     string(REPLACE "-NOTFOUND" "" GIT_VERSION ${GIT_VERSION})
+    string(TIMESTAMP _timestamp %Y-%m-%d-%H%M)
     file(WRITE ${CMAKE_SOURCE_DIR}/src/version.h
-         "// NOLINT(cata-header-guard)\n\#define VERSION \"${GIT_VERSION}\"\n")
+         "// NOLINT(cata-header-guard)\n\#define VERSION \"${GIT_VERSION}\"\n\#define BUILD_TIMESTAMP \"${_timestamp}\"\n")
     message(STATUS "${PROJECT_NAME} build version is: ${GIT_VERSION}")
     add_definitions(-DGIT_VERSION)
 
@@ -77,12 +99,11 @@ if (NOT "${GIT_VERSION}" MATCHES "GIT-NOTFOUND")
         WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
         OUTPUT_VARIABLE _sha1
         OUTPUT_STRIP_TRAILING_WHITESPACE)
-    string(TIMESTAMP _timestamp %Y-%m-%d-%H%M)
     file(WRITE VERSION.txt "\
 build type: ${BUILD_PRESET_NAME}\n\
 build number: ${_timestamp}\n\
 commit sha: ${_sha1}\n\
-commit url: https://github.com/cataclysmbnteam/Cataclysm-BN/commit/${_sha1}"
+commit url: https://github.com/cataclysmbn/Cataclysm-BN/commit/${_sha1}"
     )
 endif ()
 
@@ -113,6 +134,8 @@ include(CheckCXXCompilerFlag)
 #SET(CMAKE_SHARED_LIBRARY_CXX_FLAGS "${CMAKE_SHARED_LIBRARY_CXX_FLAGS} -m32")
 
 find_package(PkgConfig)
+find_package(SQLite3)
+find_package(ZLIB)
 if (NOT DYNAMIC_LINKING)
     if(NOT MSVC)
         set(CMAKE_FIND_LIBRARY_SUFFIXES ".a;.dll.a")
@@ -129,11 +152,6 @@ if (NOT DYNAMIC_LINKING)
     set(CMAKE_SHARED_LIBRARY_CXX_FLAGS)
     set(CMAKE_SHARED_LIBRARY_LINK_C_FLAGS)    # remove -rdynamic
     set(CMAKE_SHARED_LIBRARY_LINK_CXX_FLAGS)
-else ()
-    if (MINGW AND NOT "${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang")
-        # Avoid depending on MinGW runtime DLLs
-        set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static-libgcc -static-libstdc++")
-    endif ()
 endif ()
 
 message(STATUS "${PROJECT_NAME} build options --")
@@ -207,9 +225,9 @@ endif ()
 message(STATUS "GIT_BINARY                    : ${GIT_EXECUTABLE}")
 message(STATUS "DYNAMIC_LINKING               : ${DYNAMIC_LINKING}")
 message(STATUS "TILES                         : ${TILES}")
+message(STATUS "DYNAMIC_ATLAS                 : ${DYNAMIC_ATLAS}")
 message(STATUS "CURSES                        : ${CURSES}")
 message(STATUS "SOUND                         : ${SOUND}")
-message(STATUS "LUA                           : ${LUA}")
 message(STATUS "BACKTRACE                     : ${BACKTRACE}")
 message(STATUS "LIBBACKTRACE                  : ${LIBBACKTRACE}")
 message(STATUS "USE_TRACY                     : ${USE_TRACY}")
@@ -248,14 +266,22 @@ if (NOT MSVC)
     if (NOT "${CMAKE_SYSTEM_NAME}" MATCHES "Windows")
         set(CATA_WARNINGS "${CATA_WARNINGS} -Wredundant-decls")
     endif ()
-    set(CATA_OTHER_FLAGS "${CATA_OTHER_FLAGS} -fsigned-char -g1")
+    set(CATA_OTHER_FLAGS "${CATA_OTHER_FLAGS} -fsigned-char -fno-builtin-std-forward_like -fno-finite-math-only")
+    # Add debug symbols for non-release builds or when backtrace is enabled
+    if (BACKTRACE OR NOT RELEASE)
+        set(CATA_OTHER_FLAGS "${CATA_OTHER_FLAGS} -g1")
+        # Use debug prefix map for ccache compatibility with git worktrees
+        # see https://ccache.dev/manual/latest.html#_compiling_in_different_directories
+        file(RELATIVE_PATH REL_SRC_PATH "${CMAKE_BINARY_DIR}" "${CMAKE_SOURCE_DIR}")
+        set(CATA_OTHER_FLAGS "${CATA_OTHER_FLAGS} -ffile-prefix-map=${REL_SRC_PATH}=.")
+    endif()
     # Compact the whitespace in the warning string
     string(REGEX REPLACE "[\t ]+" " " CATA_WARNINGS "${CATA_WARNINGS}")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CATA_WARNINGS} ${CATA_OTHER_FLAGS}")
     set(CMAKE_CXX_FLAGS_DEBUG "-Og -g2")
 endif ()
 
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
@@ -387,6 +413,69 @@ endif ()
 
 if (BACKTRACE)
     add_definitions(-DBACKTRACE)
+    if (LIBBACKTRACE AND NOT MSVC)
+        message(STATUS "Integrating libbacktrace build using ExternalProject")
+
+        set(LIBBACKTRACE_GIT_REPO https://github.com/ianlancetaylor/libbacktrace.git)
+        set(LIBBACKTRACE_GIT_TAG master)
+
+        set(LIBBACKTRACE_INSTALL_DIR "${CMAKE_BINARY_DIR}/libbacktrace/install")
+        SET(LIBBACKTRACE_LIBRARY "${LIBBACKTRACE_INSTALL_DIR}/lib/libbacktrace.a")
+
+        include(ProcessorCount)
+        ProcessorCount(NCPU)
+        if(NCPU EQUAL 0)
+            set(NCPU 1)
+        endif()
+
+        # Set up ccache for libbacktrace if available
+        if (CCACHE_FOUND AND CATA_CCACHE AND CMAKE_C_COMPILER_LAUNCHER)
+            # Join compiler launcher and compiler into a single string for configure
+            set(LIBBACKTRACE_CC_LIST "${CMAKE_C_COMPILER_LAUNCHER}" "${CMAKE_C_COMPILER}")
+            set(LIBBACKTRACE_CXX_LIST "${CMAKE_CXX_COMPILER_LAUNCHER}" "${CMAKE_CXX_COMPILER}")
+            list(JOIN LIBBACKTRACE_CC_LIST " " LIBBACKTRACE_CC)
+            list(JOIN LIBBACKTRACE_CXX_LIST " " LIBBACKTRACE_CXX)
+        else()
+            set(LIBBACKTRACE_CC "${CMAKE_C_COMPILER}")
+            set(LIBBACKTRACE_CXX "${CMAKE_CXX_COMPILER}")
+        endif()
+
+        ExternalProject_Add(
+            libbacktrace_external
+            GIT_REPOSITORY ${LIBBACKTRACE_GIT_REPO}
+            GIT_TAG ${LIBBACKTRACE_GIT_TAG}
+            GIT_SHALLOW TRUE
+
+            SOURCE_DIR "${CMAKE_BINARY_DIR}/libbacktrace/src"
+            BINARY_DIR "${CMAKE_BINARY_DIR}/libbacktrace/build"
+
+            CONFIGURE_COMMAND ${CMAKE_COMMAND} -E env
+                CC=${LIBBACKTRACE_CC}
+                CXX=${LIBBACKTRACE_CXX}
+                <SOURCE_DIR>/configure
+                --prefix=${LIBBACKTRACE_INSTALL_DIR}
+
+            BUILD_COMMAND make -j${NCPU}
+
+            INSTALL_COMMAND make install
+
+            INSTALL_DIR ${LIBBACKTRACE_INSTALL_DIR}
+            BUILD_BYPRODUCTS ${LIBBACKTRACE_LIBRARY}
+
+            UPDATE_DISCONNECTED 1
+        )
+
+        add_library(backtrace SHARED IMPORTED)
+        set_target_properties(backtrace
+            PROPERTIES IMPORTED_LOCATION ${LIBBACKTRACE_LIBRARY}
+        )
+        # Hack to make it work, otherwise INTERFACE_INCLUDE_DIRECTORIES will not be propagated
+        file(MAKE_DIRECTORY "${LIBBACKTRACE_INSTALL_DIR}/include")
+        target_include_directories(backtrace INTERFACE
+            "${LIBBACKTRACE_INSTALL_DIR}/include"
+        )
+        add_dependencies(backtrace libbacktrace_external)
+    endif ()
     if (LIBBACKTRACE)
         add_definitions(-DLIBBACKTRACE)
     endif ()
@@ -416,10 +505,20 @@ endif ()
 
 find_program(CCACHE_FOUND ccache)
 if (CCACHE_FOUND AND CATA_CCACHE)
-    set(CMAKE_C_COMPILER_LAUNCHER ccache)
-    set(CMAKE_CXX_COMPILER_LAUNCHER ccache)
-    set(CMAKE_C_LINKER_LAUNCHER ccache)
-    set(CMAKE_CXX_LINKER_LAUNCHER ccache)
+    # Configure ccache for git worktrees
+    # Set base_dir to make paths relative, enabling cache sharing across worktrees
+    # see https://ccache.dev/manual/latest.html#_configuration_options
+    set(CATA_CCACHE_CMD
+        "${CMAKE_COMMAND}" -E env
+        "CCACHE_BASEDIR=${CMAKE_SOURCE_DIR}"
+        "CCACHE_NOHASHDIR=true"
+        "${CCACHE_FOUND}"
+    )
+
+    set(CMAKE_C_COMPILER_LAUNCHER   ${CATA_CCACHE_CMD})
+    set(CMAKE_CXX_COMPILER_LAUNCHER ${CATA_CCACHE_CMD})
+    set(CMAKE_C_LINKER_LAUNCHER     ${CATA_CCACHE_CMD})
+    set(CMAKE_CXX_LINKER_LAUNCHER   ${CATA_CCACHE_CMD})
 endif ()
 
 add_subdirectory(src)
@@ -436,15 +535,30 @@ if (CATA_CLANG_TIDY_PLUGIN)
     add_subdirectory(tools/clang-tidy-plugin)
 endif()
 
-install(DIRECTORY doc TYPE DOC)
-
 if (RELEASE)
-    install(FILES
-        ${CMAKE_SOURCE_DIR}/README.md
-        ${CMAKE_SOURCE_DIR}/LICENSE.txt
-        ${CMAKE_SOURCE_DIR}/LICENSE-OFL-Terminus-Font.txt
-        ${CMAKE_SOURCE_DIR}/VERSION.txt
-        TYPE DOC)
+    if (USE_PREFIX_DATA_DIR)
+        install(DIRECTORY doc TYPE DOC)
+        install(DIRECTORY data TYPE DATA
+            PATTERN "json/external_tileset/README.md" EXCLUDE
+            PATTERN "json/mapgen/lab/README.md" EXCLUDE)
+        install(FILES
+            ${CMAKE_SOURCE_DIR}/README.md
+            ${CMAKE_SOURCE_DIR}/LICENSE.txt
+            ${CMAKE_SOURCE_DIR}/LICENSE-OFL-Terminus-Font.txt
+            ${CMAKE_SOURCE_DIR}/VERSION.txt
+            TYPE DOC)
+    else()
+        install(DIRECTORY doc DESTINATION .)
+        install(DIRECTORY data DESTINATION .
+            PATTERN "json/external_tileset/README.md" EXCLUDE
+            PATTERN "json/mapgen/lab/README.md" EXCLUDE)
+        install(FILES
+            ${CMAKE_SOURCE_DIR}/README.md
+            ${CMAKE_SOURCE_DIR}/LICENSE.txt
+            ${CMAKE_SOURCE_DIR}/LICENSE-OFL-Terminus-Font.txt
+            ${CMAKE_SOURCE_DIR}/VERSION.txt
+            DESTINATION .)
+    endif()
     if (TILES)
         if (USE_PREFIX_DATA_DIR)
             install(DIRECTORY ${CMAKE_SOURCE_DIR}/gfx
@@ -453,6 +567,11 @@ if (RELEASE)
             install(DIRECTORY ${CMAKE_SOURCE_DIR}/gfx
                 DESTINATION .)
         endif()
+    endif()
+    # Install cataclysm-launcher for portable Linux builds
+    if (NOT USE_PREFIX_DATA_DIR AND UNIX AND NOT APPLE)
+        install(PROGRAMS ${CMAKE_SOURCE_DIR}/cataclysm-launcher
+            DESTINATION .)
     endif()
 endif()
 

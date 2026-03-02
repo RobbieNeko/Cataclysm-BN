@@ -28,6 +28,7 @@
 #include "type_id.h"
 #include "overmap_ui.h"
 #include "units.h"
+#include "world.h"
 
 diary_page::diary_page() = default;
 
@@ -98,7 +99,7 @@ void diary::spell_changes()
         if( !curr_page->known_spells.empty() ) {
             bool flag = true;
             for( const std::pair<const string_id<spell_type>, int> &elem : curr_page->known_spells ) {
-                if( prev_page->known_spells.find( elem.first ) != prev_page->known_spells.end() ) {
+                if( prev_page->known_spells.contains( elem.first ) ) {
                     const int prev_lvl = prev_page->known_spells[elem.first];
                     if( elem.second != prev_lvl ) {
                         if( flag ) {
@@ -407,7 +408,7 @@ void diary::skill_changes()
 
         bool flag = true;
         for( const std::pair<const string_id<Skill>, int> &elem : curr_page->skill_levels ) {
-            if( prev_page->skill_levels.find( elem.first ) != prev_page->skill_levels.end() ) {
+            if( prev_page->skill_levels.contains( elem.first ) ) {
                 if( prev_page->skill_levels[elem.first] != elem.second ) {
                     if( flag ) {
                         add_to_change_list( _( "Skills:" ) );
@@ -747,7 +748,9 @@ void diary::delete_page()
 void diary::export_to_md( bool last_export )
 {
     std::ofstream myfile;
-    std::string path = last_export ? PATH_INFO::memorialdir() : g->get_world_base_save_path();
+    std::string path = last_export
+                       ? PATH_INFO::memorialdir()
+                       : ( g->get_active_world() ? g->get_active_world()->info->folder_path() : PATH_INFO::savedir() );
     path += "/" + owner + "s_diary.md";
     myfile.open( path );
 
@@ -775,9 +778,13 @@ void diary::export_to_md( bool last_export )
 
 bool diary::store()
 {
+    if( !g->get_active_world() ) {
+        return false;
+    }
+
     std::string name = base64_encode( get_avatar().get_save_id() + "_diary" );
-    std::string path = g->get_world_base_save_path() + "/" + name + ".json";
-    const bool is_writen = write_to_file( path, [&]( std::ostream & fout ) {
+    const bool is_writen = g->get_active_world()->write_to_file( name + ".json", [&](
+    std::ostream & fout ) {
         serialize( fout );
     }, _( "diary data" ) );
     return is_writen;
@@ -826,10 +833,13 @@ void diary::serialize( JsonOut &jsout )
 
 void diary::load()
 {
+    if( !g->get_active_world() ) {
+        return;
+    }
+
     std::string name = base64_encode( get_avatar().get_save_id() + "_diary" );
-    std::string path = g->get_world_base_save_path() + "/" + name + ".json";
-    if( file_exist( path ) ) {
-        read_from_file( path, [&]( std::istream & fin ) {
+    if( g->get_active_world()->file_exist( name + ".json" ) ) {
+        g->get_active_world()->read_from_file( name + ".json", [&]( std::istream & fin ) {
             deserialize( fin );
         } );
     }

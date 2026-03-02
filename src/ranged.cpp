@@ -1,6 +1,7 @@
 #include "ranged.h"
 
 #include <algorithm>
+#include <numeric>
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
@@ -20,6 +21,9 @@
 #include "calendar.h"
 #include "cata_utility.h"
 #include "catacharset.h"
+#include "catalua_hooks.h"
+#include "catalua_icallback_actor.h"
+#include "catalua_sol.h"
 #include "character.h"
 #include "character_functions.h"
 #include "color.h"
@@ -41,6 +45,7 @@
 #include "itype.h"
 #include "line.h"
 #include "magic.h"
+#include "magic_enchantment.h"
 #include "map.h"
 #include "material.h"
 #include "math_defines.h"
@@ -92,6 +97,7 @@ static const weapon_category_id weapon_cat_ENERGY_WEAPONS( "ENERGY_WEAPONS" );
 static const ammo_effect_str_id ammo_effect_ACT_ON_RANGED_HIT( "ACT_ON_RANGED_HIT" );
 static const ammo_effect_str_id ammo_effect_BLACKPOWDER( "BLACKPOWDER" );
 static const ammo_effect_str_id ammo_effect_BOUNCE( "BOUNCE" );
+static const ammo_effect_str_id ammo_effect_BLINDS_EYES( "BLINDS_EYES" );
 static const ammo_effect_str_id ammo_effect_BURST( "BURST" );
 static const ammo_effect_str_id ammo_effect_CUSTOM_EXPLOSION( "CUSTOM_EXPLOSION" );
 static const ammo_effect_str_id ammo_effect_EMP( "EMP" );
@@ -110,16 +116,15 @@ static const ammo_effect_str_id ammo_effect_RECYCLED( "RECYCLED" );
 static const ammo_effect_str_id ammo_effect_SHATTER_SELF( "SHATTER_SELF" );
 static const ammo_effect_str_id ammo_effect_SHOT( "SHOT" );
 static const ammo_effect_str_id ammo_effect_TANGLE( "TANGLE" );
+static const ammo_effect_str_id ammo_effect_NET_TANGLE( "NET_TANGLE" );
 static const ammo_effect_str_id ammo_effect_WIDE( "WIDE" );
+static const ammo_effect_str_id ammo_effect_THROWN( "THROWN" );
 
 static const efftype_id effect_downed( "downed" );
 static const efftype_id effect_hit_by_player( "hit_by_player" );
 static const efftype_id effect_on_roof( "on_roof" );
 
-static const itype_id itype_adv_UPS_off( "adv_UPS_off" );
-static const itype_id itype_brass_catcher( "brass_catcher" );
 static const itype_id itype_UPS( "UPS" );
-static const itype_id itype_UPS_off( "UPS_off" );
 
 static const trap_str_id tr_practice_target( "tr_practice_target" );
 
@@ -150,8 +155,23 @@ static constexpr int AIF_DURATION_LIMIT = 10;
 
 static projectile make_gun_projectile( const item &gun );
 static void cycle_action( item &weap, const tripoint &pos );
-dispersion_sources calculate_dispersion( const map &m, const Character &who, const item &gun,
+static dispersion_sources calculate_dispersion( const map &m, const Character &who, const item &gun,
         int at_recoil, bool burst );
+
+namespace
+{
+
+/// more generic version of `item::gunmod_find`
+auto gunmod_find_with(
+    item &it, std::function < auto( const item * ) -> bool > pred
+) -> item *
+{
+    std::vector<item *> gunmods = it.gunmods();
+    auto res = std::ranges::find_if( gunmods, pred );
+    return res != gunmods.end() ? *res : nullptr;
+}
+
+} // namespace
 
 class target_ui
 {
@@ -540,9 +560,17 @@ double Creature::ranged_target_size() const
     if( const_cast<Creature &>( *this ).uncanny_dodge() ) {
         return 0.0;
     }
-    if( has_flag( MF_HARDTOSHOOT ) ) {
+    bool is_crouched = false;
+    if( Character *ch = const_cast<Creature &>( *this ).as_character() ) {
+        if( ch->movement_mode_is( CMM_CROUCH ) ) {
+            is_crouched = true;
+        }
+    }
+    if( has_flag( MF_HARDTOSHOOT ) || is_crouched ) {
         switch( get_size() ) {
             case creature_size::tiny:
+                // We can't be smaller than tiny, but we can make the hit rate lower.
+                return 0.05;
             case creature_size::small:
                 return occupied_tile_fraction( creature_size::tiny );
             case creature_size::medium:
@@ -603,9 +631,12 @@ bool ranged::handle_gun_damage( Character &shooter, item &it )
     }
 
     const auto &curammo_effects = it.ammo_effects();
-    const islot_gun &firing = *it.type->gun;
+    // If using an aux magazine for a gun, make the parent gun accumulate and track fouling instead of the gunmod that's doing the firing.
+    item &parent = ( it.parent_item() != nullptr &&
+                     it.has_flag( flag_USE_PARENT_GUN ) ) ? *it.parent_item() : it;
+    const islot_gun &firing = *parent.type->gun;
     // misfire chance based on dirt accumulation. Formula is designed to make chance of jam highly unlikely at low dirt levels, but levels increase geometrically as the dirt level reaches max (10,000). The number used is just a figure I found reasonable after plugging the number into excel and changing it until the probability made sense at high, medium, and low levels of dirt.
-    if( !it.has_flag( flag_NEVER_JAMS ) &&
+    if( !parent.has_flag( flag_NEVER_JAMS ) &&
         x_in_y( dirt_dbl * dirt_dbl * dirt_dbl,
                 1000000000000.0 ) ) {
         shooter.add_msg_player_or_npc(
@@ -628,7 +659,7 @@ bool ranged::handle_gun_damage( Character &shooter, item &it )
     // and so are immune to this effect, note also that WATERPROOF_GUN status does not
     // mean the gun will actually be accurate underwater.
     int effective_durability = firing.durability;
-    if( shooter.is_underwater() && !it.has_flag( flag_WATERPROOF_GUN ) &&
+    if( shooter.is_underwater() && !parent.has_flag( flag_WATERPROOF_GUN ) &&
         one_in( effective_durability ) ) {
         shooter.add_msg_player_or_npc( _( "Your %s misfires with a wet click!" ),
                                        _( "<npcname>'s %s misfires with a wet click!" ),
@@ -657,16 +688,16 @@ bool ranged::handle_gun_damage( Character &shooter, item &it )
         // Default chance is 1/10000 unless set via json, damage is proportional to caliber(see below).
         // Can be toned down with 'consume_divisor.'
 
-    } else if( it.has_flag( flag_CONSUMABLE ) && !curammo_effects.contains( ammo_effect_LASER ) &&
+    } else if( parent.has_flag( flag_CONSUMABLE ) && !curammo_effects.contains( ammo_effect_LASER ) &&
                !curammo_effects.contains( ammo_effect_PLASMA ) && !curammo_effects.contains( ammo_effect_EMP ) ) {
         int uncork = ( ( 10 * it.ammo_data()->ammo->loudness )
                        + ( it.ammo_data()->ammo->recoil / 2 ) ) / 100;
         uncork = std::pow( uncork, 3 ) * 6.5;
-        for( auto mod : it.gunmods() ) {
+        for( auto mod : parent.gunmods() ) {
             if( mod->has_flag( flag_CONSUMABLE ) ) {
                 int dmgamt = uncork / mod->type->gunmod->consume_divisor;
                 int modconsume = mod->type->gunmod->consume_chance;
-                int initstate = it.damage();
+                int initstate = parent.damage();
                 // fuzz damage if it's small
                 if( dmgamt < 1000 ) {
                     dmgamt = rng( dmgamt, dmgamt + 200 );
@@ -681,7 +712,7 @@ bool ranged::handle_gun_damage( Character &shooter, item &it )
                                                        _( "<npcname>'s attached %s is destroyed by their shot!" ),
                                                        mod->tname() );
                         mod->detach();
-                    } else if( it.damage() > initstate ) {
+                    } else if( parent.damage() > initstate ) {
                         shooter.add_msg_player_or_npc( m_bad, _( "Your attached %s is damaged by your shot!" ),
                                                        _( "<npcname>'s %s is damaged by their shot!" ),
                                                        mod->tname() );
@@ -690,31 +721,31 @@ bool ranged::handle_gun_damage( Character &shooter, item &it )
             }
         }
     }
-    if( it.has_fault( fault_gun_unlubricated ) &&
+    if( parent.has_fault( fault_gun_unlubricated ) &&
         x_in_y( dirt_dbl, dirt_max_dbl ) ) {
         shooter.add_msg_player_or_npc( m_bad, _( "Your %s emits a grimace-inducing screech!" ),
                                        _( "<npcname>'s %s emits a grimace-inducing screech!" ),
                                        it.tname() );
-        it.inc_damage();
+        parent.inc_damage();
     }
     if( ( ( !curammo_effects.contains( ammo_effect_NON_FOULING ) &&
-            !it.has_flag( flag_NON_FOULING ) ) ||
-          ( it.has_fault( fault_gun_unlubricated ) ) ) &&
-        !it.has_flag( flag_PRIMITIVE_RANGED_WEAPON ) ) {
+            !parent.has_flag( flag_NON_FOULING ) ) ||
+          ( parent.has_fault( fault_gun_unlubricated ) ) ) &&
+        !parent.has_flag( flag_PRIMITIVE_RANGED_WEAPON ) ) {
         if( curammo_effects.contains( ammo_effect_BLACKPOWDER ) ||
-            it.has_fault( fault_gun_unlubricated ) ) {
+            parent.has_fault( fault_gun_unlubricated ) ) {
             if( ( ( it.ammo_data()->ammo->recoil < firing.min_cycle_recoil ) ||
-                  ( it.has_fault( fault_gun_unlubricated ) && one_in( 16 ) ) ) &&
-                it.faults_potential().contains( fault_gun_chamber_spent ) ) {
+                  ( parent.has_fault( fault_gun_unlubricated ) && one_in( 16 ) ) ) &&
+                parent.faults_potential().contains( fault_gun_chamber_spent ) ) {
                 shooter.add_msg_player_or_npc( m_bad, _( "Your %s fails to cycle!" ),
                                                _( "<npcname>'s %s fails to cycle!" ),
                                                it.tname() );
-                it.faults.insert( fault_gun_chamber_spent );
+                parent.faults.insert( fault_gun_chamber_spent );
                 // Don't return false in this case; this shot happens, follow-up ones won't.
             }
         }
         // These are the dirtying/fouling mechanics
-        if( !curammo_effects.contains( ammo_effect_NON_FOULING ) && !it.has_flag( flag_NON_FOULING ) ) {
+        if( !curammo_effects.contains( ammo_effect_NON_FOULING ) && !parent.has_flag( flag_NON_FOULING ) ) {
             if( dirt < static_cast<int>( dirt_max_dbl ) ) {
                 dirtadder = curammo_effects.count( ammo_effect_BLACKPOWDER ) * ( 200 -
                             ( firing.blackpowder_tolerance *
@@ -726,17 +757,17 @@ bool ranged::handle_gun_damage( Character &shooter, item &it )
                 // in addition to increasing dirt level faster, regular gunpowder fouling is also capped at 7,150, not 10,000. So firing with regular gunpowder can never make the gun quite as bad as firing it with black gunpowder. At 7,150 the chance to jam is significantly lower (though still significant) than it is at 10,000, the absolute cap.
                 if( curammo_effects.contains( ammo_effect_BLACKPOWDER ) ||
                     dirt < 7150 ) {
-                    it.set_var( "dirt", std::min( static_cast<int>( dirt_max_dbl ), dirt + dirtadder + 1 ) );
+                    parent.set_var( "dirt", std::min( static_cast<int>( dirt_max_dbl ), dirt + dirtadder + 1 ) );
                 }
             }
-            dirt = it.get_var( "dirt", 0 );
+            dirt = parent.get_var( "dirt", 0 );
             dirt_dbl = static_cast<double>( dirt );
-            if( dirt > 0 && !it.faults.contains( fault_gun_blackpowder ) ) {
-                it.faults.insert( fault_gun_dirt );
+            if( dirt > 0 && !parent.faults.contains( fault_gun_blackpowder ) ) {
+                parent.faults.insert( fault_gun_dirt );
             }
             if( dirt > 0 && curammo_effects.contains( ammo_effect_BLACKPOWDER ) ) {
-                it.faults.erase( fault_gun_dirt );
-                it.faults.insert( fault_gun_blackpowder );
+                parent.faults.erase( fault_gun_dirt );
+                parent.faults.insert( fault_gun_blackpowder );
             }
             // end fouling mechanics
         }
@@ -749,7 +780,7 @@ bool ranged::handle_gun_damage( Character &shooter, item &it )
                                        _( "<npcname>'s %s is damaged by the high pressure!" ),
                                        it.tname() );
         // Don't increment until after the message
-        it.inc_damage();
+        parent.inc_damage();
     }
     return true;
 }
@@ -831,8 +862,11 @@ dispersion_sources calculate_dispersion( const map &m, const Character &who, con
 
 static int calc_gun_volume( const item &gun )
 {
-    int noise = gun.type->gun->loudness;
-    for( const auto mod : gun.gunmods() ) {
+    // Inherit suppressor modifiers if relevant (e.g. KSG second mag) but still use current ammo
+    const item &parent = ( gun.parent_item() != nullptr &&
+                           gun.has_flag( flag_USE_PARENT_GUN ) ) ? *gun.parent_item() : gun;
+    int noise = parent.type->gun->loudness;
+    for( const auto mod : parent.gunmods() ) {
         noise += mod->type->gunmod->loudness;
     }
     if( gun.ammo_data() ) {
@@ -885,6 +919,13 @@ int ranged::fire_gun( Character &who, const tripoint &target, int max_shots, ite
         debugmsg( "Attempted to fire zero or negative shots using %s", gun.tname() );
     }
 
+    // Lua iranged can_fire callback: blocks firing before any ammo is consumed
+    if( const auto *iranged_cb = gun.type->iranged_callbacks ) {
+        if( !iranged_cb->call_can_fire( who, gun ) ) {
+            return 0;
+        }
+    }
+
     std::optional<shape_factory> shape = ranged::get_shape_factory( gun );
 
     map &here = get_map();
@@ -918,6 +959,30 @@ int ranged::fire_gun( Character &who, const tripoint &target, int max_shots, ite
                                 : nullptr;
         projectile projectile = make_gun_projectile( gun );
 
+        // Apply enchantment bonuses to projectile
+        int base_bullet_damage = static_cast<int>( projectile.impact.type_damage( DT_BULLET ) );
+        int ench_damage_bonus = who.bonus_from_enchantments( base_bullet_damage,
+                                enchant_vals::mod::RANGED_DAMAGE_BULLET, true );
+        if( ench_damage_bonus != 0 ) {
+            projectile.impact.add_damage( DT_BULLET, ench_damage_bonus );
+        }
+
+        int ench_range_bonus = who.bonus_from_enchantments( projectile.range,
+                               enchant_vals::mod::RANGED_RANGE, true );
+        // Ensure range doesn't go below 1
+        projectile.range = std::max( 1, projectile.range + ench_range_bonus );
+
+        // Slings use ammo damage or damage from throwing the ammo, whichever is higher
+        if( gun.gun_skill() == skill_throw && !who.is_fake() && gun.ammo_data() ) {
+            item &tmp = *item::spawn_temporary( item( gun.ammo_data() ) );
+            if( throw_damage( tmp, who.get_skill_level( skill_throw ),
+                              who.get_str() ) > gun.ammo_data()->ammo->damage.damage_units.front().amount ) {
+                projectile.impact = gun.gun_damage( false );
+                auto &impact = projectile.impact;
+                impact.add_damage( DT_BASH,
+                                   throw_damage( tmp, who.get_skill_level( skill_throw ), who.get_str() ) );
+            }
+        }
         // Damage reduction from insufficient strength, if using a STR_DRAW weapon.
         projectile.impact.mult_damage( ranged::str_draw_damage_modifier( gun, who ) );
 
@@ -1022,6 +1087,20 @@ int ranged::fire_gun( Character &who, const tripoint &target, int max_shots, ite
     int practice_units = aoe_attack ? curshot : hits;
     who.as_player()->practice( gun.gun_skill(), ( practice_units + 1 ) * 5 );
 
+    // Lua iranged on_fire callback: returns false to zero out hits (force miss)
+    if( const auto *iranged_cb = gun.type->iranged_callbacks ) {
+        if( !iranged_cb->call_on_fire( who, gun, target, curshot ) ) {
+            hits = 0;
+        }
+    }
+
+    cata::run_hooks( "on_shoot", [ & ]( auto & params ) {
+        params["shooter"] = &who;
+        params["target_pos"] = &target;
+        params["shots"] = curshot;
+        params["gun"] = &gun;
+        params["ammo"] = ammo;
+    } );
     return curshot;
 }
 
@@ -1059,19 +1138,47 @@ int throw_cost( const Character &c, const item &to_throw )
 
 float get_str_draw_penalty( const item &it, const Character &p )
 {
+    // Grab the archer's skill for purposes of strength requirment reduction, if we are using a "gun"
+    // Improvement intervals at 4/8/10, max reduction of 3 strength
+    const int charskill = p.get_skill_level( it.gun_skill() );
+    int str_adjust = 0;
+    if( charskill >= 4 ) {
+        if( charskill >= 10 ) {
+            str_adjust = 3;
+        } else if( charskill >= 8 ) {
+            str_adjust = 2;
+        } else {
+            str_adjust = 1;
+        }
+    }
     // We only care if weapon has STR_DRAW, and that the user is weaker than required strength.
     // Also avoid dividing by zero, and skip if we'd just get a result of 1 anyway.
-    if( !it.has_flag( flag_STR_DRAW ) || p.get_str() >= it.get_min_str() || it.get_min_str() <= 1 ) {
+    if( !it.has_flag( flag_STR_DRAW ) || p.get_str() + str_adjust >= it.get_min_str() ||
+        it.get_min_str() <= 1 ) {
         return 1.0f;
     }
     // We also don't want to actually reduce values to zero, even if user is debuffed to zero strength.
-    float archer_str = std::max( 1, p.get_str() );
+    float archer_str = std::max( 1, p.get_str() + str_adjust );
     return ( archer_str / it.get_min_str() );
 }
 
 float str_draw_damage_modifier( const item &it, const Character &p )
 {
-    if( !it.has_flag( flag_STR_DRAW ) || p.get_str() >= it.get_min_str() || it.get_min_str() <= 1 ) {
+    // Grab the archer's skill for purposes of strength requirment reduction, if we are using a "gun"
+    // Improvement intervals at 4/8/10, max reduction of 3 strength
+    const int charskill = p.get_skill_level( it.gun_skill() );
+    int str_adjust = 0;
+    if( charskill >= 4 ) {
+        if( charskill >= 10 ) {
+            str_adjust = 3;
+        } else if( charskill >= 8 ) {
+            str_adjust = 2;
+        } else {
+            str_adjust = 1;
+        }
+    }
+    if( !it.has_flag( flag_STR_DRAW ) || p.get_str() + str_adjust >= it.get_min_str() ||
+        it.get_min_str() <= 1 ) {
         return 1.0f;
     }
     if( ranged::get_str_draw_penalty( it, p ) < 0.75f ) {
@@ -1085,7 +1192,21 @@ float str_draw_damage_modifier( const item &it, const Character &p )
 
 float str_draw_dispersion_modifier( const item &it, const Character &p )
 {
-    if( !it.has_flag( flag_STR_DRAW ) || p.get_str() >= it.get_min_str() || it.get_min_str() <= 1 ) {
+    // Grab the archer's skill for purposes of strength requirment reduction, if we are using a "gun"
+    // Improvement intervals at 4/8/10, max reduction of 3 strength
+    const int charskill = p.get_skill_level( it.gun_skill() );
+    int str_adjust = 0;
+    if( charskill >= 4 ) {
+        if( charskill >= 10 ) {
+            str_adjust = 3;
+        } else if( charskill >= 8 ) {
+            str_adjust = 2;
+        } else {
+            str_adjust = 1;
+        }
+    }
+    if( !it.has_flag( flag_STR_DRAW ) || p.get_str() + str_adjust >= it.get_min_str() ||
+        it.get_min_str() <= 1 ) {
         return 1.0f;
     }
     if( ranged::get_str_draw_penalty( it, p ) < 0.75f ) {
@@ -1097,7 +1218,21 @@ float str_draw_dispersion_modifier( const item &it, const Character &p )
 
 float str_draw_range_modifier( const item &it, const Character &p )
 {
-    if( !it.has_flag( flag_STR_DRAW ) || p.get_str() >= it.get_min_str() || it.get_min_str() <= 1 ) {
+    // Grab the archer's skill for purposes of strength requirment reduction, if we are using a "gun"
+    // Improvement intervals at 4/8/10, max reduction of 3 strength
+    const int charskill = p.get_skill_level( it.gun_skill() );
+    int str_adjust = 0;
+    if( charskill >= 4 ) {
+        if( charskill >= 10 ) {
+            str_adjust = 3;
+        } else if( charskill >= 8 ) {
+            str_adjust = 2;
+        } else {
+            str_adjust = 1;
+        }
+    }
+    if( !it.has_flag( flag_STR_DRAW ) || p.get_str() + str_adjust >= it.get_min_str() ||
+        it.get_min_str() <= 1 ) {
         return 1.0f;
     }
     if( ranged::get_str_draw_penalty( it, p ) < 0.75f ) {
@@ -1169,6 +1304,35 @@ int throwing_dispersion( const Character &c, const item &to_throw, Creature *cri
     return std::max( 0, dispersion );
 }
 
+namespace
+{
+auto throw_damage_projectile( const item &it, const int skill, const int str ) -> projectile
+{
+    const units::mass weight = it.weight();
+
+    projectile proj;
+    proj.impact = it.base_damage_thrown();
+    proj.speed = std::log2( std::max( 1, skill ) * std::max( 1, str ) );
+
+    const int damage = 0.5 * ( weight / 1_gram / 1000.0 ) * std::pow( proj.speed, 2 );
+
+    proj.impact.add_damage( DT_BASH, damage );
+
+    // add_msg( m_info, "skill_level is %s", skill );
+    // add_msg( m_info, "effective_strength is %s", str );
+    // add_msg( m_info, "Thrown item weight is %s grams", to_gram( weight ) );
+
+    // add_msg( m_info, "Calculated damage is %s", damage );
+
+    return proj;
+}
+} // namespace
+
+auto throw_damage( const item &it, const int skill, const int str ) -> int
+{
+    return throw_damage_projectile( it, skill, str ).impact.total_damage();
+}
+
 dealt_projectile_attack throw_item( Character &who, const tripoint &target,
                                     detached_ptr<item> &&to_throw,
                                     std::optional<tripoint> blind_throw_from_pos )
@@ -1218,21 +1382,18 @@ dealt_projectile_attack throw_item( Character &who, const tripoint &target,
         throw_assist ? throw_assist_str : do_railgun ? who.get_str() * 2 : who.get_str();
 
     // We'll be constructing a projectile
-    projectile proj;
-    proj.impact = thrown.base_damage_thrown();
-    proj.speed = std::log2( std::max( 1, skill_level ) )
-                 + std::log2( std::max( 1, effective_strength ) );
-    auto &impact = proj.impact;
-
-    // calculate extra damage, proportional to 1/2mv^2
-    // @see https://www.desmos.com/calculator/ibo2jh9cqa
-    const float damage = 0.5 * ( weight / 1_gram / 1000.0 ) * std::pow( proj.speed, 2 );
-    impact.add_damage( DT_BASH, static_cast<int>( damage ) );
+    projectile proj = throw_damage_projectile( thrown, skill_level, effective_strength );
 
     if( thrown.has_flag( flag_ACT_ON_RANGED_HIT ) ) {
         proj.add_effect( ammo_effect_ACT_ON_RANGED_HIT );
         thrown.activate();
     }
+    if( thrown.has_flag( flag_BLINDS_EYES_ON_HIT ) ) {
+        proj.add_effect( ammo_effect_BLINDS_EYES );
+    }
+    // This is just to indicate something is a thrown item
+    // Checking with other methods downstream breaks other projectile attacks.
+    proj.add_effect( ammo_effect_THROWN );
 
     // Item will shatter upon landing, destroying the item, dealing damage, and making noise
     /** @EFFECT_STR increases chance of shattering thrown glass items (NEGATIVE) */
@@ -1267,7 +1428,7 @@ dealt_projectile_attack throw_item( Character &who, const tripoint &target,
 
     // Deal extra cut damage if the item breaks
     if( shatter ) {
-        impact.add_damage( DT_CUT, units::to_milliliter( volume ) / 500.0f );
+        proj.impact.add_damage( DT_CUT, units::to_milliliter( volume ) / 500.0f );
         proj.add_effect( ammo_effect_SHATTER_SELF );
     }
 
@@ -1278,12 +1439,15 @@ dealt_projectile_attack throw_item( Character &who, const tripoint &target,
 
     // Some minor (skill/2) armor piercing for skillful throws
     // Not as much as in melee, though
-    for( damage_unit &du : impact.damage_units ) {
+    for( damage_unit &du : proj.impact.damage_units ) {
         du.res_pen += skill_level / 2.0f;
     }
     // handling for tangling thrown items
     if( thrown.has_flag( flag_TANGLE ) ) {
         proj.add_effect( ammo_effect_TANGLE );
+    }
+    if( thrown.has_flag( flag_NET_TANGLE ) ) {
+        proj.add_effect( ammo_effect_NET_TANGLE );
     }
 
     if( thrown.has_flag( flag_NO_DAMAGE ) ) {
@@ -1303,7 +1467,7 @@ dealt_projectile_attack throw_item( Character &who, const tripoint &target,
 
     // Throw from the player's position, unless we're blind throwing, in which case
     // throw from the the blind throw position instead.
-    const tripoint throw_from = blind_throw_from_pos ? *blind_throw_from_pos : who.pos();
+    const tripoint throw_from = blind_throw_from_pos.value_or( who.pos() );
 
     float range = rl_dist( throw_from, target );
     proj.range = range;
@@ -1332,6 +1496,12 @@ dealt_projectile_attack throw_item( Character &who, const tripoint &target,
     who.last_target_pos = std::nullopt;
     who.recoil = MAX_RECOIL;
 
+    cata::run_hooks( "on_throw", [ & ]( auto & params ) {
+        params["thrower"] = &who;
+        params["target_pos"] = &target;
+        params["throw_from_pos"] = &throw_from;
+        params["thrown"] = &thrown;
+    } );
     return dealt_attack;
 }
 
@@ -1730,9 +1900,11 @@ std::vector<ranged::aim_type> ranged::get_aim_types( const Character &who, const
 static projectile make_gun_projectile( const item &gun )
 {
     projectile proj;
-    proj.speed  = 1000;
+    proj.speed = gun.gun_speed();
     proj.impact = gun.gun_damage();
     proj.range = gun.gun_range();
+    proj.aimedcritbonus = gun.gun_aimed_crit_bonus();
+    proj.aimedcritmaxbonus = gun.gun_aimed_crit_max_bonus();
     for( const ammo_effect_str_id &ae_id : gun.ammo_effects() ) {
         proj.add_effect( ae_id );
     }
@@ -1747,6 +1919,9 @@ static projectile make_gun_projectile( const item &gun )
     if( gun.ammo_data() ) {
         assert( gun.ammo_data()->ammo );
         const islot_ammo &ammo = *gun.ammo_data()->ammo;
+        if( gun.ammo_data()->has_flag( flag_BLINDS_EYES_ON_HIT ) ) {
+            fx.add_effect( ammo_effect_BLINDS_EYES );
+        }
         // Some projectiles have a chance of being recoverable
         bool recover = !one_in( ammo.dont_recover_one_in );
         // Some weapons can override this
@@ -1761,7 +1936,7 @@ static projectile make_gun_projectile( const item &gun )
         }
 
         if( ammo.drop ) {
-            detached_ptr<item> drop = item::spawn( ammo.drop, calendar::turn, 1 );
+            detached_ptr<item> drop = item::spawn( ammo.drop, calendar::turn, ammo.drop_count );
             if( ammo.drop_active ) {
                 drop->activate();
             }
@@ -1792,8 +1967,13 @@ int ranged::time_to_attack( const Character &p, const item &firing, const item *
                                  *const_cast<item *>( loc ) );
         RAS_time = opt.moves() + reload_stamina_penalty;
     }
-    return std::max( info.min_time,
-                     info.base_time - info.time_reduction_per_level * p.get_skill_level( skill_used ) + RAS_time );
+    int base_time = std::max( info.min_time,
+                              info.base_time - info.time_reduction_per_level * p.get_skill_level( skill_used ) + RAS_time );
+    // Apply enchantment bonus to reload time
+    int ench_reload_bonus = p.bonus_from_enchantments( base_time, enchant_vals::mod::RANGED_RELOAD_TIME,
+                            true );
+    // Ensure we don't go below minimum time even with enchantments
+    return std::max( info.min_time, base_time + ench_reload_bonus );
 }
 
 static void cycle_action( item &weap, const tripoint &pos )
@@ -1814,12 +1994,15 @@ static void cycle_action( item &weap, const tripoint &pos )
         cargo = vp->vehicle().get_parts_at( pos, "CARGO", part_status_flag::any );
     }
 
+    item &parent = ( weap.parent_item() != nullptr &&
+                     weap.has_flag( flag_USE_PARENT_GUN ) ) ? *weap.parent_item() : weap;
     if( weap.ammo_data() && weap.ammo_data()->ammo->casing ) {
         const itype_id casing = *weap.ammo_data()->ammo->casing;
-        if( weap.has_flag( flag_RELOAD_EJECT ) || weap.gunmod_find( itype_brass_catcher ) ) {
+        if( parent.has_flag( flag_RELOAD_EJECT )
+            || gunmod_find_with( parent, []( auto * e ) -> bool { return e->has_flag( flag_BRASS_CATCHER ); } ) ) {
             detached_ptr<item> det = item::spawn( casing );
             det->set_flag( flag_CASING );
-            weap.put_in( std::move( det ) );
+            parent.put_in( std::move( det ) );
         } else {
             if( cargo.empty() ) {
                 here.add_item_or_charges( eject, item::spawn( casing ) );
@@ -1836,9 +2019,9 @@ static void cycle_action( item &weap, const tripoint &pos )
     const auto mag = weap.magazine_current();
     if( mag && mag->type->magazine->linkage ) {
         detached_ptr<item> linkage = item::spawn( *mag->type->magazine->linkage, calendar::turn, 1 );
-        if( weap.gunmod_find( itype_brass_catcher ) ) {
+        if( gunmod_find_with( parent, []( auto * e ) -> bool { return e->has_flag( flag_BRASS_CATCHER ); } ) ) {
             linkage->set_flag( flag_CASING );
-            weap.put_in( std::move( linkage ) );
+            parent.put_in( std::move( linkage ) );
         } else if( cargo.empty() ) {
             here.add_item_or_charges( eject, std::move( linkage ) );
         } else {
@@ -1932,12 +2115,6 @@ item::sound_data item::gun_noise( const bool burst ) const
     return { 0, "" }; // silent weapons
 }
 
-static bool is_driving( const Character &p )
-{
-    const optional_vpart_position vp = get_map().veh_at( p.pos() );
-    return vp && vp->vehicle().is_moving() && vp->vehicle().player_in_control( p );
-}
-
 static double dispersion_from_skill( double skill, double weapon_dispersion )
 {
     if( skill >= MAX_SKILL ) {
@@ -1969,7 +2146,7 @@ dispersion_sources ranged::get_weapon_dispersion( const Character &who, const it
 
     dispersion.add_range( ( who.encumb( body_part_arm_l ) + who.encumb( body_part_arm_r ) ) / 5.0 );
 
-    if( is_driving( who ) ) {
+    if( character_funcs::is_driving( who ) ) {
         // get volume of gun (or for auxiliary gunmods the parent gun)
         const item *parent = who.has_item( obj ) ? who.find_parent( obj ) : nullptr;
         const int vol = ( parent ? parent->volume() : obj.volume() ) / 250_ml;
@@ -1986,6 +2163,10 @@ dispersion_sources ranged::get_weapon_dispersion( const Character &who, const it
     dispersion.add_range( dispersion_from_skill( avgSkill, weapon_dispersion ) );
 
     if( who.has_bionic( bio_targeting ) ) {
+        dispersion.add_multiplier( 0.75 );
+    }
+    // If we're crouched, it's easier to steady our aim.
+    if( who.movement_mode_is( CMM_CROUCH ) ) {
         dispersion.add_multiplier( 0.75 );
     }
 
@@ -2009,6 +2190,12 @@ dispersion_sources ranged::get_weapon_dispersion( const Character &who, const it
             dispersion.add_range( 1000 );
         }
     }
+
+    // Apply enchantment bonus to dispersion
+    int base_dispersion = static_cast<int>( dispersion.max() );
+    int ench_dispersion_bonus = who.bonus_from_enchantments( base_dispersion,
+                                enchant_vals::mod::RANGED_DISPERSION, true );
+    dispersion.add_range( ench_dispersion_bonus );
 
     return dispersion;
 }
@@ -2134,7 +2321,11 @@ double ranged::recoil_vehicle( const Character &who )
 
 double ranged::recoil_total( const Character &who )
 {
-    return who.recoil + recoil_vehicle( who );
+    double base_recoil = who.recoil + recoil_vehicle( who );
+    double ench_recoil_bonus = who.bonus_from_enchantments( base_recoil,
+                               enchant_vals::mod::RANGED_RECOIL );
+    // Recoil cannot be negative
+    return std::max( 0.0, base_recoil + ench_recoil_bonus );
 }
 
 namespace ranged
@@ -2771,8 +2962,14 @@ void target_ui::update_target_list()
         targets = ranged::targetable_creatures( *you, range );
     }
 
-    std::sort( targets.begin(), targets.end(), [&]( const Creature * lhs, const Creature * rhs ) {
-        return rl_dist_exact( lhs->pos(), you->pos() ) < rl_dist_exact( rhs->pos(), you->pos() );
+    map &here = get_map();
+    const auto player_pos = you->pos();
+
+    std::ranges::sort( targets, {}, [&]( const Creature * c ) -> std::tuple<bool, bool, int> {
+        const auto target_pos = c->pos();
+        const bool same_z = player_pos.z == target_pos.z;
+        const bool has_los = here.sees( player_pos, target_pos, range );
+        return { !has_los, !same_z, rl_dist_exact( target_pos, player_pos ) };
     } );
 }
 
@@ -3655,7 +3852,7 @@ void target_ui::panel_spell_info( int &text_y )
     }
 
     mvwprintz( w_target, point( 1, text_y++ ), c_light_red, _( "Damage: %s" ),
-               casting->damage_string() );
+               casting->damage_string( *you ) );
 
     text_y += fold_and_print( w_target, point( 1, text_y ), getmaxx( w_target ) - 2, clr,
                               casting->description() );
@@ -3774,9 +3971,37 @@ bool ranged::gunmode_checks_common( avatar &you, const map &m, std::vector<std::
     const optional_vpart_position vp = m.veh_at( you.pos() );
     if( vp && vp->vehicle().player_in_control( you ) && ( gmode->is_two_handed( you ) ||
             gmode->has_flag( flag_FIRE_TWOHAND ) ) ) {
-        messages.push_back( string_format( _( "You can't fire your %s while driving." ),
-                                           gmode->tname() ) );
-        result = false;
+
+        const auto vp_control = vp->part_with_feature( "CONTROLS", true );
+        const bool ctrl_handsfree = vp_control && vp_control->has_feature( "CONTROL_WITHOUT_HANDS" );
+        const bool using_arms = vp->vehicle().has_part( "MUSCLE_ARMS", true );
+        const bool single_tile_veh = vp->vehicle().all_parts_at_location( "structure" ).size() < 2 ;
+
+        if( ctrl_handsfree ) { // check this vehicle is steerable and able to be controlled without hands.
+            if( single_tile_veh ) {
+                if( using_arms ) {
+                    messages.push_back( string_format(
+                                            _( "You can't fire your %s while driving; this vehicle is hand-powered." ),
+                                            gmode->tname() ) );
+                    result = false;
+                } else if( you.get_skill_level( skill_driving ) < 3 ) {
+                    messages.push_back( string_format(
+                                            _( "Your driving skill isn't high enough to fire your %s while driving." ), gmode->tname() ) );
+                    result = false;
+                } else {
+                    result = true;
+                }
+            } else { // its ctrl is handsfree, but the vehicle is too big.
+                messages.push_back( string_format(
+                                        _( "You can't fire your %s while driving; this vehicle is too large to handle." ),
+                                        gmode->tname() ) );
+                result = false;
+            }
+        } else { // You are driving with your own hands!
+            messages.push_back( string_format( _( "You can't fire your %s while driving." ),
+                                               gmode->tname() ) );
+            result = false;
+        }
     }
 
     if( gmode->has_flag( flag_FIRE_TWOHAND ) && ( !you.has_two_arms() ||
@@ -3821,8 +4046,7 @@ auto ranged::gunmode_checks_weapon( avatar &you, const map &m, std::vector<std::
             }
         }
         if( !is_mech_weapon ) {
-            if( !( you.has_charges( itype_UPS_off, ups_drain ) ||
-                   you.has_charges( itype_adv_UPS_off, adv_ups_drain ) ||
+            if( !( you.has_charges( itype_UPS, ups_drain )  ||
                    ( you.has_active_bionic( bio_ups ) &&
                      you.get_power_level() >= units::from_kilojoule( ups_drain ) ) ) ) {
                 messages.push_back( string_format(

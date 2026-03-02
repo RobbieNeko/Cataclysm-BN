@@ -61,7 +61,6 @@
 #include "vpart_range.h"
 #include "weighted_list.h"
 
-static const std::string flag_DIGGABLE( "DIGGABLE" );
 static const std::string flag_FLAT( "FLAT" );
 static const std::string flag_FLOWER( "FLOWER" );
 static const std::string flag_FUNGUS( "FUNGUS" );
@@ -342,12 +341,12 @@ static bool mx_helicopter( map &m, const tripoint &abs_sub )
     for( int x = 0; x < SEEX * 2; x++ ) {
         for( int y = 0; y < SEEY * 2; y++ ) {
             if( m.veh_at( tripoint( x,  y, abs_sub.z ) ) &&
-                m.ter( tripoint( x, y, abs_sub.z ) )->has_flag( TFLAG_DIGGABLE ) ) {
+                m.ter( tripoint( x, y, abs_sub.z ) )->is_diggable() ) {
                 m.ter_set( tripoint( x, y, abs_sub.z ), t_dirtmound );
             } else {
                 if( x >= c.x - dice( 1, 5 ) && x <= c.x + dice( 1, 5 ) && y >= c.y - dice( 1, 5 ) &&
                     y <= c.y + dice( 1, 5 ) ) {
-                    if( one_in( 7 ) && m.ter( tripoint( x, y, abs_sub.z ) )->has_flag( TFLAG_DIGGABLE ) ) {
+                    if( one_in( 7 ) && m.ter( tripoint( x, y, abs_sub.z ) )->is_diggable() ) {
                         m.ter_set( tripoint( x, y, abs_sub.z ), t_dirtmound );
                     }
                 }
@@ -355,12 +354,12 @@ static bool mx_helicopter( map &m, const tripoint &abs_sub )
                     y <= c.y + dice( 1, 6 ) ) {
                     if( !one_in( 5 ) ) {
                         m.make_rubble( tripoint( x,  y, abs_sub.z ), f_wreckage );
-                        if( m.ter( tripoint( x, y, abs_sub.z ) )->has_flag( TFLAG_DIGGABLE ) ) {
+                        if( m.ter( tripoint( x, y, abs_sub.z ) )->is_diggable() ) {
                             m.ter_set( tripoint( x, y, abs_sub.z ), t_dirtmound );
                         }
                     } else if( m.is_bashable( point( x, y ) ) ) {
                         m.destroy( tripoint( x,  y, abs_sub.z ), true );
-                        if( m.ter( tripoint( x, y, abs_sub.z ) )->has_flag( TFLAG_DIGGABLE ) ) {
+                        if( m.ter( tripoint( x, y, abs_sub.z ) )->is_diggable() ) {
                             m.ter_set( tripoint( x, y, abs_sub.z ), t_dirtmound );
                         }
                     }
@@ -369,7 +368,7 @@ static bool mx_helicopter( map &m, const tripoint &abs_sub )
                                          c.y ) ) ) ) ) { // 1 in 10 chance of being wreckage anyway
                     m.make_rubble( tripoint( x,  y, abs_sub.z ), f_wreckage );
                     if( !one_in( 3 ) ) {
-                        if( m.ter( tripoint( x, y, abs_sub.z ) )->has_flag( TFLAG_DIGGABLE ) ) {
+                        if( m.ter( tripoint( x, y, abs_sub.z ) )->is_diggable() ) {
                             m.ter_set( tripoint( x, y, abs_sub.z ), t_dirtmound );
                         }
                     }
@@ -746,7 +745,7 @@ static bool mx_bandits_block( map &m, const tripoint &abs_sub )
 
 static bool mx_supplydrop( map &m, const tripoint &/*abs_sub*/ )
 {
-    int num_crates = rng( 1, 5 );
+    int num_crates = rng( 3, 7 );
     for( int i = 0; i < num_crates; i++ ) {
         const auto p = random_point( m, [&m]( const tripoint & n ) {
             return m.passable( n );
@@ -755,34 +754,16 @@ static bool mx_supplydrop( map &m, const tripoint &/*abs_sub*/ )
             break;
         }
         m.furn_set( p->xy(), f_crate_c );
-        std::string item_group;
-        switch( rng( 1, 10 ) ) {
-            case 1:
-            case 2:
-            case 3:
-            case 4:
-                item_group = "mil_food";
-                break;
-            case 5:
-            case 6:
-            case 7:
-                item_group = "grenades";
-                break;
-            case 8:
-            case 9:
-                item_group = "mil_armor";
-                break;
-            case 10:
-                item_group = "guns_rifle_milspec";
-                break;
+        std::vector<std::string> item_groups;
+        for( int i = 0; i < 4; i++ ) {
+            item_groups.push_back( "map_extra_supplydrop" );
         }
         int items_created = 0;
-        for( int i = 0; i < 10 && items_created < 2; i++ ) {
-            items_created += m.place_items( item_group_id( item_group ), 80, *p, *p, true,
-                                            calendar::start_of_cataclysm,
-                                            100 ).size();
+        for( int i = 0; i < 4; i++ ) {
+            items_created += m.put_items_from_loc( item_group_id( item_groups[i] ), *p,
+                                                   calendar::start_of_cataclysm ).size();
         }
-        if( m.i_at( *p ).empty() ) {
+        if( m.i_at( *p ).empty() || items_created == 0 ) {
             m.destroy( *p, true );
         }
     }
@@ -936,7 +917,7 @@ static bool mx_minefield( map &/*m_orig*/, const tripoint &abs_sub )
         //Spawn ordinary mine on asphalt, otherwise spawn buried mine
         for( int i = 0; i < num_mines; i++ ) {
             const int x = rng( 3, SEEX * 2 - 4 ), y = rng( SEEY, SEEY * 2 - 2 );
-            if( m.has_flag( flag_DIGGABLE, point( x, y ) ) ) {
+            if( m.ter( point( x, y ) )->is_diggable() ) {
                 mtrap_set( &m, point( x, y ), tr_landmine_buried );
             } else {
                 mtrap_set( &m, point( x, y ), tr_landmine );
@@ -1038,7 +1019,7 @@ static bool mx_minefield( map &/*m_orig*/, const tripoint &abs_sub )
         //Spawn ordinary mine on asphalt, otherwise spawn buried mine
         for( int i = 0; i < num_mines; i++ ) {
             const int x = rng( 3, SEEX * 2 - 4 ), y = rng( 1, SEEY );
-            if( m.has_flag( flag_DIGGABLE, point( x, y ) ) ) {
+            if( m.ter( point( x, y ) )->is_diggable() ) {
                 mtrap_set( &m, point( x, y ), tr_landmine_buried );
             } else {
                 mtrap_set( &m, point( x, y ), tr_landmine );
@@ -1186,7 +1167,7 @@ static bool mx_minefield( map &/*m_orig*/, const tripoint &abs_sub )
         //Spawn ordinary mine on asphalt, otherwise spawn buried mine
         for( int i = 0; i < num_mines; i++ ) {
             const int x = rng( SEEX + 1, SEEX * 2 - 2 ), y = rng( 3, SEEY * 2 - 4 );
-            if( m.has_flag( flag_DIGGABLE, point( x, y ) ) ) {
+            if( m.ter( point( x, y ) )->is_diggable() ) {
                 mtrap_set( &m, point( x, y ), tr_landmine_buried );
             } else {
                 mtrap_set( &m, point( x, y ), tr_landmine );
@@ -1322,7 +1303,7 @@ static bool mx_minefield( map &/*m_orig*/, const tripoint &abs_sub )
         //Spawn ordinary mine on asphalt, otherwise spawn buried mine
         for( int i = 0; i < num_mines; i++ ) {
             const int x = rng( 1, SEEX ), y = rng( 3, SEEY * 2 - 4 );
-            if( m.has_flag( flag_DIGGABLE, point( x, y ) ) ) {
+            if( m.ter( point( x, y ) )->is_diggable() ) {
                 mtrap_set( &m, point( x, y ), tr_landmine_buried );
             } else {
                 mtrap_set( &m, point( x, y ), tr_landmine );
@@ -1374,7 +1355,6 @@ static bool mx_crater( map &m, const tripoint &abs_sub )
             //Pythagoras to the rescue, x^2 + y^2 = hypotenuse^2
             if( !trigdist || ( i - p.x ) * ( i - p.x ) + ( j - p.y ) * ( j - p.y ) <= size_squared ) {
                 m.bash( tripoint( i,  j, abs_sub.z ), 999, true );
-                m.adjust_radiation( point( i, j ), rng( 20, 40 ) );
             }
         }
     }
@@ -2797,12 +2777,16 @@ void apply_function( const string_id<map_extra> &id, map &m, const tripoint &abs
 
         // Only place note if the user has not disabled it via the auto note manager
         if( autoNoteSettings.has_auto_note_enabled( id ) ) {
+            std::string sprite_prefix;
+            if( extra.looks_like && !extra.looks_like->empty() ) {
+                sprite_prefix = "SPRITE:" + *extra.looks_like + ";";
+            }
             const std::string mx_note =
-                string_format( "%s:%s;<color_yellow>%s</color>: <color_white>%s</color>",
-                               extra.get_symbol(),
-                               get_note_string_from_color( extra.color ),
-                               extra.name(),
-                               extra.description() );
+                sprite_prefix + string_format( "%s:%s;<color_yellow>%s</color>: <color_white>%s</color>",
+                                               extra.get_symbol(),
+                                               get_note_string_from_color( extra.color ),
+                                               extra.name(),
+                                               extra.description() );
             // TODO: fix point types
             overmap_buffer.add_note( tripoint_abs_omt( sm_to_omt_copy( abs_sub ) ), mx_note );
         }
@@ -2896,6 +2880,7 @@ void map_extra::load( const JsonObject &jo, const std::string & )
     }
     optional( jo, was_loaded, "sym", symbol, unicode_codepoint_from_symbol_reader, NULL_UNICODE );
     color = jo.has_member( "color" ) ? color_from_string( jo.get_string( "color" ) ) : c_white;
+    optional( jo, was_loaded, "looks_like", looks_like );
     optional( jo, was_loaded, "autonote", autonote, false );
 }
 
@@ -2904,6 +2889,9 @@ extern std::map<std::string, std::vector<std::unique_ptr<update_mapgen_function_
 
 void map_extra::check() const
 {
+    if( looks_like && looks_like->empty() ) {
+        debugmsg( "map extra (%s) defines empty looks_like id", id.str() );
+    }
     switch( generator_method ) {
         case map_extra_method::map_extra_function: {
             const map_extra_pointer mx_func = MapExtras::get_function( generator_id );

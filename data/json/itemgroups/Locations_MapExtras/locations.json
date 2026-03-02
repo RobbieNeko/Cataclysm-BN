@@ -203,6 +203,7 @@
       [ "antiparasitic", 10 ],
       [ "survnote", 1 ],
       [ "diazepam", 10 ],
+      [ "ghb", 10 ],
       [ "stethoscope", 35 ],
       [ "jar_3l_glass", 15 ],
       [ "magnifying_glass", 5 ],
@@ -256,6 +257,7 @@
       [ "smoxygen_tank", 10 ],
       [ "antiparasitic", 3 ],
       [ "diazepam", 3 ],
+      [ "ghb", 3 ],
       [ "recipe_augs", 3 ],
       { "group": "religious_books", "prob": 54 },
       [ "recipe_medicalmut", 1 ],
@@ -280,6 +282,12 @@
       { "item": "chunk_sulfur", "prob": 10 },
       { "item": "iron_ore", "prob": 5 }
     ]
+  },
+  {
+    "type": "item_group",
+    "id": "spring_minerals",
+    "subtype": "distribution",
+    "entries": [ { "item": "material_rocksalt", "prob": 75 }, { "item": "chunk_sulfur", "prob": 25 } ]
   },
   {
     "id": "prison_textile",
@@ -489,6 +497,7 @@
       [ "wire", 40 ],
       { "item": "sheet_metal", "prob": 5 },
       { "item": "sheet_metal_small", "prob": 5, "count": [ 2, 4 ] },
+      { "item": "aluminium_sheet", "prob": 5 },
       { "item": "material_aluminium_ingot", "prob": 10, "count": [ 1, 10 ] }
     ]
   },
@@ -501,7 +510,7 @@
       { "item": "hard_plate", "prob": 50, "count": [ 1, 3 ] },
       { "item": "alloy_plate", "prob": 25, "count": [ 1, 3 ] },
       { "item": "alloy_sheet", "prob": 25, "count": [ 1, 10 ] },
-      { "item": "thermal_cooling", "prob": 50, "count": [ 1, 3 ] }
+      { "item": "thermal_cooling_suit", "prob": 50, "count": [ 1, 3 ] }
     ]
   },
   {
@@ -539,6 +548,7 @@
       [ "mobile_memory_card", 20 ],
       [ "usb_drive", 5 ],
       [ "software_useless", 10 ],
+      [ "software_utility", 10 ],
       [ "survnote", 1 ]
     ]
   },
@@ -559,6 +569,7 @@
       [ "small_scuba_tank", 5 ],
       [ "dive_bag", 10 ],
       [ "rebreather", 2 ],
+      [ "sea_scooter", 1 ],
       [ "rebreather_filter", 4 ],
       [ "glowstick", 60 ],
       [ "handflare", 40 ],
@@ -571,7 +582,63 @@
       [ "fish_trap", 100 ],
       [ "bucket", 100 ],
       [ "fishing_hook_basic", 100 ],
-      [ "fishing_hook_bone", 100 ]
+      [ "fishing_hook_bone", 100 ],
+      [ "waterwaymap", 25 ]
+    ]
+  },
+  {
+    "id": "fishing_items_trash",
+    "type": "item_group",
+    "//": "For underwater locations, the idea is these items have sunk to the bottom.",
+    "items": [
+      [ "plastic_shopping_bag", 30 ],
+      [ "plastic_sheet", 20 ],
+      [ "rag", 30 ],
+      [ "wire", 30 ],
+      [ "chain", 10 ],
+      [ "rock", 30 ],
+      [ "sharp_rock", 20 ],
+      [ "bag_plastic", 20 ],
+      [ "bag_zipper", 10 ],
+      [ "bottle_plastic", 30 ],
+      [ "bottle_plastic_small", 30 ],
+      [ "bottle_glass", 30 ],
+      [ "bucket", 10 ],
+      [ "can_drink_unsealed", 30 ],
+      [ "can_food_unsealed", 30 ],
+      [ "fishing_hook_basic", 30 ],
+      [ "fishing_hook_bone", 30 ],
+      [ "fishing_rod_professional", 5 ],
+      [ "fishing_rod_basic", 5 ],
+      [ "fish_bait", 5 ],
+      [ "fish_trap", 20 ],
+      [ "rope_6", 10 ],
+      [ "rope_30", 20 ],
+      [ "fishing_waders", 5 ],
+      [ "glowstick", 15 ],
+      [ "grapnel", 10 ],
+      [ "stick", 50 ],
+      [ "log", 50 ],
+      [ "razor_blade", 10 ],
+      [ "glass_shard", 20 ],
+      [ "scrap", 20 ],
+      [ "scrap_copper", 20 ],
+      [ "pipe", 20 ],
+      [ "battery_car", 5 ],
+      [ "wheel", 20 ]
+    ]
+  },
+  {
+    "id": "fishing_boat_fridge",
+    "type": "item_group",
+    "subtype": "distribution",
+    "entries": [
+      { "item": "water_clean", "prob": 50, "count": [ 1, 3 ] },
+      { "item": "water_mineral", "prob": 20, "count": [ 1, 2 ] },
+      { "group": "alcohol_bottled_canned", "prob": 95 },
+      { "group": "alcohol_bottled_canned", "prob": 95 },
+      { "group": "alcohol_bottled_canned", "prob": 95 },
+      { "item": "fish", "prob": 95, "count": [ 10, 40 ] }
     ]
   },
   {
@@ -588,14 +655,17 @@
       { "group": "religious_books", "prob": 10 },
       { "group": "kids_books", "prob": 20 },
       [ "recipe_elfa", 15 ],
+      [ "note_mutagen_conspiracy", 5 ],
       [ "recipe_bows", 15 ],
       [ "manual_stabbing", 20 ],
       [ "manual_dodge", 20 ],
       [ "manual_driving", 20 ],
       [ "manual_throw", 20 ],
-      [ "manual_zui_quan", 20 ],
+      { "group": "rare_martial_arts_books", "prob": 20 },
       [ "howto_computer", 20 ],
+      [ "waterwaymap", 25 ],
       [ "touristmap", 25 ],
+      [ "regionaltransportmap", 25 ],
       [ "restaurantmap", 25 ],
       [ "roadmap", 25 ],
       [ "trailmap", 25 ],
@@ -646,6 +716,7 @@
       [ "carver_off", 5 ],
       [ "coffeemaker", 5 ],
       [ "dehydrator", 5 ],
+      [ "soda_machine", 5 ],
       [ "food_processor", 5 ],
       [ "hotplate", 5 ],
       [ "multi_cooker", 5 ],
@@ -658,13 +729,14 @@
     "items": [
       [ "barrette", 30 ],
       { "item": "vibrator", "prob": 20, "charges-min": 0, "charges-max": 25 },
+      { "item": "bullet_vibrator", "prob": 20, "charges-min": 0, "charges-max": 25 },
       [ "bubblewrap", 30 ],
       [ "syringe", 35 ],
       [ "glowstick_dead", 15 ],
       { "item": "cash_card", "prob": 5, "charges-min": 5, "charges-max": 5000 },
       [ "id_science", 3 ],
       [ "ear_spool", 15 ],
-      { "item": "lighter", "prob": 35, "charges-min": 0, "charges-max": 15 },
+      { "item": "lighter", "prob": 35, "charges": [ 0, 5 ] },
       [ "funnel", 25 ],
       [ "canteen", 20 ],
       [ "basket_laundry", 20 ],
@@ -673,7 +745,8 @@
       [ "gloves_medical", 20 ],
       [ "fitover_sunglasses", 20 ],
       [ "goggles_swim", 20 ],
-      [ "bag_plastic", 150 ],
+      [ "bag_plastic", 100 ],
+      [ "bag_zipper", 50 ],
       [ "plastic_shopping_bag", 200 ],
       [ "jug_plastic", 120 ],
       [ "jerrycan", 15 ],
@@ -705,6 +778,7 @@
       [ "glass_bowl", 80 ],
       [ "bottle_glass", 150 ],
       [ "pipe_glass", 10 ],
+      [ "pipe_glass_bong", 10 ],
       [ "jar_glass", 120 ],
       [ "flask_glass", 60 ],
       [ "tempered_glass_sheet", 5 ]
@@ -727,6 +801,7 @@
       [ "can_drink_unsealed", 130 ],
       [ "keg", 15 ],
       { "item": "material_aluminium_ingot", "prob": 25, "count": [ 2, 3 ] },
+      [ "aluminium_sheet", 15 ],
       [ "xlframe", 10 ],
       [ "survival_kit_box", 1 ],
       [ "wearable_light", 5 ],
@@ -865,7 +940,8 @@
       [ "eink_tablet_pc", 1 ],
       [ "mobile_memory_card", 5 ],
       [ "cell_phone", 1 ],
-      [ "smart_phone", 30 ],
+      [ "smart_phone", 20 ],
+      [ "wrist_comp_budget", 10 ],
       [ "rag", 1 ],
       [ "claw_bar", 3 ],
       [ "crowbar", 18 ],
@@ -888,6 +964,7 @@
       [ "umbrella", 1 ],
       [ "teleumbrella", 1 ],
       [ "pocketwatch", 1 ],
+      [ "note_mutagen_conspiracy", 1 ],
       [ "survnote", 1 ],
       [ "tinder", 1 ],
       [ "hobo_stove", 1 ],
@@ -899,7 +976,10 @@
     "type": "item_group",
     "id": "sewer",
     "items": [
-      [ "mutagen", 8 ],
+      [ "mutagen", 5 ],
+      [ "mutagen_slime", 1 ],
+      [ "mutagen_rat", 1 ],
+      [ "mutagen_troglobite", 1 ],
       [ "fetus", 1 ],
       [ "joint", 20 ],
       [ "mag_porn", 20 ],
@@ -914,6 +994,7 @@
       [ "55gal_drum", 10 ],
       [ "30gal_drum", 15 ],
       [ "toolbox", 1 ],
+      [ "note_mutagen_conspiracy", 2 ],
       [ "recipe_elfa", 2 ]
     ]
   },
@@ -1050,6 +1131,7 @@
       [ "morningstar", 2 ],
       [ "morningstar_fake", 3 ],
       [ "morningstar_inferior", 4 ],
+      [ "club_spiked", 3 ],
       [ "warhammer", 2 ],
       [ "scythe_war", 2 ],
       [ "pike", 2 ],
@@ -1076,6 +1158,7 @@
       [ "flintlock_shot", 40 ],
       [ "shotgun_paper", 50 ],
       [ "colt_army", 50 ],
+      [ "colt_ring", 50 ],
       [ "colt_navy", 50 ],
       [ "shot_paper_00", 25 ],
       [ "shot_paper_bird", 15 ],
@@ -1132,6 +1215,7 @@
       [ "meth", 90 ],
       [ "jar_glass", 80 ],
       [ "heroin", 1 ],
+      [ "ghb", 1 ],
       { "item": "bleach", "prob": 60, "charges-min": 10 },
       { "item": "ammonia", "prob": 60, "charges-min": 10 },
       [ "syringe", 30 ],
@@ -1450,13 +1534,17 @@
       { "item": "seed_tobacco", "prob": 5 },
       { "item": "rolling_paper", "prob": 5 },
       { "item": "pipe_glass", "prob": 15 },
+      { "item": "pipe_glass_bong", "prob": 15 },
       { "item": "coke", "prob": 8 },
       { "item": "meth", "prob": 2 },
       { "item": "heroin", "prob": 1 },
+      { "item": "ghb", "prob": 1 },
+      { "item": "sizzurp", "prob": 4 },
       { "item": "syringe", "prob": 8 },
       { "item": "electrohack", "prob": 3 },
       { "item": "textbook_gaswarfare", "prob": 1 },
       { "item": "textbook_anarch", "prob": 3 },
+      { "item": "note_mutagen_conspiracy", "prob": 2 },
       { "item": "brewing_cookbook", "prob": 3 },
       { "item": "recipe_bullets", "prob": 1 },
       { "item": "knife_combat", "prob": 14 },
@@ -1518,6 +1606,7 @@
       { "item": "joint", "prob": 10 },
       { "item": "rolling_paper", "prob": 5 },
       { "item": "heroin", "prob": 2 },
+      { "item": "ghb", "prob": 2 },
       { "item": "syringe", "prob": 2 },
       { "item": "mag_porn", "prob": 30 },
       { "item": "mag_survival", "prob": 20 },
@@ -1527,7 +1616,8 @@
       { "item": "mag_traps", "prob": 10 },
       { "item": "mp3", "prob": 9 },
       { "item": "cell_phone", "prob": 1 },
-      { "item": "smart_phone", "prob": 20 },
+      { "item": "smart_phone", "prob": 15 },
+      { "item": "wrist_comp_budget", "prob": 5 },
       { "item": "eink_tablet_pc", "prob": 5 },
       { "item": "camera", "prob": 3 },
       { "item": "camera_pro", "prob": 1 },
@@ -1561,6 +1651,7 @@
       { "item": "razor_blade", "prob": 20 },
       { "item": "soap", "prob": 5 },
       { "item": "detergent", "prob": 5 },
+      { "item": "shimmer", "prob": 3 },
       { "item": "knitting_needles", "prob": 1 },
       { "group": "auto_sears", "prob": 5 },
       { "item": "survnote", "prob": 2 }
@@ -1615,7 +1706,7 @@
       { "item": "kufi", "prob": 10 },
       { "item": "kittel", "prob": 10 },
       { "item": "kippah", "prob": 10 },
-      { "item": "icon", "prob": 20 }
+      { "item": "money_bundle", "prob": 20 }
     ]
   },
   {
@@ -1667,6 +1758,19 @@
     ]
   },
   {
+    "id": "toxic_waste",
+    "type": "item_group",
+    "items": [
+      { "item": "water_sewage", "container-item": "55gal_drum", "charges": [ 1, 200 ], "prob": 50 },
+      { "item": "nuclear_waste", "container-item": "hazardous_waste_drum", "charges": [ 1, 200 ], "prob": 20 },
+      { "item": "plut_slurry", "container-item": "hazardous_waste_drum", "charges": [ 1, 2000 ], "prob": 10 },
+      { "item": "plut_slurry_dense", "container-item": "hazardous_waste_drum", "charges": [ 1, 2000 ], "prob": 5 },
+      { "item": "cobalt_60", "prob": 5 },
+      { "item": "slime_scrap", "prob": 5 },
+      { "item": "mutagen", "container-item": "55gal_drum", "charges": [ 1, 200 ], "prob": 5 }
+    ]
+  },
+  {
     "type": "item_group",
     "id": "lab_dorm",
     "ammo": 50,
@@ -1682,9 +1786,13 @@
       [ "seed_tobacco", 5 ],
       [ "rolling_paper", 5 ],
       [ "pipe_glass", 5 ],
+      [ "pipe_glass_bong", 5 ],
+      [ "nectar_collector", 5 ],
       [ "coke", 8 ],
       [ "meth", 2 ],
       [ "heroin", 1 ],
+      [ "ghb", 2 ],
+      [ "sizzurp", 3 ],
       [ "sneakers", 40 ],
       [ "mask_hockey", 5 ],
       [ "mask_guy_fawkes", 5 ],
@@ -1736,7 +1844,8 @@
       [ "atomic_lamp", 3 ],
       [ "smart_lamp", 5 ],
       [ "cell_phone", 1 ],
-      [ "smart_phone", 40 ],
+      [ "smart_phone", 30 ],
+      [ "wrist_comp_budget", 10 ],
       [ "eink_tablet_pc", 15 ],
       [ "mobile_memory_card", 40 ],
       [ "mobile_memory_card_science", 10 ],
@@ -1758,6 +1867,7 @@
       [ "portable_game", 8 ],
       [ "game_watch", 2 ],
       [ "vibrator", 6 ],
+      [ "bullet_vibrator", 6 ],
       [ "usb_drive", 8 ],
       [ "firecracker_pack", 1 ],
       [ "firecracker", 1 ],
@@ -1804,7 +1914,8 @@
       [ "badge_doctor", 5 ],
       [ "dnd_handbook", 2 ],
       [ "bodypillow", 1 ],
-      [ "pirate_flag", 5 ]
+      [ "pirate_flag", 5 ],
+      [ "afs_atomic_smartphone", 1 ]
     ]
   },
   {
@@ -1865,6 +1976,8 @@
       [ "helmet_football", 5 ],
       [ "mouthpiece", 5 ],
       [ "roller_blades", 20 ],
+      [ "folding_skateboard", 10 ],
+      [ "folding_wagon", 5 ],
       [ "rollerskates", 10 ],
       [ "rollerskates", 10 ],
       [ "roller_shoes_off", 10 ],
@@ -1987,6 +2100,7 @@
       [ "coffee_raw", 15 ],
       [ "usb_drive", 5 ],
       [ "software_useless", 10 ],
+      [ "software_utility", 10 ],
       [ "software_electronics_reference", 2 ],
       [ "umbrella", 5 ],
       [ "teleumbrella", 2 ],
@@ -2136,6 +2250,7 @@
       [ "gold_small", 10 ],
       [ "silver_small", 30 ],
       [ "money_bundle", 50 ],
+      [ "money_pile", 25 ],
       [ "pocketwatch", 11 ],
       [ "gold_watch", 12 ],
       [ "sf_watch", 10 ],
@@ -2275,7 +2390,8 @@
       [ "extinguisher", 20 ],
       [ "flashlight", 40 ],
       [ "heavy_flashlight", 5 ],
-      [ "mess_kit", 10 ],
+      [ "gasoline_cooker", 5 ],
+      [ "mess_kit", 5 ],
       [ "hotplate", 10 ],
       [ "popcan_stove", 5 ],
       [ "soldering_ethanol", 5 ],
@@ -2598,6 +2714,7 @@
       { "item": "lemat_revolver", "prob": 5 },
       { "item": "colt_army", "prob": 5 },
       { "item": "colt_navy", "prob": 5 },
+      { "item": "colt_ring", "prob": 5 },
       { "item": "longrifle_flintlock", "prob": 7 },
       { "item": "rifle_flintlock", "prob": 3 },
       { "item": "carbine_flintlock", "prob": 2 },
@@ -2647,21 +2764,13 @@
     "id": "fort_crate",
     "type": "item_group",
     "subtype": "collection",
-    "entries": [
-      { "item": "cannonball_4lb", "prob": 100, "count": [ 1, 10 ] },
-      { "item": "rag", "prob": 50, "count": [ 1, 25 ] },
-      { "item": "gatlingdrum240", "prob": 25 }
-    ]
+    "entries": [ { "group": "supplies_cannonball", "prob": 100 }, { "item": "gatlingdrum240", "prob": 25 } ]
   },
   {
     "id": "fort_powderbarrel",
     "type": "item_group",
     "subtype": "collection",
-    "entries": [
-      { "item": "chem_black_powder", "charges": [ 100, 2500 ], "container-item": "wooden_barrel_small" },
-      { "item": "chem_black_powder", "charges": [ 100, 2500 ], "container-item": "wooden_barrel_small", "prob": 50 },
-      { "item": "4570_low", "charges": [ 1, 240 ], "prob": 50 }
-    ]
+    "entries": [ { "group": "supplies_powder_mag", "prob": 100 }, { "item": "4570_low", "charges": [ 1, 240 ], "prob": 50 } ]
   },
   {
     "type": "item_group",
@@ -2717,6 +2826,7 @@
       [ "quiver", 20 ],
       [ "canteen", 20 ],
       [ "knife_hunting", 30 ],
+      [ "gps_device", 5 ],
       [ "shovel", 30 ],
       { "group": "ammo_pocket_batteries_full", "prob": 30 }
     ]

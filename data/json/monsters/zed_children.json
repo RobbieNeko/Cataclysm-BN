@@ -25,11 +25,11 @@
     "vision_day": 30,
     "vision_night": 3,
     "special_attacks": [ { "type": "bite", "cooldown": 2 } ],
-    "death_drops": { "subtype": "collection", "groups": [ [ "default_zombie_clothes", 100 ], [ "child_items", 65 ] ] },
+    "death_drops": "default_zombie_children_death_drops",
     "death_function": [ "NORMAL" ],
     "burn_into": "mon_zombie_child_scorched",
     "fungalize_into": "mon_zombie_child_fungus",
-    "flags": [ "SEES", "HEARS", "SMELLS", "STUMBLES", "WARM", "BASHES", "BLEED", "POISON", "NO_BREATHE", "REVIVES", "FILTHY" ],
+    "flags": [ "SEES", "HEARS", "SMELLS", "STUMBLES", "WARM", "BASHES", "BLEED", "POISON", "NO_BREATHE", "REVIVES" ],
     "//": "no GUILT because it no longer looks enough like a child to evoke pity"
   },
   {
@@ -60,29 +60,12 @@
     "vision_night": 3,
     "harvest": "zombie",
     "special_attacks": [ [ "scratch", 15 ] ],
-    "death_drops": {
-      "subtype": "collection",
-      "groups": [ [ "default_zombie_children_clothes", 100 ], [ "child_items", 65 ] ],
-      "//": "default zombie children clothing (always), additional items from child_items (sometimes)"
-    },
+    "death_drops": "default_zombie_children_death_drops",
     "death_function": [ "NORMAL" ],
     "burn_into": "mon_zombie_child_scorched",
     "fungalize_into": "mon_zombie_child_fungus",
     "upgrades": { "half_life": 14, "into_group": "GROUP_CHILD_ZOMBIE_UPGRADE" },
-    "flags": [
-      "SEES",
-      "HEARS",
-      "SMELLS",
-      "STUMBLES",
-      "WARM",
-      "BASHES",
-      "BLEED",
-      "POISON",
-      "GUILT",
-      "NO_BREATHE",
-      "REVIVES",
-      "FILTHY"
-    ]
+    "flags": [ "SEES", "HEARS", "SMELLS", "STUMBLES", "WARM", "BASHES", "BLEED", "POISON", "GUILT", "NO_BREATHE", "REVIVES" ]
   },
   {
     "id": "mon_zombie_creepy",
@@ -110,24 +93,11 @@
     "vision_night": 10,
     "harvest": "zombie",
     "special_attacks": [ [ "SHRIEK", 5 ] ],
-    "death_drops": { "subtype": "collection", "groups": [ [ "default_zombie_clothes", 100 ], [ "child_items", 65 ] ] },
+    "death_drops": "default_zombie_children_death_drops",
     "death_function": [ "NORMAL" ],
     "burn_into": "mon_zombie_child_scorched",
     "fungalize_into": "mon_zombie_child_fungus",
-    "flags": [
-      "SEES",
-      "HEARS",
-      "SMELLS",
-      "STUMBLES",
-      "WARM",
-      "BLEED",
-      "BASHES",
-      "POISON",
-      "NO_BREATHE",
-      "REVIVES",
-      "CLIMBS",
-      "FILTHY"
-    ],
+    "flags": [ "SEES", "HEARS", "SMELLS", "STUMBLES", "WARM", "BLEED", "BASHES", "POISON", "NO_BREATHE", "REVIVES", "CLIMBS" ],
     "//": "no GUILT because it no longer looks enough like a child to evoke pity"
   },
   {
@@ -157,24 +127,11 @@
     "vision_night": 5,
     "harvest": "zombie",
     "special_attacks": [ [ "SHRIEK", 5 ], [ "scratch", 15 ] ],
-    "death_drops": { "subtype": "collection", "groups": [ [ "default_zombie_clothes", 100 ], [ "child_items", 65 ] ] },
+    "death_drops": "default_zombie_children_death_drops",
     "death_function": [ "NORMAL" ],
     "burn_into": "mon_zombie_child_scorched",
     "fungalize_into": "mon_zombie_child_fungus",
-    "flags": [
-      "SEES",
-      "HEARS",
-      "SMELLS",
-      "STUMBLES",
-      "WARM",
-      "BLEED",
-      "GUILT",
-      "BASHES",
-      "POISON",
-      "NO_BREATHE",
-      "REVIVES",
-      "FILTHY"
-    ],
+    "flags": [ "SEES", "HEARS", "SMELLS", "STUMBLES", "WARM", "BLEED", "GUILT", "BASHES", "POISON", "NO_BREATHE", "REVIVES" ],
     "//": "GUILT because it still looks enough like a child to evoke pity"
   },
   {
@@ -204,11 +161,11 @@
     "vision_night": 5,
     "harvest": "zombie",
     "special_attacks": [ [ "GRAB", 5 ] ],
-    "death_drops": { "subtype": "collection", "groups": [ [ "default_zombie_clothes", 100 ], [ "child_items", 65 ] ] },
+    "death_drops": "default_zombie_children_death_drops",
     "death_function": [ "BOOMER" ],
     "burn_into": "mon_zombie_child_scorched",
     "fungalize_into": "mon_zombie_child_fungus",
-    "flags": [ "SEES", "HEARS", "STUMBLES", "WARM", "BLEED", "GUILT", "POISON", "NO_BREATHE", "REVIVES", "FILTHY" ],
+    "flags": [ "SEES", "HEARS", "STUMBLES", "WARM", "BLEED", "GUILT", "POISON", "NO_BREATHE", "REVIVES" ],
     "//": "GUILT because it still looks enough like a child to evoke pity"
   },
   {
@@ -237,24 +194,11 @@
     "vision_night": 10,
     "harvest": "zombie",
     "special_attacks": [ [ "scratch", 10 ], { "type": "leap", "cooldown": 10, "max_range": 5 } ],
-    "death_drops": { "subtype": "collection", "groups": [ [ "default_zombie_clothes", 100 ], [ "child_items", 65 ] ] },
+    "death_drops": "default_zombie_children_death_drops",
     "death_function": [ "NORMAL" ],
     "burn_into": "mon_zombie_child_scorched",
     "fungalize_into": "mon_zombie_child_fungus",
-    "flags": [
-      "SEES",
-      "HEARS",
-      "SMELLS",
-      "STUMBLES",
-      "WARM",
-      "BLEED",
-      "BASHES",
-      "POISON",
-      "NO_BREATHE",
-      "REVIVES",
-      "CLIMBS",
-      "FILTHY"
-    ],
+    "flags": [ "SEES", "HEARS", "SMELLS", "STUMBLES", "WARM", "BLEED", "BASHES", "POISON", "NO_BREATHE", "REVIVES", "CLIMBS" ],
     "//": "no GUILT because it no longer looks enough like a child to evoke pity"
   },
   {
@@ -286,24 +230,11 @@
     "vision_night": 5,
     "harvest": "zombie",
     "special_attacks": [ [ "SHRIEK", 15 ], [ "scratch", 10 ] ],
-    "death_drops": { "subtype": "collection", "groups": [ [ "default_zombie_clothes", 100 ], [ "child_items", 65 ] ] },
+    "death_drops": "default_zombie_children_death_drops",
     "death_function": [ "NORMAL" ],
     "burn_into": "mon_zombie_child_scorched",
     "fungalize_into": "mon_zombie_child_fungus",
-    "flags": [
-      "SEES",
-      "HEARS",
-      "SMELLS",
-      "STUMBLES",
-      "WARM",
-      "BLEED",
-      "GUILT",
-      "POISON",
-      "NO_BREATHE",
-      "REVIVES",
-      "HARDTOSHOOT",
-      "FILTHY"
-    ],
+    "flags": [ "SEES", "HEARS", "SMELLS", "STUMBLES", "WARM", "BLEED", "GUILT", "POISON", "NO_BREATHE", "REVIVES", "HARDTOSHOOT" ],
     "//": "GUILT because it still looks enough like a child to evoke pity"
   }
 ]

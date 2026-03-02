@@ -23,9 +23,9 @@ const octokit = new Octokit({ auth: Deno.env.get("GITHUB_TOKEN") })
 const getDiffs = async (pr: number) => {
   const res = await octokit.paginate(
     octokit.rest.pulls.listFiles,
-    { owner: "cataclysmbnteam", repo: "Cataclysm-BN", pull_number: pr },
+    { owner: "cataclysmbn", repo: "Cataclysm-BN", pull_number: pr },
   )
-  const pathsFilter = new RegExp(`(^${paths.join("|")})/`)
+  const pathsFilter = new RegExp(`(^${paths.join("|")})/.*\\.(cpp|h|hpp)`)
 
   return res
     .filter((x) => ACMRT.has(x.status))
@@ -79,7 +79,7 @@ const main = new Command()
       getDiffs(pr).then((xs) => partition(xs, (x) => x.endsWith(".h"))),
     ])
     // console.log(deps)
-    // console.log({ src, headers })
+    console.log({ src, headers })
 
     const affected = new Set(src.concat(headers.flatMap((x) => Array.from(deps.get(x) ?? []))))
     console.log(affected)

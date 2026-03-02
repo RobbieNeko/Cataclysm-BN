@@ -40,7 +40,7 @@ void dependency_node::add_child( dependency_node *child )
 
 void dependency_node::add_conflict( const dependency_node *conflict )
 {
-    auto it = std::find( conflicts.begin(), conflicts.end(), conflict );
+    auto it = std::ranges::find( conflicts, conflict );
     if( it == conflicts.end() ) {
         conflicts.push_back( conflict );
     }
@@ -103,14 +103,14 @@ void dependency_node::inherit_errors()
                 node_error_type error_type = cerror.first;
                 std::vector<std::string> cur_errors = all_errors[error_type];
                 for( auto &node_error : node_errors ) {
-                    if( std::find( cur_errors.begin(), cur_errors.end(), node_error ) ==
+                    if( std::ranges::find( cur_errors, node_error ) ==
                         cur_errors.end() ) {
                         all_errors[cerror.first].push_back( node_error );
                     }
                 }
             }
         }
-        if( nodes_visited.find( check->key ) != nodes_visited.end() ) {
+        if( nodes_visited.contains( check->key ) ) {
             continue;
         }
         // add check parents, if exist, to stack
@@ -156,7 +156,7 @@ std::vector<dependency_node *> dependency_node::get_dependencies_as_nodes() cons
         nodes_to_check.pop();
 
         // make sure that the one we are checking is not THIS one
-        if( found.find( check->key ) != found.end() ) {
+        if( found.contains( check->key ) ) {
             continue; // just keep going, we aren't really caring about availability right now
         }
 
@@ -176,7 +176,7 @@ std::vector<dependency_node *> dependency_node::get_dependencies_as_nodes() cons
     for( std::vector<dependency_node *>::reverse_iterator it =
              dependencies.rbegin();
          it != dependencies.rend(); ++it ) {
-        if( std::find( ret.begin(), ret.end(), *it ) == ret.end() ) {
+        if( std::ranges::find( ret, *it ) == ret.end() ) {
             ret.push_back( *it );
         }
     }
@@ -216,7 +216,7 @@ std::vector<dependency_node *> dependency_node::get_dependents_as_nodes() const
         dependency_node *check = nodes_to_check.top();
         nodes_to_check.pop();
 
-        if( found.find( check->key ) != found.end() ) {
+        if( found.contains( check->key ) ) {
             // skip it because we recursed for some reason
             continue;
         }
@@ -232,7 +232,7 @@ std::vector<dependency_node *> dependency_node::get_dependents_as_nodes() const
 
     // sort from front, keeping only one copy of the node
     for( auto &dependent : dependents ) {
-        if( std::find( ret.begin(), ret.end(), dependent ) == ret.end() ) {
+        if( std::ranges::find( ret, dependent ) == ret.end() ) {
             ret.push_back( dependent );
         }
     }
@@ -256,7 +256,7 @@ void dependency_tree::build_node_map(
 {
     for( auto &elem : key_dependency_map ) {
         // check to see if the master node map knows the key
-        if( master_node_map.find( elem.first ) == master_node_map.end() ) {
+        if( !master_node_map.contains( elem.first ) ) {
             master_node_map.emplace( elem.first, elem.first );
         }
     }
@@ -453,12 +453,12 @@ void dependency_tree::check_for_conflicting_dependencies()
     for( auto &node : master_node_map ) {
         dependency_node *this_node = &node.second;
         std::vector<dependency_node *> all_deps = get_dependencies_of_X_as_nodes( node.first );
-        std::sort( all_deps.begin(), all_deps.end(), depnode_comparator );
+        std::ranges::sort( all_deps, depnode_comparator );
 
         for( auto dep_it = all_deps.begin(); dep_it != all_deps.end(); dep_it++ ) {
             const dependency_node *this_dep = *dep_it;
             std::vector<const dependency_node *> this_dep_conflicts = this_dep->conflicts;
-            std::sort( this_dep_conflicts.begin(), this_dep_conflicts.end(), depnode_comparator );
+            std::ranges::sort( this_dep_conflicts, depnode_comparator );
 
             std::vector<const dependency_node *> both;
             std::set_intersection(

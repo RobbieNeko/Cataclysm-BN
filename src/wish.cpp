@@ -9,6 +9,7 @@
 #include <set>
 #include <string>
 #include <vector>
+#include <ranges>
 
 #include "bionics.h"
 #include "calendar.h"
@@ -54,7 +55,7 @@ class wish_mutate_callback: public uilist_callback
         std::map<trait_id, bool> pTraits;
         // Traits by mutation category
         std::unordered_map<mutation_category_id, std::set<mutation_branch>> category_mutations;
-        player *p;
+        Character *p;
 
         nc_color mcolor( const trait_id &m ) {
             if( pTraits[ m ] ) {
@@ -116,7 +117,7 @@ class wish_mutate_callback: public uilist_callback
                 // Extracting selected option & filtering traits on category presence
                 const auto entry = entries[ret];
                 auto predicate = [&]( const int idx ) {
-                    return entry->second.find( *vTraits[idx] ) != entry->second.end();
+                    return entry->second.contains( *vTraits[idx] );
                 };
                 menu->filterpredicate( predicate );
                 return true;
@@ -132,7 +133,7 @@ class wish_mutate_callback: public uilist_callback
                     vTraits.push_back( traits_iter.id );
                     pTraits[traits_iter.id] = p->has_trait( traits_iter.id );
                     for( auto &category : traits_iter.category ) {
-                        if( category_mutations.find( category ) == category_mutations.end() ) {
+                        if( !category_mutations.contains( category ) ) {
                             category_mutations[category] = std::set<mutation_branch>();
                         }
                         category_mutations[category].insert( traits_iter );
@@ -188,14 +189,10 @@ class wish_mutate_callback: public uilist_callback
                     }
                 }
 
-                if( !mdata.threshreq.empty() ) {
+                if( mdata.threshold_tier != 0 ) {
                     line2++;
-                    mvwprintz( menu->window, point( startx, line2 ), c_light_gray, _( "Thresholds required:" ) );
-                    for( const trait_id &j : mdata.threshreq ) {
-                        mvwprintz( menu->window, point( startx + 21, line2 ), mcolor( j ),
-                                   mutation_branch::get_name( j ) );
-                        line2++;
-                    }
+                    mvwprintz( menu->window, point( startx, line2 ), c_light_gray, _( "Threshold tier: %d" ),
+                               mdata.threshold_tier );
                 }
 
                 if( !mdata.cancels.empty() ) {
@@ -278,7 +275,7 @@ class wish_mutate_callback: public uilist_callback
         ~wish_mutate_callback() override = default;
 };
 
-void debug_menu::wishmutate( player *p )
+void debug_menu::wishmutate( Character *who )
 {
     uilist wmenu;
     int c = 0;
@@ -289,10 +286,10 @@ void debug_menu::wishmutate( player *p )
         wmenu.entries[ c ].extratxt.txt.clear();
         wmenu.entries[ c ].extratxt.color = c_light_green;
         wmenu.entries[ c ].hilite_color = h_light_green;
-        if( p->has_trait( traits_iter.id ) ) {
+        if( who->has_trait( traits_iter.id ) ) {
             wmenu.entries[ c ].text_color = c_green;
             wmenu.entries[ c ].override_hilite_color = true;
-            if( p->has_base_trait( traits_iter.id ) ) {
+            if( who->has_base_trait( traits_iter.id ) ) {
                 wmenu.entries[ c ].extratxt.txt = "T";
             }
         }
@@ -307,7 +304,7 @@ void debug_menu::wishmutate( player *p )
     };
     wmenu.selected = uistate.wishmutate_selected;
     wish_mutate_callback cb;
-    cb.p = p;
+    cb.p = who;
     wmenu.callback = &cb;
     do {
         wmenu.query();
@@ -319,27 +316,27 @@ void debug_menu::wishmutate( player *p )
             const bool profession = mdata.profession;
             // Manual override for the threshold-gaining
             if( threshold || profession ) {
-                if( p->has_trait( mstr ) ) {
+                if( who->has_trait( mstr ) ) {
                     do {
-                        p->remove_mutation( mstr );
+                        who->remove_mutation( mstr );
                         rc++;
-                    } while( p->has_trait( mstr ) && rc < 10 );
+                    } while( who->has_trait( mstr ) && rc < 10 );
                 } else {
                     do {
-                        p->set_mutation( mstr );
+                        who->set_mutation( mstr );
                         rc++;
-                    } while( !p->has_trait( mstr ) && rc < 10 );
+                    } while( !who->has_trait( mstr ) && rc < 10 );
                 }
-            } else if( p->has_trait( mstr ) ) {
+            } else if( who->has_trait( mstr ) ) {
                 do {
-                    p->remove_mutation( mstr );
+                    who->remove_mutation( mstr );
                     rc++;
-                } while( p->has_trait( mstr ) && rc < 10 );
+                } while( who->has_trait( mstr ) && rc < 10 );
             } else {
                 do {
-                    p->mutate_towards( mstr );
+                    who->mutate_towards( mstr );
                     rc++;
-                } while( !p->has_trait( mstr ) && rc < 10 );
+                } while( !who->has_trait( mstr ) && rc < 10 );
             }
             cb.msg = string_format( _( "%s Mutation changes: %d" ), mstr.c_str(), rc );
             uistate.wishmutate_selected = wmenu.selected;
@@ -347,11 +344,11 @@ void debug_menu::wishmutate( player *p )
                 for( size_t i = 0; i < cb.vTraits.size(); i++ ) {
                     uilist_entry &entry = wmenu.entries[ i ];
                     entry.extratxt.txt.clear();
-                    if( p->has_trait( cb.vTraits[ i ] ) ) {
+                    if( who->has_trait( cb.vTraits[ i ] ) ) {
                         entry.text_color = c_green;
                         entry.override_hilite_color = true;
                         cb.pTraits[ cb.vTraits[ i ] ] = true;
-                        if( p->has_base_trait( cb.vTraits[ i ] ) ) {
+                        if( who->has_base_trait( cb.vTraits[ i ] ) ) {
                             entry.extratxt.txt = "T";
                         }
                     } else {
@@ -370,14 +367,14 @@ void debug_menu::wishbionics( Character &c )
     std::vector<const itype *> cbm_items = item_controller->find( []( const itype & itm ) -> bool {
         return itm.can_use( "install_bionic" );
     } );
-    std::sort( cbm_items.begin(), cbm_items.end(), []( const itype * a, const itype * b ) {
+    std::ranges::sort( cbm_items, []( const itype * a, const itype * b ) {
         return localized_compare( a->nname( 1 ), b->nname( 1 ) );
     } );
 
     while( true ) {
         units::energy power_level = c.get_power_level();
         units::energy power_max = c.get_max_power_level();
-        size_t num_installed = c.get_bionics().size();
+        size_t num_installed = c.get_bionic_collection().size();
 
         bool can_uninstall = num_installed > 0;
         bool can_uninstall_all = can_uninstall || power_max > 0_J;
@@ -435,35 +432,51 @@ void debug_menu::wishbionics( Character &c )
                 break;
             }
             case 3: {
-                int new_value = 0;
-                if( query_int( new_value, _( "Set the value to (in kJ)?  Currently: %s" ),
-                               units::display( power_max ) ) ) {
+                string_input_popup popup;
+                const int64_t new_value = popup
+                                          .title( string_format( _( "Set the value to (in kJ)?  Currently: %s" ),
+                                                  units::display( power_max ) ) )
+                                          .only_digits( true )
+                                          .query_int64_t();
+                if( !popup.canceled() ) {
                     c.set_max_power_level( units::from_kilojoule( new_value ) );
                     c.set_power_level( c.get_power_level() );
                 }
                 break;
             }
             case 4: {
-                int new_value = 0;
-                if( query_int( new_value, _( "Set the value to (in J)?  Currently: %s" ),
-                               units::display( power_max ) ) ) {
+                string_input_popup popup;
+                const int64_t new_value = popup
+                                          .title( string_format( _( "Set the value to (in J)?  Currently: %s" ),
+                                                  units::display( power_max ) ) )
+                                          .only_digits( true )
+                                          .query_int64_t();
+                if( !popup.canceled() ) {
                     c.set_max_power_level( units::from_joule( new_value ) );
                     c.set_power_level( c.get_power_level() );
                 }
                 break;
             }
             case 5: {
-                int new_value = 0;
-                if( query_int( new_value, _( "Set the value to (in kJ)?  Currently: %s" ),
-                               units::display( power_level ) ) ) {
+                string_input_popup popup;
+                const int64_t new_value = popup
+                                          .title( string_format( _( "Set the value to (in kJ)?  Currently: %s" ),
+                                                  units::display( power_level ) ) )
+                                          .only_digits( true )
+                                          .query_int64_t();
+                if( !popup.canceled() ) {
                     c.set_power_level( units::from_kilojoule( new_value ) );
                 }
                 break;
             }
             case 6: {
-                int new_value = 0;
-                if( query_int( new_value, _( "Set the value to (in J)?  Currently: %s" ),
-                               units::display( power_level ) ) ) {
+                string_input_popup popup;
+                const int64_t new_value = popup
+                                          .title( string_format( _( "Set the value to (in J)?  Currently: %s" ),
+                                                  units::display( power_level ) ) )
+                                          .only_digits( true )
+                                          .query_int64_t();
+                if( !popup.canceled() ) {
                     c.set_power_level( units::from_joule( new_value ) );
                 }
                 break;
@@ -542,8 +555,9 @@ class wish_monster_callback: public uilist_callback
             if( valid_entnum ) {
                 tmp->print_info( w_info, 2, 5, 1 );
 
-                std::string header = string_format( "#%d: %s (%d)%s", entnum, tmp->type->nname(),
-                                                    group, hallucination ? _( " (hallucination)" ) : "" );
+                std::string header = string_format( "#%d: %s (%d)%s%s", entnum, tmp->type->nname(),
+                                                    group, friendly ? _( " (friendly)" ) : "",
+                                                    hallucination ? _( " (hallucination)" ) : "" );
                 mvwprintz( w_info, point( ( getmaxx( w_info ) - utf8_width( header ) ) / 2, 0 ), c_cyan, header );
             }
 
@@ -697,14 +711,14 @@ class wish_item_callback: public uilist_callback
         }
 };
 
-void debug_menu::wishitem( player *p )
+void debug_menu::wishitem( Character *who )
 {
-    wishitem( p, tripoint( -1, -1, -1 ) );
+    wishitem( who, tripoint( -1, -1, -1 ) );
 }
 
-void debug_menu::wishitem( player *p, const tripoint &pos )
+void debug_menu::wishitem( Character *who, const tripoint &pos )
 {
-    if( p == nullptr && pos.x <= 0 ) {
+    if( who == nullptr && pos.x <= 0 ) {
         debugmsg( "game::wishitem(): invalid parameters" );
         return;
     }
@@ -717,9 +731,9 @@ void debug_menu::wishitem( player *p, const tripoint &pos )
         }
         opts.emplace_back( it->tname( 1, false ), i );
     }
-    std::sort( opts.begin(), opts.end(), localized_compare );
+    std::ranges::sort( opts, localized_compare );
     std::vector<const itype *> itypes;
-    std::transform( opts.begin(), opts.end(), std::back_inserter( itypes ),
+    std::ranges::transform( opts, std::back_inserter( itypes ),
     []( const auto & pair ) {
         return pair.second;
     } );
@@ -772,7 +786,7 @@ void debug_menu::wishitem( player *p, const tripoint &pos )
             granted->set_birthday( calendar::turn );
             prev_amount = amount;
             bool canceled = false;
-            if( p != nullptr && !did_amount_prompt ) {
+            if( who != nullptr && !did_amount_prompt ) {
                 string_input_popup popup;
                 if( cb.spawn_everything ) {
                     popup.title( _( "How many of each?" ) );
@@ -792,18 +806,18 @@ void debug_menu::wishitem( player *p, const tripoint &pos )
             }
             if( !canceled ) {
                 did_amount_prompt = true;
-                if( p != nullptr ) {
+                if( who != nullptr ) {
                     if( granted->count_by_charges() ) {
                         if( amount > 0 ) {
                             granted->charges = amount;
-                            p->i_add_or_drop( item::spawn( *granted ) );
+                            who->i_add_or_drop( item::spawn( *granted ) );
                         }
                     } else {
                         for( int i = 0; i < amount; i++ ) {
-                            p->i_add_or_drop( item::spawn( *granted ) );
+                            who->i_add_or_drop( item::spawn( *granted ) );
                         }
                     }
-                    p->invalidate_crafting_inventory();
+                    who->invalidate_crafting_inventory();
                 } else if( pos.x >= 0 && pos.y >= 0 ) {
                     g->m.add_item_or_charges( pos, item::spawn( *granted ) );
                     wmenu.ret = -1;
@@ -830,7 +844,7 @@ void debug_menu::wishitem( player *p, const tripoint &pos )
 /*
  * Set skill on any player object; player character or NPC
  */
-void debug_menu::wishskill( player *p )
+void debug_menu::wishskill( Character *who )
 {
     const int skoffset = 1;
     uilist skmenu;
@@ -846,7 +860,7 @@ void debug_menu::wishskill( player *p )
     origskills.reserve( sorted_skills.size() );
 
     for( const auto &s : sorted_skills ) {
-        const int level = p->get_skill_level( s->ident() );
+        const int level = who->get_skill_level( s->ident() );
         skmenu.addentry( origskills.size() + skoffset, true, -2, _( "@ %d: %s  " ), level,
                          s->name() );
         origskills.push_back( level );
@@ -863,7 +877,7 @@ void debug_menu::wishskill( player *p )
                                               skmenu.keypress == KEY_RIGHT ) ) {
             if( sksel >= 0 && sksel < static_cast<int>( sorted_skills.size() ) ) {
                 skill_id = sksel;
-                skset = p->get_skill_level( sorted_skills[skill_id]->ident() ) +
+                skset = who->get_skill_level( sorted_skills[skill_id]->ident() ) +
                         ( skmenu.keypress == KEY_LEFT ? -1 : 1 );
             }
         } else if( skmenu.ret >= 0 && sksel >= 0 &&
@@ -880,7 +894,7 @@ void debug_menu::wishskill( player *p )
                 return std::max( 0, skmenu.w_y + ( skmenu.w_height - height ) / 2 );
             };
             sksetmenu.settext( string_format( _( "Set '%s' to…" ), skill.name() ) );
-            const int skcur = p->get_skill_level( skill.ident() );
+            const int skcur = who->get_skill_level( skill.ident() );
             sksetmenu.selected = skcur;
             for( int i = 0; i < NUM_SKILL_LVL; i++ ) {
                 sksetmenu.addentry( i, true, i + 48, "%d%s", i, skcur == i ? _( " (current)" ) : "" );
@@ -891,15 +905,15 @@ void debug_menu::wishskill( player *p )
 
         if( skill_id >= 0 && skset >= 0 ) {
             const Skill &skill = *sorted_skills[skill_id];
-            p->set_skill_level( skill.ident(), skset );
+            who->set_skill_level( skill.ident(), skset );
             skmenu.textformatted[0] = string_format( _( "%s set to %d             " ),
                                       skill.name(),
-                                      p->get_skill_level( skill.ident() ) ).substr( 0, skmenu.w_width - 4 );
+                                      who->get_skill_level( skill.ident() ) ).substr( 0, skmenu.w_width - 4 );
             skmenu.entries[skill_id + skoffset].txt = string_format( _( "@ %d: %s  " ),
-                    p->get_skill_level( skill.ident() ),
+                    who->get_skill_level( skill.ident() ),
                     skill.name() );
             skmenu.entries[skill_id + skoffset].text_color =
-                p->get_skill_level( skill.ident() ) == origskills[skill_id] ?
+                who->get_skill_level( skill.ident() ) == origskills[skill_id] ?
                 skmenu.text_color : c_yellow;
         } else if( skmenu.ret == 0 && sksel == -1 ) {
             const int ret = uilist( _( "Alter all skill values" ), {
@@ -917,15 +931,15 @@ void debug_menu::wishskill( player *p )
                 }
                 for( size_t skill_id = 0; skill_id < sorted_skills.size(); skill_id++ ) {
                     const Skill &skill = *sorted_skills[skill_id];
-                    int changeto = skmod != 0 ? p->get_skill_level( skill.ident() ) + skmod :
+                    int changeto = skmod != 0 ? who->get_skill_level( skill.ident() ) + skmod :
                                    skset != -1 ? skset : origskills[skill_id];
-                    p->set_skill_level( skill.ident(), std::max( 0, changeto ) );
+                    who->set_skill_level( skill.ident(), std::max( 0, changeto ) );
                     skmenu.entries[skill_id + skoffset].txt = string_format( _( "@ %d: %s  " ),
-                            p->get_skill_level( skill.ident() ),
+                            who->get_skill_level( skill.ident() ),
                             skill.name() );
-                    p->get_skill_level_object( skill.ident() ).practice();
+                    who->get_skill_level_object( skill.ident() ).practice();
                     skmenu.entries[skill_id + skoffset].text_color =
-                        p->get_skill_level( skill.ident() ) == origskills[skill_id] ? skmenu.text_color : c_yellow;
+                        who->get_skill_level( skill.ident() ) == origskills[skill_id] ? skmenu.text_color : c_yellow;
                 }
             }
         }

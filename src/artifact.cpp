@@ -27,6 +27,7 @@
 #include "type_id.h"
 #include "units.h"
 #include "value_ptr.h"
+#include "world.h"
 
 template<typename V, typename B>
 inline units::quantity<V, B> rng( const units::quantity<V, B> &min,
@@ -590,6 +591,20 @@ static const std::array<std::string, 20> artifact_noun = { {
     }
 };
 std::string artifact_name( const std::string &type );
+
+namespace
+{
+
+auto set_artifact_origin( itype &def ) -> void
+{
+    if( !def.src.empty() ) {
+        return;
+    }
+    def.src.emplace_back( def.get_id(), mod_id( "bn" ) );
+}
+
+} // namespace
+
 //Dreams for each charge req
 static const std::array<artifact_dream_datum, NUM_ACRS> artifact_dream_data = { {
         {   {translate_marker( "The %s is somehow vaguely dissatisfied even though it doesn't want anything.  Seeing this is a bug!" )},
@@ -623,6 +638,7 @@ it_artifact_tool::it_artifact_tool()
     tool = cata::make_value<islot_tool>();
     artifact = cata::make_value<islot_artifact>();
     id = item_controller->create_artifact_id();
+    set_artifact_origin( *this );
     price = 0_cent;
     tool->charges_per_use = 1;
     artifact->charge_type = ARTC_NULL;
@@ -640,6 +656,7 @@ it_artifact_tool::it_artifact_tool( const JsonObject &jo )
     artifact = cata::make_value<islot_artifact>();
     use_methods.emplace( "ARTIFACT", use_function( "ARTIFACT", &iuse::artifact ) );
     deserialize( jo );
+    set_artifact_origin( *this );
 }
 
 it_artifact_armor::it_artifact_armor()
@@ -647,6 +664,7 @@ it_artifact_armor::it_artifact_armor()
     armor = cata::make_value<islot_armor>();
     artifact = cata::make_value<islot_artifact>();
     id = item_controller->create_artifact_id();
+    set_artifact_origin( *this );
     price = 0_cent;
 }
 
@@ -655,6 +673,7 @@ it_artifact_armor::it_artifact_armor( const JsonObject &jo )
     armor = cata::make_value<islot_armor>();
     artifact = cata::make_value<islot_artifact>();
     deserialize( jo );
+    set_artifact_origin( *this );
 }
 
 void it_artifact_tool::create_name( const std::string &type )
@@ -1086,9 +1105,9 @@ std::string artifact_name( const std::string &type )
 
 /* Json Loading and saving */
 
-void load_artifacts( const std::string &path )
+void load_artifacts( const world *world, const std::string &path )
 {
-    read_from_file_optional_json( path, []( JsonIn & artifact_json ) {
+    world->read_from_file_json( path, []( JsonIn & artifact_json ) {
         artifact_json.start_array();
         while( !artifact_json.end_array() ) {
             JsonObject jo = artifact_json.get_object();
@@ -1101,7 +1120,7 @@ void load_artifacts( const std::string &path )
                 jo.throw_error( "unrecognized artifact type.", "type" );
             }
         }
-    } );
+    }, true );
 }
 
 void it_artifact_tool::deserialize( const JsonObject &jo )
@@ -1266,9 +1285,9 @@ void it_artifact_armor::deserialize( const JsonObject &jo )
     }
 }
 
-bool save_artifacts( const std::string &path )
+bool save_artifacts( const world *world, const std::string &path )
 {
-    return write_to_file( path, [&]( std::ostream & fout ) {
+    return world->write_to_file( path, [&]( std::ostream & fout ) {
         JsonOut json( fout, true );
         json.start_array();
         // We only want runtime types, otherwise static artifacts are loaded twice (on init and then on game load)
@@ -1546,6 +1565,37 @@ std::string enum_to_string<art_charge_req>( art_charge_req data )
             break;
     }
     debugmsg( "Invalid ACR" );
+    abort();
+}
+
+template<>
+std::string enum_to_string<artifact_natural_property>( artifact_natural_property data )
+{
+    switch( data ) {
+        // *INDENT-OFF*
+        PAIR( ARTPROP_NULL )
+        PAIR( ARTPROP_WRIGGLING )
+        PAIR( ARTPROP_GLOWING )
+        PAIR( ARTPROP_HUMMING )
+        PAIR( ARTPROP_MOVING )
+        PAIR( ARTPROP_WHISPERING )
+        PAIR( ARTPROP_BREATHING )
+        PAIR( ARTPROP_DEAD )
+        PAIR( ARTPROP_ITCHY )
+        PAIR( ARTPROP_GLITTERING )
+        PAIR( ARTPROP_ELECTRIC )
+        PAIR( ARTPROP_SLIMY )
+        PAIR( ARTPROP_ENGRAVED )
+        PAIR( ARTPROP_CRACKLING )
+        PAIR( ARTPROP_WARM )
+        PAIR( ARTPROP_RATTLING )
+        PAIR( ARTPROP_SCALED )
+        PAIR( ARTPROP_FRACTAL )
+        // *INDENT-ON*
+        case ARTPROP_MAX:
+            break;
+    }
+    debugmsg( "Invalid ARTPROP" );
     abort();
 }
 #undef PAIR

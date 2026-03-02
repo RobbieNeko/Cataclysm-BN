@@ -9,7 +9,7 @@
     "move_cost": 2,
     "flags": [ "TRANSPARENT", "FLAMMABLE_ASH", "GOES_DOWN", "INDOORS", "PLACE_ITEM" ],
     "bash": {
-      "str_min": 10,
+      "str_min": 40,
       "str_max": 70,
       "sound": "crunch!",
       "sound_fail": "whump!",
@@ -36,7 +36,7 @@
       "items": [ { "item": "nail", "charges": [ 12, 20 ] }, { "item": "2x4", "count": [ 2, 6 ] } ]
     },
     "bash": {
-      "str_min": 10,
+      "str_min": 20,
       "str_max": 70,
       "sound": "crunch!",
       "sound_fail": "whump!",
@@ -58,7 +58,7 @@
     "move_cost": 2,
     "flags": [ "TRANSPARENT", "FLAMMABLE_ASH", "PLACE_ITEM" ],
     "bash": {
-      "str_min": 8,
+      "str_min": 20,
       "str_max": 110,
       "sound": "crunch!",
       "sound_fail": "whump!",
@@ -90,7 +90,7 @@
       ]
     },
     "bash": {
-      "str_min": 12,
+      "str_min": 40,
       "str_max": 150,
       "sound": "crunch!",
       "sound_fail": "whump!",
@@ -127,6 +127,18 @@
   },
   {
     "type": "terrain",
+    "id": "t_stairs_down_underwater",
+    "name": "underwater stairs",
+    "looks_like": "t_stairs_down",
+    "description": "A flight of stairs leading down.",
+    "symbol": ">",
+    "color": "yellow",
+    "move_cost": 2,
+    "roof": "t_flat_roof",
+    "flags": [ "TRANSPARENT", "LIQUID", "DEEP_WATER", "GOES_DOWN", "PLACE_ITEM", "WATER_CUBE" ]
+  },
+  {
+    "type": "terrain",
     "id": "t_stairs_up",
     "name": "stairs",
     "description": "A flight of stairs leading up.",
@@ -134,6 +146,17 @@
     "color": "yellow",
     "move_cost": 2,
     "flags": [ "TRANSPARENT", "GOES_UP", "INDOORS", "PLACE_ITEM" ]
+  },
+  {
+    "type": "terrain",
+    "id": "t_stairs_up_underwater",
+    "looks_like": "t_stairs_up",
+    "name": "underwater stairs",
+    "description": "A flight of stairs leading up.",
+    "symbol": "<",
+    "color": "yellow",
+    "move_cost": 2,
+    "flags": [ "TRANSPARENT", "LIQUID", "DEEP_WATER", "GOES_UP", "PLACE_ITEM", "WATER_CUBE" ]
   },
   {
     "type": "terrain",
@@ -174,7 +197,7 @@
     "move_cost": 2,
     "flags": [ "TRANSPARENT", "GOES_UP", "GOES_DOWN", "PLACE_ITEM", "DIFFICULT_Z" ],
     "bash": {
-      "str_min": 25,
+      "str_min": 45,
       "str_max": 150,
       "sound": "metal screeching!",
       "sound_fail": "clang!",
@@ -192,7 +215,7 @@
     "move_cost": 2,
     "flags": [ "TRANSPARENT", "GOES_UP", "PLACE_ITEM", "DIFFICULT_Z" ],
     "bash": {
-      "str_min": 25,
+      "str_min": 45,
       "str_max": 150,
       "sound": "metal screeching!",
       "sound_fail": "clang!",
@@ -210,7 +233,7 @@
     "move_cost": 2,
     "flags": [ "TRANSPARENT", "GOES_DOWN", "PLACE_ITEM", "DIFFICULT_Z" ],
     "bash": {
-      "str_min": 25,
+      "str_min": 45,
       "str_max": 150,
       "sound": "metal screeching!",
       "sound_fail": "clang!",
@@ -310,6 +333,15 @@
   },
   {
     "type": "terrain",
+    "id": "t_slope_down_underground",
+    "copy-from": "t_slope_down",
+    "symbol": ">",
+    "color": "brown",
+    "roof": "t_rock_roof",
+    "extend": { "flags": [ "INDOORS" ] }
+  },
+  {
+    "type": "terrain",
     "id": "t_slope_up",
     "name": "upward slope",
     "description": "An upward facing slope.",
@@ -338,7 +370,7 @@
     "move_cost": 4,
     "flags": [ "TRANSPARENT", "BASHABLE", "FLAMMABLE", "PLACE_ITEM", "RAMP", "SEEN_FROM_ABOVE" ],
     "bash": {
-      "str_min": 12,
+      "str_min": 32,
       "str_max": 50,
       "sound": "crunch!",
       "sound_fail": "whump!",
@@ -360,7 +392,7 @@
     "move_cost": 0,
     "flags": [ "BASHABLE", "FLAMMABLE", "PLACE_ITEM", "RAMP", "RAMP_END", "SEEN_FROM_ABOVE" ],
     "bash": {
-      "str_min": 20,
+      "str_min": 32,
       "str_max": 50,
       "sound": "crunch!",
       "sound_fail": "whump!",
@@ -415,5 +447,48 @@
     "looks_like": "t_railroad_track",
     "move_cost": 2,
     "flags": [ "TRANSPARENT", "RAIL", "ROAD" ]
+  },
+  {
+    "type": "terrain",
+    "id": "t_concrete_ramp_down_high",
+    "name": "concrete ramp down (high end)",
+    "connects_to": "PAVEMENT",
+    "description": "The upper end of a concrete ramp leading down.",
+    "symbol": ">",
+    "color": "light_gray",
+    "move_cost": 2,
+    "flags": [ "TRANSPARENT", "ROAD", "Z_TRANSPARENT" ]
+  },
+  {
+    "type": "terrain",
+    "id": "t_concrete_ramp_down_low",
+    "name": "concrete ramp down (low end)",
+    "connects_to": "WALL",
+    "description": "The lower end of a concrete ramp leading down.",
+    "symbol": ">",
+    "color": "light_gray",
+    "move_cost": 2,
+    "flags": [ "TRANSPARENT", "ROAD", "RAMP_DOWN", "Z_TRANSPARENT" ]
+  },
+  {
+    "type": "terrain",
+    "id": "t_concrete_ramp_up_high",
+    "name": "concrete ramp up (high end)",
+    "connects_to": "WALL",
+    "description": "The upper end of a concrete ramp leading up.",
+    "symbol": "<",
+    "color": "light_gray",
+    "move_cost": 2,
+    "flags": [ "ROAD", "RAMP_UP" ]
+  },
+  {
+    "type": "terrain",
+    "id": "t_concrete_ramp_up_low",
+    "name": "concrete ramp up (low end)",
+    "description": "The lower end of a concrete ramp leading up.",
+    "symbol": "<",
+    "color": "light_gray",
+    "move_cost": 2,
+    "flags": [ "TRANSPARENT", "ROAD" ]
   }
 ]

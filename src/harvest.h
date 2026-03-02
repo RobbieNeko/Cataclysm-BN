@@ -1,6 +1,4 @@
 #pragma once
-#ifndef CATA_SRC_HARVEST_H
-#define CATA_SRC_HARVEST_H
 
 #include <list>
 #include <map>
@@ -26,6 +24,8 @@ struct harvest_entry {
     int max = 1000;
     std::string type = "null";
     float mass_ratio = 0.00f;
+
+    bool no_auto_pickup = false;
 
     static harvest_entry load( const JsonObject &jo, const std::string &src );
 
@@ -93,4 +93,4 @@ class harvest_list
         void finalize();
 };
 
-#endif // CATA_SRC_HARVEST_H
+

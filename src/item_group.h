@@ -1,6 +1,4 @@
 #pragma once
-#ifndef CATA_SRC_ITEM_GROUP_H
-#define CATA_SRC_ITEM_GROUP_H
 
 #include <memory>
 #include <optional>
@@ -49,6 +47,7 @@ using ItemList = std::vector<item *>;
  */
 std::vector<detached_ptr<item>> items_from( const item_group_id &group_id,
                              const time_point &birthday );
+
 /**
  * Same as above but with implicit birthday at turn 0.
  */
@@ -296,6 +295,8 @@ class Item_group : public Item_spawn_data
         detached_ptr<item> create_single( const time_point &birthday, RecursionList &rec ) const override;
         void check_consistency( const std::string &context ) const override;
         bool remove_item( const itype_id &itemid ) override;
+        bool remove_specific_item( const std::string &itemid );
+        bool remove_specific_group( const std::string &itemid );
         bool replace_item( const itype_id &itemid, const itype_id &replacementid ) override;
         bool has_item( const itype_id &itemid ) const override;
         std::set<const itype *> every_item() const override;
@@ -328,4 +329,4 @@ class Item_group : public Item_spawn_data
         prop_list items;
 };
 
-#endif // CATA_SRC_ITEM_GROUP_H
+

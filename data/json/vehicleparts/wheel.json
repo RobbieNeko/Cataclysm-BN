@@ -129,6 +129,7 @@
     "description": "A pair of small rail wheels.  It performs well when riding on a pair of small rails.  It performs terribly when not on a rail.  Moreover, you can't steer it.",
     "damage_modifier": 50,
     "breaks_into": [ { "item": "scrap", "count": [ 2, 3 ] }, { "item": "steel_chunk", "count": [ 1, 2 ] } ],
+    "extend": { "flags": [ "SHOCK_RESISTANT" ] },
     "damage_reduction": { "all": 60 }
   },
   {
@@ -256,7 +257,7 @@
       "removal": { "skills": [ [ "mechanics", 0 ] ], "time": "15 m", "qualities": [ { "id": "WRENCH", "level": 1 } ] },
       "repair": { "skills": [ [ "mechanics", 2 ] ], "time": "15 m", "using": [ [ "adhesive", 1 ], [ "tire_repair", 1 ] ] }
     },
-    "flags": [ "WHEEL", "NEEDS_JACKING", "STABLE", "STEERABLE", "FOLDABLE", "NEEDS_WHEEL_MOUNT_LIGHT" ],
+    "flags": [ "WHEEL", "NEEDS_JACKING", "STABLE", "STEERABLE", "FOLDABLE", "NEEDS_WHEEL_MOUNT_LIGHT", "SHOCK_RESISTANT" ],
     "damage_reduction": { "bash": 10 }
   },
   {
@@ -286,7 +287,7 @@
       "removal": { "skills": [ [ "mechanics", 0 ] ], "time": "15 m", "qualities": [ { "id": "WRENCH", "level": 1 } ] },
       "repair": { "skills": [ [ "mechanics", 2 ] ], "time": "15 m", "using": [ [ "adhesive", 1 ], [ "tire_repair", 1 ] ] }
     },
-    "flags": [ "WHEEL", "NEEDS_JACKING", "FOLDABLE", "NEEDS_WHEEL_MOUNT_LIGHT" ],
+    "flags": [ "WHEEL", "NEEDS_JACKING", "FOLDABLE", "NEEDS_WHEEL_MOUNT_LIGHT", "SHOCK_RESISTANT" ],
     "damage_reduction": { "bash": 6 }
   },
   {
@@ -348,7 +349,56 @@
       "removal": { "skills": [ [ "mechanics", 0 ] ], "time": "15 m", "qualities": [ { "id": "WRENCH", "level": 1 } ] },
       "repair": { "skills": [ [ "mechanics", 2 ] ], "time": "15 m", "using": [ [ "adhesive", 1 ], [ "plastics", 1 ] ] }
     },
-    "flags": [ "WHEEL", "NEEDS_JACKING", "STABLE", "FOLDABLE", "STEERABLE" ]
+    "flags": [ "WHEEL", "NEEDS_JACKING", "STABLE", "FOLDABLE", "STEERABLE", "SHOCK_RESISTANT" ]
+  },
+  {
+    "id": "wheel_skateboard",
+    "type": "vehicle_part",
+    "name": { "str": "skateboard wheels" },
+    "item": "wheel_skateboard",
+    "location": "under",
+    "color": "dark_gray",
+    "symbol": "o",
+    "broken_symbol": "x",
+    "durability": 70,
+    "description": "A set of four small wheels, for a skateboard.",
+    "damage_modifier": 50,
+    "folded_volume": "1250 ml",
+    "wheel_type": "standard",
+    "contact_area": 4,
+    "requirements": {
+      "removal": { "skills": [ [ "mechanics", 0 ] ], "time": "1 m", "qualities": [ { "id": "WRENCH", "level": 2 } ] },
+      "install": { "skills": [ [ "mechanics", 0 ] ], "time": "1 m", "qualities": [ { "id": "WRENCH", "level": 2 } ] }
+    },
+    "flags": [ "WHEEL", "NEEDS_WHEEL_MOUNT_SKATEBOARD", "STABLE", "STEERABLE", "SHOCK_RESISTANT", "FOLDABLE" ]
+  },
+  {
+    "id": "wheel_mount_skateboard",
+    "type": "vehicle_part",
+    "name": { "str": "skateboard trucks" },
+    "item": "wheel_mount_skateboard",
+    "location": "axle",
+    "symbol": "-",
+    "broken_symbol": "x",
+    "damage_modifier": 80,
+    "folded_volume": "200 ml",
+    "durability": 120,
+    "description": "A pair of skateboard trucks, for attaching wheels to.",
+    "flags": [ "WHEEL_MOUNT_SKATEBOARD" ],
+    "requirements": {
+      "removal": {
+        "skills": [ [ "mechanics", 0 ] ],
+        "time": "3 m",
+        "qualities": [ { "id": "WRENCH", "level": 2 }, { "id": "SCREW", "level": 1 } ]
+      },
+      "install": {
+        "skills": [ [ "mechanics", 0 ] ],
+        "time": "3 m",
+        "qualities": [ { "id": "WRENCH", "level": 2 }, { "id": "SCREW", "level": 1 } ]
+      }
+    },
+    "breaks_into": [ { "item": "scrap", "count": [ 0, 1 ] } ],
+    "damage_reduction": { "all": 10 }
   },
   {
     "id": "wheel_10",
@@ -376,7 +426,7 @@
       "removal": { "skills": [ [ "mechanics", 0 ] ], "time": "15 m", "using": [ [ "vehicle_bolt", 1 ] ] },
       "repair": { "skills": [ [ "mechanics", 2 ] ], "time": "15 m", "using": [ [ "adhesive", 1 ], [ "tire_repair", 1 ] ] }
     },
-    "flags": [ "WHEEL", "NEEDS_JACKING", "STABLE", "FOLDABLE", "STEERABLE" ]
+    "flags": [ "WHEEL", "NEEDS_JACKING", "STABLE", "FOLDABLE", "STEERABLE", "SHOCK_RESISTANT" ]
   },
   {
     "abstract": "wheel_motorbike_abstract",
@@ -405,7 +455,7 @@
       "removal": { "skills": [ [ "mechanics", 0 ] ], "time": "15 m", "qualities": [ { "id": "WRENCH", "level": 1 } ] },
       "repair": { "skills": [ [ "mechanics", 2 ] ], "time": "15 m", "using": [ [ "adhesive", 1 ], [ "tire_repair", 1 ] ] }
     },
-    "flags": [ "WHEEL", "NEEDS_JACKING", "NEEDS_WHEEL_MOUNT_LIGHT" ],
+    "flags": [ "WHEEL", "NEEDS_JACKING", "NEEDS_WHEEL_MOUNT_LIGHT", "SHOCK_RESISTANT" ],
     "damage_reduction": { "bash": 10 }
   },
   {
@@ -469,7 +519,7 @@
       "removal": { "skills": [ [ "mechanics", 0 ] ], "time": "15 m", "qualities": [ { "id": "WRENCH", "level": 1 } ] },
       "repair": { "skills": [ [ "mechanics", 2 ] ], "time": "15 m", "using": [ [ "adhesive", 1 ], [ "tire_repair", 1 ] ] }
     },
-    "flags": [ "WHEEL", "FOLDABLE", "NEEDS_WHEEL_MOUNT_LIGHT" ]
+    "flags": [ "WHEEL", "FOLDABLE", "NEEDS_WHEEL_MOUNT_LIGHT", "SHOCK_RESISTANT" ]
   },
   {
     "id": "wheel_tricycle",
@@ -492,7 +542,7 @@
     "rolling_resistance": 10,
     "wheel_type": "standard",
     "contact_area": 10,
-    "flags": [ "STABLE", "STEERABLE", "WHEEL", "NEEDS_JACKING" ],
+    "flags": [ "STABLE", "STEERABLE", "WHEEL", "NEEDS_JACKING", "SHOCK_RESISTANT" ],
     "damage_reduction": { "bash": 8 }
   },
   {
@@ -523,7 +573,7 @@
       "removal": { "skills": [ [ "mechanics", 0 ] ], "time": "15 m", "qualities": [ { "id": "WRENCH", "level": 1 } ] },
       "repair": { "skills": [ [ "mechanics", 2 ] ], "time": "15 m", "using": [ [ "adhesive", 1 ], [ "tire_repair", 1 ] ] }
     },
-    "flags": [ "WHEEL", "NEEDS_JACKING", "STABLE", "FOLDABLE", "STEERABLE", "NEEDS_WHEEL_MOUNT_LIGHT" ],
+    "flags": [ "WHEEL", "NEEDS_JACKING", "STABLE", "FOLDABLE", "STEERABLE", "NEEDS_WHEEL_MOUNT_LIGHT", "SHOCK_RESISTANT" ],
     "damage_reduction": { "bash": 8 }
   },
   {
@@ -554,7 +604,7 @@
       "removal": { "skills": [ [ "mechanics", 0 ] ], "time": "15 m", "qualities": [ { "id": "WRENCH", "level": 1 } ] },
       "repair": { "skills": [ [ "mechanics", 2 ] ], "time": "15 m", "using": [ [ "adhesive", 1 ], [ "tire_repair", 1 ] ] }
     },
-    "flags": [ "WHEEL", "NEEDS_JACKING", "STABLE", "FOLDABLE", "STEERABLE", "NEEDS_WHEEL_MOUNT_LIGHT" ],
+    "flags": [ "WHEEL", "NEEDS_JACKING", "STABLE", "FOLDABLE", "STEERABLE", "NEEDS_WHEEL_MOUNT_LIGHT", "SHOCK_RESISTANT" ],
     "damage_reduction": { "bash": 6 }
   },
   {
@@ -614,7 +664,11 @@
     "requirements": {
       "install": { "skills": [ [ "mechanics", 0 ] ], "time": "5 m", "qualities": [ { "id": "WRENCH", "level": 1 } ] },
       "removal": { "skills": [ [ "mechanics", 0 ] ], "time": "5 m", "qualities": [ { "id": "SAW_W", "level": 1 } ] },
-      "repair": { "skills": [ [ "mechanics", 2 ] ], "time": "50 s", "using": [ [ "adhesive", 1 ], [ "wood_structural_small", 1 ] ] }
+      "repair": {
+        "skills": [ [ "mechanics", 2 ] ],
+        "time": "50 s",
+        "using": [ [ "nail_any_adhesive", 1 ], [ "wood_structural_small", 1 ] ]
+      }
     },
     "rolling_resistance": 2.15,
     "wheel_type": "rigid",
@@ -674,14 +728,18 @@
     "durability": 25,
     "damage_modifier": 50,
     "folded_volume": "2500 ml",
-    "flags": [ "WHEEL", "STABLE", "FOLDABLE" ],
+    "flags": [ "WHEEL", "STABLE", "FOLDABLE", "SHOCK_RESISTANT" ],
     "wheel_type": "rigid",
     "contact_area": 50,
     "breaks_into": [ { "item": "splinter", "count": [ 3, 6 ] } ],
     "requirements": {
       "install": { "skills": [ [ "survival", 0 ] ], "time": "15 m", "using": [ [ "nail_glue", 1 ] ] },
       "removal": { "skills": [ [ "survival", 0 ] ], "time": "10 m" },
-      "repair": { "skills": [ [ "survival", 1 ] ], "time": "15 m", "using": [ [ "adhesive", 1 ], [ "vehicle_repair_small_wood", 2 ] ] }
+      "repair": {
+        "skills": [ [ "survival", 1 ] ],
+        "time": "15 m",
+        "using": [ [ "nail_any_adhesive", 1 ], [ "vehicle_repair_small_wood", 2 ] ]
+      }
     },
     "damage_reduction": { "all": 8 }
   }

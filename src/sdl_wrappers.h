@@ -1,6 +1,4 @@
 #pragma once
-#ifndef CATA_SRC_SDL_WRAPPERS_H
-#define CATA_SRC_SDL_WRAPPERS_H
 
 #if defined(TILES)
 
@@ -51,6 +49,7 @@ struct SDL_Texture_deleter {
     }
 };
 using SDL_Texture_Ptr = std::unique_ptr<SDL_Texture, SDL_Texture_deleter>;
+using SDL_Texture_SharedPtr = std::shared_ptr<SDL_Texture>;
 
 struct SDL_Surface_deleter {
     void operator()( SDL_Surface *const ptr ) {
@@ -144,4 +143,4 @@ inline bool operator!=( const SDL_Rect &lhs, const SDL_Rect &rhs )
 
 #endif // if defined(TILES)
 
-#endif // CATA_SRC_SDL_WRAPPERS_H
+

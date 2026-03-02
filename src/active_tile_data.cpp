@@ -48,6 +48,9 @@ template vehicle_connector_tile *furn_at<vehicle_connector_tile>( const tripoint
 template battery_tile *furn_at<battery_tile>( const tripoint_abs_ms & );
 template steady_consumer_tile *furn_at<steady_consumer_tile>( const tripoint_abs_ms & );
 template charge_watcher_tile *furn_at<charge_watcher_tile>( const tripoint_abs_ms & );
+template countdown_tile *furn_at<countdown_tile>( const tripoint_abs_ms & );
+template charger_tile *furn_at<charger_tile>( const tripoint_abs_ms & );
+template solar_tile *furn_at<solar_tile>( const tripoint_abs_ms & );
 
 void furn_transform::serialize( JsonOut &jsout ) const
 {
@@ -109,6 +112,16 @@ inline int ticks_between( const time_point &from, const time_point &to,
             ( from ) / to_turns<int>( tick_length ) );
 }
 
+namespace
+{
+
+auto compute_solar_energy( int power, float sunlight_input ) -> float
+{
+    return power * ( sunlight_input / default_daylight_level() );
+};
+
+} // namespace
+
 void solar_tile::update_internal( time_point to, const tripoint_abs_ms &p, distribution_grid &grid )
 {
     constexpr time_point zero = time_point::from_turn( 0 );
@@ -127,12 +140,20 @@ void solar_tile::update_internal( time_point to, const tripoint_abs_ms &p, distr
     time_duration rounded_now = ticks_now * tick_turns;
 
     // TODO: Use something that doesn't calc a ton of worthless crap
-    float sunlight = sum_conditions( zero + rounded_then, zero + rounded_now,
-                                     p.raw() ).sunlight / default_daylight_level();
-    // int64 because we can have years in here
-    std::int64_t produced = power * static_cast<std::int64_t>( sunlight ) / 1000;
-    grid.mod_resource( static_cast<int>( std::min( static_cast<std::int64_t>( INT_MAX ), produced ) ) );
+    const auto total_sunlight = sum_conditions( zero + rounded_then, zero + rounded_now,
+                                p.raw() ).sunlight;
+
+    const auto raw_produced = compute_solar_energy( power, total_sunlight );
+    const auto produced = static_cast<int64_t>( raw_produced ) / 1000;
+
+    grid.mod_resource( static_cast<int>( std::min( static_cast<int64_t>( INT_MAX ), produced ) ) );
 }
+
+auto solar_tile::get_power_w() const -> int
+{
+    return static_cast<int>( compute_solar_energy( power, sunlight( calendar::turn ) ) );
+}
+
 
 active_tile_data *solar_tile::clone() const
 {
@@ -376,6 +397,47 @@ void vehicle_connector_tile::load( JsonObject &jo )
     jo.read( "connected_vehicles", connected_vehicles );
 }
 
+void countdown_tile::update_internal( time_point to, const tripoint_abs_ms &p,
+                                      distribution_grid & )
+{
+    if( ticks == -1 ) {
+        ticks = to_turns<int>( timer );
+    }
+    ticks = ticks - ( to_turns<int>( to - calendar::turn_zero ) - to_turns<int>
+                      ( get_last_updated() - calendar::turn_zero ) );
+    if( ticks > 0 ) {
+        return;
+    }
+
+    get_distribution_grid_tracker().get_transform_queue().add( p, transform.id, transform.msg );
+
+}
+
+active_tile_data *countdown_tile::clone() const
+{
+    return new countdown_tile( *this );
+}
+
+const std::string &countdown_tile::get_type() const
+{
+    static const std::string type( "countdown" );
+    return type;
+}
+
+void countdown_tile::store( JsonOut &jsout ) const
+{
+    jsout.member( "timer", timer );
+    jsout.member( "transform", transform );
+    jsout.member( "ticks", ticks );
+}
+
+void countdown_tile::load( JsonObject &jo )
+{
+    jo.read( "timer", timer );
+    jo.read( "transform", transform );
+    jo.read( "ticks", ticks );
+}
+
 static std::map<std::string, std::unique_ptr<active_tile_data>> build_type_map()
 {
     std::map<std::string, std::unique_ptr<active_tile_data>> type_map;
@@ -388,6 +450,7 @@ static std::map<std::string, std::unique_ptr<active_tile_data>> build_type_map()
     add_type( new solar_tile() );
     add_type( new steady_consumer_tile() );
     add_type( new vehicle_connector_tile() );
+    add_type( new countdown_tile() );
     return type_map;
 }
 

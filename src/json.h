@@ -1,6 +1,4 @@
 #pragma once
-#ifndef CATA_SRC_JSON_H
-#define CATA_SRC_JSON_H
 
 #include <array>
 #include <bitset>
@@ -15,6 +13,7 @@
 #include <utility>
 #include <vector>
 #include <optional>
+#include <iomanip>
 
 #include "enum_conversions.h"
 #include "json_source_location.h"
@@ -23,6 +22,7 @@
 #include "detached_ptr.h"
 #include "safe_reference.h"
 #include "cata_arena.h"
+#include "cata_utility.h"
 
 /* Cataclysm-DDA homegrown JSON tools
  * copyright CC-BY-SA-3.0 2013 CleverRaven
@@ -78,11 +78,13 @@ struct key_from_json_string<Enum, std::enable_if_t<std::is_enum_v<Enum>>> {
 };
 
 struct number_sci_notation {
+    uint64_t integral = 0;
+    uint64_t fract = 0;
+
+    int16_t integral_exp = 0;
+    int16_t fract_exp = 0;
+
     bool negative = false;
-    // AKA the significand
-    uint64_t number = 0;
-    // AKA the order of magnitude
-    int64_t exp = 0;
 };
 
 /* JsonIn
@@ -666,6 +668,16 @@ class JsonOut
         void write( T val ) requires std::is_fundamental_v<T> {
             if( need_separator ) {
                 write_separator();
+            }
+            if constexpr( std::is_floating_point_v<T> ) {
+                constexpr auto max_digits = std::numeric_limits<T>::digits10;
+                constexpr auto max_repr = pow10<double, max_digits>();
+                *stream << std::setprecision( max_digits );
+                if( val >= max_repr ) {
+                    *stream << std::scientific ;
+                } else {
+                    *stream << std::fixed ;
+                }
             }
             *stream << val;
             need_separator = true;
@@ -1283,6 +1295,9 @@ class JsonValue
         int get_int() const {
             return seek().get_int();
         }
+        unsigned int get_uint() const {
+            return seek().get_uint();
+        }
         int64_t get_int64() const {
             return seek().get_int64();
         }
@@ -1548,4 +1563,4 @@ void deserialize( std::optional<T> &obj, JsonIn &jsin )
     }
 }
 
-#endif // CATA_SRC_JSON_H
+

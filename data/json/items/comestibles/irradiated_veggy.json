@@ -7,7 +7,7 @@
     "description": "An irradiated head of lettuce will remain edible nearly forever.  Sterilized using radiation, so it's safe to eat.",
     "proportional": { "price": 2 },
     "spoils_in": "0 hours",
-    "container": "bag_plastic"
+    "container": "bag_zipper"
   },
   {
     "type": "COMESTIBLE",
@@ -17,7 +17,7 @@
     "description": "An irradiated head of cabbage will remain edible nearly forever.  Sterilized using radiation, so it's safe to eat.",
     "proportional": { "price": 2 },
     "spoils_in": "0 hours",
-    "container": "bag_plastic"
+    "container": "bag_zipper"
   },
   {
     "type": "COMESTIBLE",
@@ -27,7 +27,7 @@
     "description": "An irradiated tomato will remain edible nearly forever.  Sterilized using radiation, so it's safe to eat.",
     "proportional": { "price": 2 },
     "spoils_in": "0 hours",
-    "container": "bag_plastic"
+    "container": "bag_zipper"
   },
   {
     "type": "COMESTIBLE",
@@ -37,7 +37,7 @@
     "description": "An irradiated cluster of broccoli will remain edible nearly forever.  Sterilized using radiation, so it's safe to eat.",
     "proportional": { "price": 2 },
     "spoils_in": "0 hours",
-    "container": "bag_plastic"
+    "container": "bag_zipper"
   },
   {
     "type": "COMESTIBLE",
@@ -47,7 +47,7 @@
     "description": "An irradiated zucchini will remain edible nearly forever.  Sterilized using radiation, so it's safe to eat.",
     "proportional": { "price": 2 },
     "spoils_in": "0 hours",
-    "container": "bag_plastic"
+    "container": "bag_zipper"
   },
   {
     "type": "COMESTIBLE",
@@ -57,7 +57,7 @@
     "description": "An irradiated onion will remain edible nearly forever.  Sterilized using radiation, so it's safe to eat.",
     "proportional": { "price": 2 },
     "spoils_in": "0 hours",
-    "container": "bag_plastic"
+    "container": "bag_zipper"
   },
   {
     "type": "COMESTIBLE",
@@ -67,7 +67,7 @@
     "description": "An irradiated bundle of carrots will remain edible nearly forever.  Sterilized using radiation, so it's safe to eat.",
     "proportional": { "price": 2 },
     "spoils_in": "0 hours",
-    "container": "bag_plastic"
+    "container": "bag_zipper"
   },
   {
     "type": "COMESTIBLE",
@@ -77,7 +77,7 @@
     "description": "An irradiated ear of corn will remain edible nearly forever.  Sterilized using radiation, so it's safe to eat.",
     "proportional": { "price": 2 },
     "spoils_in": "0 hours",
-    "container": "bag_plastic"
+    "container": "bag_zipper"
   },
   {
     "type": "COMESTIBLE",
@@ -87,7 +87,7 @@
     "description": "An irradiated pumpkin will remain edible nearly forever.  Sterilized using radiation, so it's safe to eat.",
     "proportional": { "price": 2 },
     "spoils_in": "0 hours",
-    "container": "bag_plastic"
+    "container": "bag_zipper"
   },
   {
     "type": "COMESTIBLE",
@@ -97,7 +97,7 @@
     "description": "An irradiated potato will remain edible nearly forever.  Sterilized using radiation, so it's safe to eat.",
     "proportional": { "price": 2 },
     "spoils_in": "0 hours",
-    "container": "bag_plastic"
+    "container": "bag_zipper"
   },
   {
     "type": "COMESTIBLE",
@@ -105,7 +105,7 @@
     "name": "irradiated cucumber",
     "weight": "150 g",
     "color": "green",
-    "container": "bag_plastic",
+    "container": "bag_zipper",
     "comestible_type": "FOOD",
     "symbol": "%",
     "quench": 7,
@@ -114,9 +114,10 @@
     "description": "An irradiated cucumber will remain edible nearly forever.  Sterilized using radiation, so it's safe to eat.",
     "price": "320 cent",
     "price_postapoc": "1 USD",
-    "material": "veggy",
+    "material": [ "veggy" ],
     "flags": [ "SMOKABLE" ],
-    "volume": "250 ml"
+    "volume": "250 ml",
+    "vitamins": [ [ "veggy_allergen", 1 ] ]
   },
   {
     "type": "COMESTIBLE",
@@ -124,7 +125,7 @@
     "name": "irradiated celery",
     "weight": "80 g",
     "color": "light_green",
-    "container": "bag_plastic",
+    "container": "bag_zipper",
     "comestible_type": "FOOD",
     "symbol": "%",
     "quench": 3,
@@ -132,8 +133,9 @@
     "description": "An irradiated cluster of celery will remain edible nearly forever.  Sterilized using radiation, so it's safe to eat.",
     "price": "220 cent",
     "price_postapoc": "50 cent",
-    "material": "veggy",
-    "volume": "250 ml"
+    "material": [ "veggy" ],
+    "volume": "250 ml",
+    "vitamins": [ [ "veggy_allergen", 1 ] ]
   },
   {
     "type": "COMESTIBLE",
@@ -143,6 +145,6 @@
     "description": "An irradiated rhubarb will remain edible nearly forever.  Sterilized using radiation, so it's safe to eat.",
     "proportional": { "price": 2 },
     "spoils_in": "0 hours",
-    "container": "bag_plastic"
+    "container": "bag_zipper"
   }
 ]

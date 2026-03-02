@@ -1,6 +1,4 @@
 #pragma once
-#ifndef CATA_SRC_ANIMATION_H
-#define CATA_SRC_ANIMATION_H
 
 #include <list>
 #include <map>
@@ -60,4 +58,12 @@ bucketed_points optimal_bucketing( const bucketed_points &buckets, size_t max_bu
 bool minimap_requires_animation();
 bool terrain_requires_animation();
 
-#endif // CATA_SRC_ANIMATION_H
+struct draw_sprite_line_options {
+    const tripoint &p;
+    const std::vector<tripoint> &points;
+    /// Sprite for 0 degree angle (↑)
+    std::string sprite;
+    bool rotate = false;
+};
+/// Draw a line of sprites along the given points
+void draw_line_of( const draw_sprite_line_options &options );

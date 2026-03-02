@@ -1,6 +1,4 @@
 #pragma once
-#ifndef CATA_SRC_STRING_FORMATTER_H
-#define CATA_SRC_STRING_FORMATTER_H
 
 #include <cstddef>
 #include <optional>
@@ -394,7 +392,7 @@ class string_formatter
                     const int p = get_nth_arg_as<int, 0>( *precision_argument_index, std::forward<Args>( args )... );
                     current_format += std::to_string( p );
                 }
-                const int arg = format_arg_index ? *format_arg_index : current_argument_index++;
+                const int arg = format_arg_index.value_or( current_argument_index++ );
                 read_conversion( arg, std::forward<Args>( args )... );
             }
         }
@@ -463,4 +461,4 @@ inline void cata_printf( std::string_view format, Args &&...args )
 
 /**@}*/
 
-#endif // CATA_SRC_STRING_FORMATTER_H
+

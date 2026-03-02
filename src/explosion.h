@@ -1,6 +1,4 @@
 #pragma once
-#ifndef CATA_SRC_EXPLOSION_H
-#define CATA_SRC_EXPLOSION_H
 
 #include <optional>
 #include <string>
@@ -15,7 +13,7 @@ struct explosion_data {
     int damage              = 0;
     float radius            = 0;
     bool fire               = false;
-    std::optional<projectile> fragment;
+    std::optional<projectile> fragment = std::nullopt;
 
     /** Returns the range at which blast damage is 0 and shrapnel is out of range. */
     int safe_range() const;
@@ -66,4 +64,4 @@ float blast_radius_from_legacy( int power, float distance_factor );
 
 explosion_data load_explosion_data( const JsonObject &jo );
 
-#endif // CATA_SRC_EXPLOSION_H
+

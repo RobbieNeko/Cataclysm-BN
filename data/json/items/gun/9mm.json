@@ -28,7 +28,7 @@
     "description": "The Calico M960 is an automatic carbine with a unique circular magazine that allows for high capacities and reduced recoil.",
     "weight": "2270 g",
     "volume": "1 L",
-    "barrel_length": "100 ml",
+    "barrel_volume": "100 ml",
     "price": "2400 USD",
     "price_postapoc": "50 USD",
     "to_hit": -2,
@@ -58,12 +58,13 @@
     "material": [ "steel", "plastic" ],
     "color": "dark_gray",
     "ammo": "9mm",
+    "handling": 30,
     "range": 20,
     "ranged_damage": { "damage_type": "bullet", "amount": 2 },
     "dispersion": 180,
     "durability": 10,
     "min_cycle_recoil": 450,
-    "barrel_length": "250 ml",
+    "barrel_volume": "250 ml",
     "magazine_well": "250 ml",
     "magazines": [ [ "9mm", [ "m9bigmag", "m9mag" ] ] ]
   },
@@ -84,10 +85,23 @@
     "ammo": "9mm",
     "ranged_damage": { "damage_type": "bullet", "amount": -1 },
     "durability": 6,
-    "blackpowder_tolerance": 48,
+    "blackpowder_tolerance": 24,
     "min_cycle_recoil": 380,
     "magazine_well": "250 ml",
-    "magazines": [ [ "9mm", [ "glockmag", "glockbigmag", "glock17_17", "glock17_22", "glock_drum_50rd", "glock_drum_100rd" ] ] ]
+    "magazines": [
+      [
+        "9mm",
+        [
+          "glockmag",
+          "glockbigmag",
+          "glock17_17",
+          "glock17_22",
+          "glock_drum_50rd",
+          "glock_drum_100rd",
+          "kriss_vector_9mm_mag"
+        ]
+      ]
+    ]
   },
   {
     "id": "hk_mp5",
@@ -107,7 +121,7 @@
     "ranged_damage": { "damage_type": "bullet", "amount": 1 },
     "dispersion": 240,
     "min_cycle_recoil": 450,
-    "blackpowder_tolerance": 32,
+    "blackpowder_tolerance": 24,
     "modes": [ [ "DEFAULT", "semi", 1 ], [ "BURST", "burst", 3 ], [ "AUTO", "auto", 4 ] ],
     "valid_mod_locations": [
       [ "accessories", 3 ],
@@ -218,6 +232,7 @@
     "price": "4800 USD",
     "price_postapoc": "50 USD",
     "bashing": 15,
+    "handling": 5,
     "dispersion": 520,
     "sight_dispersion": 520,
     "armor_data": { "covers": [ "arm_either", "hand_either" ], "coverage": 10, "encumbrance": 30, "material_thickness": 2 },
@@ -240,12 +255,13 @@
     "material": [ "steel", "plastic" ],
     "color": "dark_gray",
     "ammo": "9mm",
+    "handling": 30,
     "range": 18,
     "ranged_damage": { "damage_type": "bullet", "amount": 3 },
     "dispersion": 180,
     "durability": 7,
     "min_cycle_recoil": 450,
-    "barrel_length": "250 ml",
+    "barrel_volume": "250 ml",
     "built_in_mods": [ "folding_stock" ],
     "valid_mod_locations": [
       [ "accessories", 4 ],
@@ -257,6 +273,7 @@
       [ "muzzle", 1 ],
       [ "rail", 1 ],
       [ "sights", 1 ],
+      [ "underbarrel", 1 ],
       [ "sling", 1 ]
     ],
     "magazine_well": "250 ml",
@@ -330,7 +347,7 @@
     "material": [ "steel", "wood" ],
     "color": "brown",
     "ammo": "9mm",
-    "barrel_length": "750 ml"
+    "barrel_volume": "750 ml"
   },
   {
     "id": "smg_9mm",
@@ -351,10 +368,10 @@
     "durability": 4,
     "blackpowder_tolerance": 24,
     "min_cycle_recoil": 380,
-    "handling": 40,
+    "handling": 20,
     "modes": [ [ "DEFAULT", "burst", 5 ] ],
     "loudness": 25,
-    "barrel_length": "250 ml",
+    "barrel_volume": "250 ml",
     "magazines": [ [ "9mm", [ "survivor9mm_mag", "stenmag" ] ] ]
   },
   {
@@ -377,9 +394,9 @@
     "durability": 5,
     "blackpowder_tolerance": 24,
     "min_cycle_recoil": 450,
-    "handling": 40,
+    "handling": 25,
     "modes": [ [ "DEFAULT", "burst", 4 ] ],
-    "barrel_length": "250 ml",
+    "barrel_volume": "250 ml",
     "valid_mod_locations": [
       [ "accessories", 2 ],
       [ "muzzle", 1 ],
@@ -401,7 +418,7 @@
     "description": "The TEC-9 is a machine pistol made of cheap polymers and machine stamped parts.  Its rise in popularity among criminals is largely due to its intimidating looks and low cost.",
     "weight": "1400 g",
     "volume": "500 ml",
-    "barrel_length": "50 ml",
+    "barrel_volume": "50 ml",
     "price": "1250 USD",
     "price_postapoc": "2750 cent",
     "to_hit": -2,
@@ -412,7 +429,7 @@
     "dispersion": 520,
     "durability": 6,
     "min_cycle_recoil": 450,
-    "handling": 40,
+    "handling": 25,
     "modes": [ [ "DEFAULT", "burst", 4 ] ],
     "magazine_well": "250 ml",
     "magazines": [ [ "9mm", [ "tec9mag" ] ] ]
@@ -434,7 +451,7 @@
     "ranged_damage": { "damage_type": "bullet", "amount": -1 },
     "dispersion": 400,
     "durability": 9,
-    "blackpowder_tolerance": 48,
+    "blackpowder_tolerance": 24,
     "min_cycle_recoil": 450,
     "magazine_well": "250 ml",
     "magazines": [ [ "9mm", [ "usp9mag" ] ] ]
@@ -448,7 +465,7 @@
     "description": "The Uzi 9x19mm has enjoyed immense popularity, selling more units than any other submachine gun.  It is widely used as a personal defense weapon, or as a primary weapon by elite frontline forces.",
     "weight": "2700 g",
     "volume": "1250 ml",
-    "barrel_length": "250 ml",
+    "barrel_volume": "250 ml",
     "price": "2080 USD",
     "price_postapoc": "30 USD",
     "to_hit": -2,
@@ -482,11 +499,13 @@
     "ammo": "9mm",
     "ranged_damage": { "damage_type": "bullet", "amount": -1 },
     "durability": 6,
-    "blackpowder_tolerance": 48,
+    "blackpowder_tolerance": 24,
     "min_cycle_recoil": 380,
     "magazine_well": "250 ml",
     "//2": "Glock 17s cannot load a 15 round magazine. See http://guns-of-fun.com/portals/0/LiveContent/Mounts/Glock-Mags-Comp.jpg and #33038",
-    "magazines": [ [ "9mm", [ "glock17_17", "glock17_22", "glock_drum_50rd", "glock_drum_100rd", "glockbigmag" ] ] ]
+    "magazines": [
+      [ "9mm", [ "glock17_17", "glock17_22", "glock_drum_50rd", "glock_drum_100rd", "glockbigmag", "kriss_vector_9mm_mag" ] ]
+    ]
   },
   {
     "id": "glock_18c",
@@ -562,7 +581,7 @@
     "description": "The Walther P38 is a semi-automatic handgun adopted shortly before the second world war.  Developed due to the high production costs of its predecessor, the Luger P08, the P38 is also chambered in 9mm Parabellum.  This early DA/SA locked-breech design would introduce features later seen on more modern firearms such as the Beretta 92 series, and served Germany until 2004.",
     "weight": "800 g",
     "volume": "547 ml",
-    "barrel_length": "50 ml",
+    "barrel_volume": "50 ml",
     "price": "390 USD",
     "price_postapoc": "2250 cent",
     "to_hit": -2,
@@ -603,6 +622,7 @@
     "material": [ "plastic", "steel", "zinc" ],
     "color": "dark_gray",
     "ammo": "9mm",
+    "handling": 5,
     "durability": 7,
     "magazine_well": "250 ml",
     "magazines": [ [ "9mm", [ "hptc9mag_8rd", "hptc9mag_10rd", "hptc9mag_15rd" ] ] ]
@@ -660,5 +680,33 @@
     "magazine_well": "250 ml",
     "magazines": [ [ "9mm", [ "glockmag", "glockbigmag", "glock17_17", "glock17_22", "glock_drum_50rd", "glock_drum_100rd" ] ] ],
     "modes": [ [ "DEFAULT", "semi", 1 ], [ "AUTO", "auto", 3 ] ]
+  },
+  {
+    "id": "kriss_vector_9mm",
+    "copy-from": "smg_base",
+    "type": "GUN",
+    "looks_like": "TDI",
+    "name": { "str": "Kriss Vector 9mm" },
+    "description": "A submachine gun with a sleek in-line design.  It features a 2-round burst mode to make the most out of its unique recoil mitigation system alongside a blistering full-auto mode.  This one is chambered in 9mm and uses full-size Glock 17 magazines.",
+    "weight": "3400 g",
+    "volume": "1750 ml",
+    "barrel_volume": "150 ml",
+    "price": "3100 USD",
+    "price_postapoc": "35 USD",
+    "to_hit": -2,
+    "bashing": 9,
+    "material": [ "steel", "plastic" ],
+    "color": "dark_gray",
+    "ammo": "9mm",
+    "dispersion": 260,
+    "durability": 10,
+    "min_cycle_recoil": 300,
+    "blackpowder_tolerance": 24,
+    "handling": 40,
+    "built_in_mods": [ "folding_stock" ],
+    "modes": [ [ "DEFAULT", "semi", 1 ], [ "BURST", "burst", 2 ], [ "AUTO", "auto", 6 ] ],
+    "magazines": [
+      [ "9mm", [ "kriss_vector_9mm_mag", "glock17_17", "glock17_22", "glock_drum_50rd", "glock_drum_100rd", "glockbigmag" ] ]
+    ]
   }
 ]

@@ -3,13 +3,52 @@
     "type": "tool_quality",
     "id": "CUT",
     "name": { "str": "cutting" },
-    "usages": [ [ 1, [ "salvage", "inscribe", "cauterize" ] ] ]
+    "usages": [ [ 1, [ "inscribe", "cauterize" ] ] ],
+    "salvagable_materials": [
+      "acidchitin",
+      "alien_resin",
+      "bone",
+      "chitin",
+      "cotton",
+      "faux_fur",
+      "fur",
+      "kevlar",
+      "kevlar_rigid",
+      "leather",
+      "neoprene",
+      "nomex",
+      "nylon",
+      "plastic",
+      "rubber",
+      "wood",
+      "wool"
+    ]
   },
   {
     "type": "tool_quality",
     "id": "CUT_FINE",
     "name": { "str": "fine cutting" },
-    "usages": [ [ 1, [ "salvage", "inscribe", "cauterize", "enzlave" ] ] ]
+    "usages": [ [ 1, [ "inscribe", "cauterize", "enzlave" ] ] ],
+    "salvagable_materials": [
+      "acidchitin",
+      "alien_resin",
+      "bone",
+      "carbon_fiber",
+      "chitin",
+      "cotton",
+      "faux_fur",
+      "fur",
+      "kevlar",
+      "kevlar_rigid",
+      "leather",
+      "neoprene",
+      "nomex",
+      "nylon",
+      "plastic",
+      "rubber",
+      "wood",
+      "wool"
+    ]
   },
   {
     "type": "tool_quality",
@@ -59,7 +98,8 @@
   {
     "type": "tool_quality",
     "id": "HAMMER",
-    "name": { "str": "hammering" }
+    "name": { "str": "hammering" },
+    "salvagable_materials": [ "copper", "glass", "gold", "lead", "platinum", "silver", "tin", "zinc" ]
   },
   {
     "type": "tool_quality",
@@ -76,12 +116,15 @@
     "type": "tool_quality",
     "id": "SAW_M",
     "name": { "str": "metal sawing" },
-    "usages": [ [ 2, [ "HACKSAW", "saw_barrel" ] ] ]
+    "usages": [ [ 2, [ "HACKSAW", "saw_barrel" ] ] ],
+    "salvagable_materials": [ "steel", "budget_steel", "tin", "lead", "silver", "gold", "copper", "platinum", "iron", "bronze", "zinc" ]
   },
   {
     "type": "tool_quality",
     "id": "SAW_M_FINE",
-    "name": { "str": "fine metal sawing" }
+    "copy-from": "SAW_M",
+    "name": { "str": "fine metal sawing" },
+    "extend": { "salvagable_materials": [ "hardsteel", "superalloy" ] }
   },
   {
     "type": "tool_quality",
@@ -123,7 +166,7 @@
     "type": "tool_quality",
     "id": "DIG",
     "name": { "str": "digging" },
-    "usages": [ [ 1, [ "MAKEMOUND", "DIG", "FILL_PIT", "DIG_CHANNEL" ] ], [ 2, [ "CLEAR_RUBBLE" ] ] ]
+    "usages": [ [ 1, [ "MAKEMOUND", "DIG", "FILL_PIT", "DIG_CHANNEL", "flowerpot_collect" ] ], [ 2, [ "CLEAR_RUBBLE" ] ] ]
   },
   {
     "type": "tool_quality",
@@ -190,7 +233,9 @@
   {
     "type": "tool_quality",
     "id": "SEW",
-    "name": { "str": "sewing" }
+    "name": { "str": "sewing" },
+    "crafting_speed_bonus_per_level": 1.1,
+    "crafting_speed_level_offset": 2
   },
   {
     "type": "tool_quality",
@@ -283,5 +328,65 @@
     "type": "tool_quality",
     "id": "FILTER",
     "name": { "str": "filtration" }
+  },
+  {
+    "type": "tool_quality",
+    "id": "SANDING",
+    "name": { "str": "sanding" }
+  },
+  {
+    "type": "tool_quality",
+    "id": "HV_INSULATION",
+    "name": { "str": "high voltage insulation" }
+  },
+  {
+    "type": "tool_quality",
+    "id": "VOLT_MEASURE",
+    "name": { "str": "voltage measurement" }
+  },
+  {
+    "type": "tool_quality",
+    "id": "PULL_FINE",
+    "name": { "str": "fine pulling" }
+  },
+  {
+    "type": "tool_quality",
+    "id": "CUT_M",
+    "name": { "str": "metal cutting" }
+  },
+  {
+    "type": "tool_quality",
+    "id": "GRIP_HOT",
+    "name": { "str": "hot gripping" }
+  },
+  {
+    "type": "tool_quality",
+    "id": "CONTAIN_HOT",
+    "name": { "str": "hot containing" }
+  },
+  {
+    "type": "tool_quality",
+    "id": "SWAGING",
+    "name": { "str": "swaging" }
+  },
+  {
+    "type": "tool_quality",
+    "id": "GLASSBLOWING",
+    "name": { "str": "glassblowing" }
+  },
+  {
+    "type": "tool_quality",
+    "id": "CASING_FORMING",
+    "name": { "str": "casing forming" }
+  },
+  {
+    "type": "tool_quality",
+    "id": "CASING_PRESSING",
+    "name": { "str": "ammunition reloading" }
+  },
+  {
+    "type": "tool_quality",
+    "id": "SLEEP_AID",
+    "name": { "str": "sleep aid" }
   }
 ]

@@ -8,6 +8,7 @@
         [ "gasoline", 1 ],
         [ "diesel", 1 ],
         [ "biodiesel", 1 ],
+        [ "chem_butane", 1 ],
         [ "chem_ethanol", 1 ],
         [ "chem_methanol", 1 ],
         [ "ether", 1 ],
@@ -26,6 +27,7 @@
     "components": [
       [
         [ "gasoline", 1 ],
+        [ "chem_butane", 1 ],
         [ "chem_ethanol", 1 ],
         [ "chem_methanol", 1 ],
         [ "ether", 1 ],
@@ -49,13 +51,13 @@
   {
     "id": "stable_explosive",
     "type": "requirement",
-    "//": "This should contain all the explosives you need to set off with an explosive primer, but can be used without casting in a crucible. 10g tnt equivalent.",
-    "components": [ [ [ "chem_ammonium_nitrate", 24 ], [ "chem_ammonium_nitrate_pellets", 24 ], [ "chem_anfo", 14 ], [ "chem_rdx", 6 ] ] ]
+    "//": "This should contain civilian-grade explosives you need to set off with an explosive primer, 10g tnt equivalent.",
+    "components": [ [ [ "chem_ammonium_nitrate", 24 ], [ "chem_ammonium_nitrate_pellets", 24 ], [ "chem_anfo", 14 ] ] ]
   },
   {
     "id": "military_explosive",
     "type": "requirement",
-    "//": "This should contain all the explosives you need to set off with an explosive primer or a fuze, and also need casting in a crucible. 10g tnt equivalent.",
-    "components": [ [ [ "chem_compositionb", 8 ] ] ]
+    "//": "This should contain military-grade explosives you need to set off with an explosive primer, 10g tnt equivalent.",
+    "components": [ [ [ "chem_compositionb", 8 ], [ "chem_rdx", 6 ] ] ]
   }
 ]

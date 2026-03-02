@@ -1,0 +1,17 @@
+name: "Experimental Release"
+
+concurrency: experimental-release
+
+on:
+  push:
+    branches:
+      - main
+    paths-ignore: [docs/**, scripts/**, "**.md", "**.mdx"]
+
+jobs:
+  builds:
+    uses: ./.github/workflows/build.yml
+    with:
+      version-label: experimental
+      upload-to-release: true
+    secrets: inherit

@@ -14,7 +14,7 @@
     "ammo": "300",
     "dispersion": 90,
     "min_cycle_recoil": 4770,
-    "barrel_length": "500 ml",
+    "barrel_volume": "500 ml",
     "magazines": [ [ "300", [ "m2010mag" ] ] ],
     "flags": [ "NEVER_JAMS" ]
   },
@@ -33,9 +33,8 @@
     "color": "brown",
     "ammo": "300",
     "dispersion": 110,
-    "blackpowder_tolerance": 24,
     "clip_size": 3,
-    "barrel_length": "750 ml",
+    "barrel_volume": "750 ml",
     "flags": [ "RELOAD_ONE" ]
   },
   {
@@ -52,9 +51,8 @@
     "color": "brown",
     "ammo": "300",
     "dispersion": 90,
-    "blackpowder_tolerance": 24,
     "clip_size": 3,
-    "barrel_length": "750 ml",
+    "barrel_volume": "750 ml",
     "flags": [ "RELOAD_ONE" ]
   }
 ]

@@ -14,7 +14,7 @@
     "color": "dark_gray",
     "location": "accessories",
     "mod_target_category": [ [ "BOWS" ] ],
-    "dispersion_modifier": -100
+    "dispersion_modifier": -250
   },
   {
     "id": "bow_stabilizer",
@@ -31,7 +31,7 @@
     "color": "brown",
     "location": "stabilizer",
     "mod_target_category": [ [ "BOWS" ] ],
-    "dispersion_modifier": -100
+    "dispersion_modifier": -400
   },
   {
     "id": "bow_stabilizer_set",
@@ -48,7 +48,7 @@
     "color": "brown",
     "location": "stabilizer",
     "mod_target_category": [ [ "BOWS" ] ],
-    "dispersion_modifier": -150,
+    "dispersion_modifier": -500,
     "flags": [ "NEEDS_UNFOLD" ]
   },
   {
@@ -66,7 +66,7 @@
     "color": "brown",
     "location": "dampening",
     "mod_target_category": [ [ "BOWS" ], [ "S_XBOWS" ], [ "M_XBOWS" ] ],
-    "dispersion_modifier": -50,
+    "dispersion_modifier": -100,
     "loudness_modifier": -8
   },
   {
@@ -87,6 +87,27 @@
     "mod_target_category": [ [ "M_XBOWS" ] ],
     "reload_modifier": -25,
     "flags": [ "NEEDS_UNFOLD" ]
+  },
+  {
+    "id": "crossbow_draw_assist",
+    "type": "GUNMOD",
+    "name": { "str": "crossbow draw motor" },
+    "description": "An electric motor and transmission that can be attached to a crossbow's string to make it easier to draw back. It makes reloading faster, but requires UPS power and makes the crossbow bulkier and heavier. Who said crossbows needed to be medieval?",
+    "weight": "800 g",
+    "volume": "250 ml",
+    "integral_volume": "125 ml",
+    "price": "21 USD",
+    "price_postapoc": "2 USD",
+    "material": [ "steel", "plastic" ],
+    "looks_like": "motor_tiny",
+    "symbol": ":",
+    "color": "light_gray",
+    "location": "accessories",
+    "mod_target_category": [ [ "M_XBOWS" ] ],
+    "install_time": "1 m",
+    "handling_modifier": -3,
+    "reload_modifier": -65,
+    "ups_charges_modifier": 5
   },
   {
     "id": "belt_clip",

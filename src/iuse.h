@@ -1,10 +1,7 @@
 #pragma once
-#ifndef CATA_SRC_IUSE_H
-#define CATA_SRC_IUSE_H
 
 #include <memory>
 #include <string>
-#include <utility>
 #include <vector>
 
 #include "clone_ptr.h"
@@ -30,15 +27,12 @@ int alcohol_weak( player *, item *, bool, const tripoint & );
 int alcohol_medium( player *, item *, bool, const tripoint & );
 int alcohol_strong( player *, item *, bool, const tripoint & );
 int xanax( player *, item *, bool, const tripoint & );
-int smoking( player *, item *, bool, const tripoint & );
-int ecig( player *, item *, bool, const tripoint & );
 int antibiotic( player *, item *, bool, const tripoint & );
 int eyedrops( player *, item *, bool, const tripoint & );
 int fungicide( player *, item *, bool, const tripoint & );
 int antifungal( player *, item *, bool, const tripoint & );
 int antiparasitic( player *, item *, bool, const tripoint & );
 int anticonvulsant( player *, item *, bool, const tripoint & );
-int weed_cake( player *, item *, bool, const tripoint & );
 int meth( player *, item *, bool, const tripoint & );
 int vaccine( player *, item *, bool, const tripoint & );
 int poison( player *, item *, bool, const tripoint & );
@@ -53,7 +47,6 @@ int inhaler( player *, item *, bool, const tripoint & );
 int blech( player *, item *, bool, const tripoint & );
 int blech_because_unclean( player *, item *, bool, const tripoint & );
 int plantblech( player *, item *, bool, const tripoint & );
-int chew( player *, item *, bool, const tripoint & );
 int purifier( player *, item *, bool, const tripoint & );
 int purify_iv( player *, item *, bool, const tripoint & );
 int purify_smart( player *, item *, bool, const tripoint & );
@@ -92,8 +85,8 @@ int throwable_extinguisher_act( player *, item *, bool, const tripoint & );
 int directional_hologram( player *, item *, bool, const tripoint & );
 int capture_monster_veh( player *, item *, bool, const tripoint & );
 int capture_monster_act( player *, item *, bool, const tripoint & );
-int granade( player *, item *, bool, const tripoint & );
-int granade_act( player *, item *, bool, const tripoint & );
+int debug_grenade( player *, item *, bool, const tripoint & );
+int debug_grenade_act( player *, item *, bool, const tripoint & );
 int c4( player *, item *, bool, const tripoint & );
 int arrow_flammable( player *, item *, bool, const tripoint & );
 int acidbomb_act( player *, item *, bool, const tripoint & );
@@ -109,14 +102,12 @@ int pick_lock( player *, item *, bool, const tripoint & );
 int portal( player *, item *, bool, const tripoint & );
 int tazer( player *, item *, bool, const tripoint & );
 int tazer2( player *, item *, bool, const tripoint & );
-int mp3( player *, item *, bool, const tripoint & );
 int mp3_on( player *, item *, bool, const tripoint & );
 int rpgdie( player *, item *, bool, const tripoint & );
 int dive_tank( player *, item *, bool, const tripoint & );
 int gasmask( player *, item *, bool, const tripoint & );
 int portable_game( player *, item *, bool, const tripoint & );
 int vibe( player *, item *, bool, const tripoint & );
-int hand_crank( player *, item *, bool, const tripoint & );
 int vortex( player *, item *, bool, const tripoint & );
 int dog_whistle( player *, item *, bool, const tripoint & );
 int call_of_tindalos( player *, item *, bool, const tripoint & );
@@ -143,6 +134,7 @@ int seed( player *, item *, bool, const tripoint & );
 int oxygen_bottle( player *, item *, bool, const tripoint & );
 int radio_mod( player *, item *, bool, const tripoint & );
 int remove_all_mods( player *, item *, bool, const tripoint & );
+int good_fishing_spot( tripoint );
 int fishing_rod( player *, item *, bool, const tripoint & );
 int fish_trap( player *, item *, bool, const tripoint & );
 int gun_clean( player *, item *, bool, const tripoint & );
@@ -166,9 +158,6 @@ int shavekit( player *, item *, bool, const tripoint & );
 int hairkit( player *, item *, bool, const tripoint & );
 int weather_tool( player *, item *, bool, const tripoint & );
 int ladder( player *, item *, bool, const tripoint & );
-int wash_soft_items( player *, item *, bool, const tripoint & );
-int wash_hard_items( player *, item *, bool, const tripoint & );
-int wash_all_items( player *, item *, bool, const tripoint & );
 int solarpack( player *, item *, bool, const tripoint & );
 int solarpack_off( player *, item *, bool, const tripoint & );
 int weak_antibiotic( player *, item *, bool, const tripoint & );
@@ -182,6 +171,9 @@ int toggle_ups_charging( player *, item *, bool, const tripoint & );
 int report_grid_charge( player *, item *, bool, const tripoint & );
 int report_grid_connections( player *, item *, bool, const tripoint & );
 int modify_grid_connections( player *, item *, bool, const tripoint & );
+int report_fluid_grid_connections( player *, item *, bool, const tripoint & );
+int modify_fluid_grid_connections( player *, item *, bool, const tripoint & );
+int bullet_vibe_on( player *, item *, bool, const tripoint & );
 
 // MACGUFFINS
 
@@ -190,8 +182,6 @@ int radiocaron( player *, item *, bool, const tripoint & );
 int radiocontrol( player *, item *, bool, const tripoint & );
 
 int autoclave( player *, item *, bool, const tripoint & );
-
-int multicooker( player *, item *, bool, const tripoint & );
 
 int remoteveh( player *, item *, bool, const tripoint & );
 
@@ -223,13 +213,6 @@ int cauterize_hotplate( player *, item *, bool, const tripoint & );
 
 void remove_radio_mod( item &it, player &p );
 
-// Helper for clothes washing
-struct washing_requirements {
-    int water;
-    int cleanser;
-    int time;
-};
-washing_requirements washing_requirements_for_volume( const units::volume & );
 
 using use_function_pointer = int ( * )( player *, item *, bool, const tripoint & );
 
@@ -311,4 +294,3 @@ struct use_function {
         void dump_info( const item &, std::vector<iteminfo> & ) const;
 };
 
-#endif // CATA_SRC_IUSE_H

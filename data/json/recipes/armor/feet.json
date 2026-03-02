@@ -272,7 +272,7 @@
     "time": "2 h",
     "autolearn": true,
     "using": [ [ "sewing_standard", 80 ] ],
-    "components": [ [ [ "felt_patch", 20 ] ], [ [ "bag_plastic", 8 ] ] ]
+    "components": [ [ [ "felt_patch", 20 ] ], [ [ "bag_plastic", 8 ], [ "bag_zipper", 8 ] ] ]
   },
   {
     "result": "boots_wsurvivor",
@@ -302,8 +302,8 @@
     "difficulty": 3,
     "time": "1 h 20 m",
     "autolearn": true,
-    "qualities": [ { "id": "CUT", "level": 1 } ],
-    "components": [ [ [ "2x4", 2 ], [ "stick", 2 ] ] ]
+    "qualities": [ { "id": "CUT", "level": 1 }, { "id": "SANDING", "level": 1 } ],
+    "components": [ [ [ "2x4", 2 ], [ "stick", 2 ] ], [ [ "varnish", 1, "LIST" ] ] ]
   },
   {
     "result": "geta",
@@ -315,8 +315,8 @@
     "time": "40 m",
     "autolearn": true,
     "book_learn": [ [ "tailor_japanese", 1 ] ],
-    "qualities": [ { "id": "SAW_W", "level": 1 }, { "id": "CUT", "level": 1 } ],
-    "components": [ [ [ "2x4", 1 ] ], [ [ "cordage_short", 1, "LIST" ] ] ]
+    "qualities": [ { "id": "SAW_W", "level": 1 }, { "id": "CUT", "level": 1 }, { "id": "SANDING", "level": 1 } ],
+    "components": [ [ [ "2x4", 1 ] ], [ [ "cordage_short", 1, "LIST" ] ], [ [ "varnish", 1, "LIST" ] ] ]
   },
   {
     "result": "tabi_dress",
@@ -556,7 +556,7 @@
     "book_learn": [ [ "textbook_tailor", 3 ], [ "manual_tailor", 3 ], [ "tailor_portfolio", 3 ] ],
     "using": [ [ "sewing_standard", 10 ] ],
     "tools": [ [ [ "soldering_standard", 5, "LIST" ], [ "surface_heat", 5, "LIST" ] ] ],
-    "components": [ [ [ "neoprene", 2 ] ], [ [ "rag", 2 ] ] ]
+    "components": [ [ [ "neoprene", 2 ] ], [ [ "nylon", 2 ] ] ]
   },
   {
     "result": "chainmail_feet",
@@ -569,7 +569,8 @@
     "time": "10 m",
     "autolearn": [ [ "fabrication", 6 ], [ "tailor", 4 ] ],
     "book_learn": [ [ "textbook_armwest", 3 ], [ "textbook_fabrication", 3 ], [ "recipe_melee", 3 ] ],
-    "using": [ [ "chainmail_standard", 2 ] ]
+    "using": [ [ "chainmail_standard", 2 ], [ "sewing_standard", 10 ] ],
+    "components": [ [ [ "leather", 10 ] ] ]
   },
   {
     "result": "heels",
@@ -646,5 +647,29 @@
     "book_learn": [ [ "textbook_tailor", 3 ], [ "tailor_portfolio", 3 ] ],
     "using": [ [ "sewing_standard", 24 ] ],
     "components": [ [ [ "scute_piece", 9 ] ], [ [ "fabric_hides_proper", 9, "LIST" ] ] ]
+  },
+  {
+    "result": "dress_shoes",
+    "type": "recipe",
+    "category": "CC_ARMOR",
+    "subcategory": "CSC_ARMOR_FEET",
+    "skill_used": "tailor",
+    "difficulty": 2,
+    "time": "30 m",
+    "autolearn": true,
+    "using": [ [ "sewing_standard", 4 ] ],
+    "components": [ [ [ "leather", 4 ] ] ]
+  },
+  {
+    "result": "tights",
+    "type": "recipe",
+    "category": "CC_ARMOR",
+    "subcategory": "CSC_ARMOR_FEET",
+    "skill_used": "tailor",
+    "difficulty": 1,
+    "time": "20 m",
+    "autolearn": true,
+    "using": [ [ "sewing_standard", 10 ] ],
+    "components": [ [ [ "rag", 10 ] ] ]
   }
 ]

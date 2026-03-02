@@ -1,6 +1,4 @@
 #pragma once
-#ifndef CATA_SRC_CREATURE_H
-#define CATA_SRC_CREATURE_H
 
 #include <climits>
 #include <map>
@@ -50,6 +48,8 @@ struct damage_unit;
 struct dealt_damage_instance;
 struct dealt_projectile_attack;
 struct pathfinding_settings;
+struct PathfindingSettings;
+struct RouteSettings;
 struct trap;
 
 template<typename T> struct enum_traits;
@@ -231,9 +231,16 @@ class Creature
         virtual const Character *as_character() const {
             return nullptr;
         }
+
+        /** DANGER: This is a huge landmine.
+        This method will return a non-nullptr for NPCs. Do NOT use `critter.as_player() == nullptr` to verify that a critter is not the player.
+        Use `is_player` instead. **/
         virtual player *as_player() {
             return nullptr;
         }
+        /** DANGER: This is a huge landmine.
+        This method will return a non-nullptr for NPCs. Do NOT use `critter.as_player() == nullptr` to verify that a critter is not the player.
+        Use `is_player` instead. **/
         virtual const player *as_player() const {
             return nullptr;
         }
@@ -649,6 +656,7 @@ class Creature
 
 
         virtual void set_all_parts_hp_cur( int set );
+        virtual void mod_all_parts_hp_cur( int mod );
         void set_all_parts_hp_to_max();
 
         virtual int get_speed_base() const;
@@ -697,10 +705,14 @@ class Creature
 
         virtual units::mass weight_capacity() const;
 
-        /** Returns settings for pathfinding. */
-        virtual const pathfinding_settings &get_pathfinding_settings() const = 0;
-        /** Returns a set of points we do not want to path through. */
-        virtual std::set<tripoint> get_path_avoid() const = 0;
+        /** Returns settings for legacy pathfinding. */
+        virtual const pathfinding_settings &get_legacy_pathfinding_settings() const = 0;
+        /** Returns a set of points we do not want to path through with legacy pathfinding. */
+        virtual std::set<tripoint> get_legacy_path_avoid() const = 0;
+
+        /** Returns a pathfinding and route settings pair for pathfinding */
+        using pf_pair = std::pair<PathfindingSettings, RouteSettings>;
+        virtual pf_pair get_pathfinding_pair() const = 0;
 
         int moves = 0;
         void draw( const catacurses::window &w, point origin, bool inverted ) const;
@@ -930,6 +942,7 @@ class Creature
 
         // TODO: There may be a cleaner way of doing it than exposing the map
         effects_map get_all_effects() const;
+        const effects_map &get_effects() const;
 
     protected:
         weak_ptr_fast<Creature> killer; // whoever killed us. this should be NULL unless we are dead
@@ -1028,4 +1041,4 @@ class Creature
         bool underwater = false;
 };
 
-#endif // CATA_SRC_CREATURE_H
+

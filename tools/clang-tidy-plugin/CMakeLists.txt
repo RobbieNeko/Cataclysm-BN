@@ -4,13 +4,12 @@ include(ExternalProject)
 find_package(LLVM REQUIRED CONFIG)
 find_package(Clang REQUIRED CONFIG)
 
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 23)
 
 set(CataAnalyzerSrc
     CataTidyModule.cpp
     CombineLocalsIntoPointCheck.cpp
     DeterminismCheck.cpp
-    HeaderGuardCheck.cpp
     JsonTranslationInputCheck.cpp
     NoLongCheck.cpp
     NoStaticGettextCheck.cpp
@@ -18,7 +17,6 @@ set(CataAnalyzerSrc
     SimplifyPointConstructorsCheck.cpp
     StringLiteralIterator.cpp
     TestFilenameCheck.cpp
-    TextStyleCheck.cpp
     TranslatorCommentsCheck.cpp
     UnusedStaticsCheck.cpp
     UseLocalizedSortingCheck.cpp

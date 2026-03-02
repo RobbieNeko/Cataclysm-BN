@@ -11,6 +11,7 @@
 /bindist/
 build.*
 build
+!build.yml
 !build-scripts
 !build-data
 test_user_dir*
@@ -42,11 +43,17 @@ cata_test
 cata_test-tiles
 cataclysm
 cataclysm-tiles
+cataclysm-bn-tiles
+json_formatter
 *.exe.manifest
 cataclysm-vcpkg
 cataclysmdda-*
 debug.log
 logg.txt
+
+# Generated Lua docs (see `deno task docs:gen`)
+/docs/en/mod/lua/reference/lua.md
+/lua_annotations.lua
 
 # Visual Studio files
 *.code-workspace
@@ -60,6 +67,7 @@ logg.txt
 *.vcxproj.filters
 .vs/
 .vscode/
+!.vscode/extensions.json
 Debug*/
 Release*/
 .cache/
@@ -170,7 +178,6 @@ cataclysm.a
 
 # clang tooling
 compile_commands.json
-.clangd
 
 # IDA database
 Cataclysm.i64
@@ -225,3 +232,6 @@ test/Output
 test/.lit_test_times.txt
 affected_files.txt
 clang-tidy-trace
+
+CMakeFiles/
+CMakeCache.txt

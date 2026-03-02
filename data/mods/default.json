@@ -1,10 +1,15 @@
 [
   "bn",
+  "bn_lua",
+  "nuclear_tear",
   "no_npc_food",
   "novitamins",
   "No_Rail_Stations",
   "no_reviving_zombies",
   "limit_fungal_growth",
-  "Item_Category_Overhaul",
-  "udp_redux"
+  "udp_redux",
+  "pride_flags",
+  "tablet_ebook",
+  "change_hairstyle",
+  "cbm_slots"
 ]

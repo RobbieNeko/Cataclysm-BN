@@ -67,7 +67,7 @@
     "tools": [ [ [ "surface_heat", 25, "LIST" ] ] ],
     "components": [
       [ [ "water_clean", 1 ], [ "water", 1 ] ],
-      [ [ "chem_ethanol", 25 ], [ "chem_methanol", 25 ], [ "denat_alcohol", 25 ] ],
+      [ [ "chem_ethanol", 25 ], [ "chem_methanol", 25 ], [ "denat_alcohol", 25 ], [ "disinfectant_makeshift", 1 ] ],
       [ [ "lye_powder", 2 ], [ "chem_potassium_hydroxide", 4 ] ],
       [
         [ "cooking_oil", 16 ],
@@ -106,7 +106,12 @@
     "tools": [ [ [ "surface_heat", 375, "LIST" ] ] ],
     "components": [
       [ [ "water_clean", 15 ], [ "water", 15 ] ],
-      [ [ "chem_ethanol", 375 ], [ "chem_methanol", 375 ], [ "denat_alcohol", 375 ] ],
+      [
+        [ "chem_ethanol", 375 ],
+        [ "chem_methanol", 375 ],
+        [ "denat_alcohol", 375 ],
+        [ "disinfectant_makeshift", 15 ]
+      ],
       [ [ "chem_lye", 1, "LIST" ], [ "chem_potassium_hydroxide", 60 ] ],
       [
         [ "cooking_oil", 240 ],
@@ -157,8 +162,7 @@
     "difficulty": 3,
     "time": "25 m",
     "batch_time_factors": [ 90, 4 ],
-    "charges": 250,
-    "//": "Commercial efficiency range is about 50-60%, we're assuming more like ~25% for our bootleg survivor setup.",
+    "//": "Commercial efficiency range is about 50-60%, our bootleg survivor setup is getting less yield for balance but also less electricity use.",
     "autolearn": [ [ "cooking", 5 ], [ "electronics", 3 ] ],
     "book_learn": [
       [ "adv_chemistry", 3 ],
@@ -170,7 +174,7 @@
       [ "reference_cooking", 4 ]
     ],
     "qualities": [ { "id": "CHEM", "level": 2 }, { "id": "PRESSURIZATION", "level": 1 } ],
-    "tools": [ [ [ "electrolysis_kit", 2500 ] ] ],
+    "tools": [ [ [ "electrolysis_kit", 200 ] ] ],
     "components": [ [ [ "water_clean", 1 ], [ "water", 1 ] ] ]
   },
   {
@@ -184,7 +188,6 @@
     "difficulty": 3,
     "time": "5 m",
     "autolearn": [ [ "cooking", 5 ], [ "survival", 3 ] ],
-    "charges": 25,
     "book_learn": [
       [ "adv_chemistry", 3 ],
       [ "textbook_chemistry", 3 ],
@@ -193,6 +196,6 @@
       [ "atomic_survival", 4 ]
     ],
     "qualities": [ { "id": "CUT_FINE", "level": 1 }, { "id": "PRESSURIZATION", "level": 1 } ],
-    "components": [ [ [ "mutant_bug_hydrogen_sacs", 1 ] ] ]
+    "components": [ [ [ "mutant_bug_hydrogen_sacs", 5 ] ] ]
   }
 ]

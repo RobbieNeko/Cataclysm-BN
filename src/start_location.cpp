@@ -122,7 +122,7 @@ static void add_boardable( const map &m, const tripoint &p, std::vector<tripoint
         // Don't board up the outside
         return;
     }
-    if( std::find( vec.begin(), vec.end(), p ) != vec.end() ) {
+    if( std::ranges::find( vec, p ) != vec.end() ) {
         // Already registered to be boarded
         return;
     }
@@ -164,7 +164,7 @@ static void board_up( map &m, const tripoint_range<tripoint> &range )
     }
     // Find all furniture that can be used to board up some place
     for( const tripoint &p : range ) {
-        if( std::find( boardables.begin(), boardables.end(), p ) != boardables.end() ) {
+        if( std::ranges::find( boardables, p ) != boardables.end() ) {
             continue;
         }
         if( !m.has_furn( p ) ) {
@@ -236,7 +236,7 @@ tripoint_abs_omt start_location::find_player_initial_location() const
             }
 
             const auto &terrains = special.all_terrains();
-            if( std::none_of( terrains.begin(), terrains.end(),
+            if( std::ranges::none_of( terrains,
             [&loc]( const oter_str_id & t ) {
             return is_ot_match( loc.first, t, loc.second );
             } ) ) {
@@ -250,9 +250,13 @@ tripoint_abs_omt start_location::find_player_initial_location() const
             const tripoint_abs_omt abs_mid = project_combine( omp, om_mid );
             if( overmap_buffer.place_special( special.id, abs_mid, 0, OMAPX / 2 ) ) {
 
+                omt_find_params find_params{};
+                find_params.types.emplace_back( loc.first, loc.second );
+                find_params.search_range = { 0, OMAPX / 2 };
+                find_params.search_layers = omt_find_all_layers;
+
                 // Now try to find what we spawned
-                const tripoint_abs_omt start = overmap_buffer.find_closest( abs_mid, loc.first,
-                                               OMAPX / 2, false, loc.second );
+                const tripoint_abs_omt start = overmap_buffer.find_closest( abs_mid, find_params );
                 if( start != overmap::invalid_tripoint ) {
                     return start;
                 }
@@ -308,7 +312,7 @@ static int rate_location( map &m, const tripoint &p, const bool must_be_inside,
 
         if( m.passable( pt ) ||
             m.bash_resistance( pt ) <= bash_str ||
-            m.open_door( pt, !m.is_outside( from ), true ) ) {
+            m.can_open_door( &get_avatar(), pt, !m.is_outside( from ) ) ) {
             st.push_back( pt );
         }
     };
@@ -441,30 +445,34 @@ void start_location::add_map_extra( const tripoint_abs_omt &omtstart,
 
 void start_location::handle_heli_crash( player &u ) const
 {
-    for( const bodypart_id &bp : u.get_all_body_parts( true ) ) {
-        if( bp == bodypart_id( "head" ) || bp == bodypart_id( "torso" ) ) {
-            continue;// Skip head + torso for balance reasons.
-        }
-        const int roll = rng( 1, 8 );
-        switch( roll ) {
-            // Damage + Bleed
-            case 1:
-            case 2:
-                u.add_effect( effect_bleed, 6_minutes, bp.id() );
-            /* fallthrough */
-            case 3:
-            case 4:
-            // Just damage
-            case 5: {
-                const int maxHp = u.get_hp_max( bp );
-                // Body part health will range from 33% to 66% with occasional bleed
-                const int dmg = rng( maxHp / 3, maxHp * 2 / 3 );
-                u.apply_damage( nullptr, bp, dmg );
-                break;
+    bool no_body_parts_damaged = true;
+    while( no_body_parts_damaged ) {
+        for( const bodypart_id &bp : u.get_all_body_parts( true ) ) {
+            if( bp == bodypart_id( "head" ) || bp == bodypart_id( "torso" ) ) {
+                continue;// Skip head + torso for balance reasons.
             }
-            // No damage
-            default:
-                break;
+            const int roll = rng( 1, 8 );
+            switch( roll ) {
+                // Damage + Bleed
+                case 1:
+                case 2:
+                    u.add_effect( effect_bleed, 6_minutes, bp.id() );
+                /* fallthrough */
+                case 3:
+                case 4:
+                // Just damage
+                case 5: {
+                    const int maxHp = u.get_hp_max( bp );
+                    // Body part health will range from 33% to 66% with occasional bleed
+                    const int dmg = rng( maxHp / 3, maxHp * 2 / 3 );
+                    u.apply_damage( nullptr, bp, dmg );
+                    no_body_parts_damaged = false;
+                    break;
+                }
+                // No damage
+                default:
+                    break;
+            }
         }
     }
 }

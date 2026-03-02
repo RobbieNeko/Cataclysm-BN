@@ -1,6 +1,4 @@
 #pragma once
-#ifndef CATA_SRC_NPCTALK_H
-#define CATA_SRC_NPCTALK_H
 
 #include "type_id.h"
 
@@ -82,6 +80,7 @@ void lead_to_safety( npc & );
 void start_training( npc & );
 
 void wake_up( npc & );
+void control_npc( npc & );
 void copy_npc_rules( npc &p );
 void set_npc_pickup( npc &p );
 void npc_die( npc &p );
@@ -93,4 +92,4 @@ time_duration calc_skill_training_time( const npc &p, const skill_id &skill );
 int calc_skill_training_cost( const npc &p, const skill_id &skill );
 time_duration calc_ma_style_training_time( const npc &, const matype_id & /* id */ );
 int calc_ma_style_training_cost( const npc &p, const matype_id & /* id */ );
-#endif // CATA_SRC_NPCTALK_H
+

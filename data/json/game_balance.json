@@ -58,16 +58,16 @@
   {
     "type": "EXTERNAL_OPTION",
     "name": "PLAYER_HEALING_RATE",
-    "info": "Set base player healing rate per turn. Default: 0.0001",
+    "info": "Set base player healing rate per turn. Default: 0.0002",
     "stype": "float",
-    "value": 0.0001
+    "value": 0.0002
   },
   {
     "type": "EXTERNAL_OPTION",
     "name": "NPC_HEALING_RATE",
-    "info": "Set base NPC healing rate per turn. Default: 0.0001",
+    "info": "Set base NPC healing rate per turn. Default: 0.0002",
     "stype": "float",
-    "value": 0.0001
+    "value": 0.0002
   },
   {
     "type": "EXTERNAL_OPTION",
@@ -75,27 +75,6 @@
     "info": "Disables vehicle part faults.  If true, disables vehicle part faults, vehicle parts will be totally reliable unless destroyed, and can only be repaired via replacement.",
     "stype": "bool",
     "value": false
-  },
-  {
-    "type": "EXTERNAL_OPTION",
-    "name": "FILTHY_CLOTHES",
-    "info": "If true, zombies will drop filthy clothing.",
-    "stype": "bool",
-    "value": true
-  },
-  {
-    "type": "EXTERNAL_OPTION",
-    "name": "FILTHY_MORALE",
-    "info": "Morale penalty for filthy clothing.  If true, wearing filthy clothing will cause morale penalties.  Doesn't make sense if FILTHY_CLOTHES option is false.",
-    "stype": "bool",
-    "value": true
-  },
-  {
-    "type": "EXTERNAL_OPTION",
-    "name": "FILTHY_WOUNDS",
-    "info": "Infected wounds from filthy clothing.  If true, getting hit in a body part covered in filthy clothing may cause infections.  Doesn't make sense if FILTHY_CLOTHES option is false.",
-    "stype": "bool",
-    "value": true
   },
   {
     "type": "EXTERNAL_OPTION",
@@ -131,20 +110,6 @@
     "info": "Disable additional spawn of large groups of monsters fighting each other on swamps.",
     "stype": "bool",
     "value": false
-  },
-  {
-    "type": "EXTERNAL_OPTION",
-    "name": "SPEEDYDEX_MIN_DEX",
-    "info": "The minimum dex required for speedydex mod to add speed",
-    "stype": "int",
-    "value": 0
-  },
-  {
-    "type": "EXTERNAL_OPTION",
-    "name": "SPEEDYDEX_DEX_SPEED",
-    "info": "The amount of moves gained per dex above SPEEDYDEX_MIN_DEX",
-    "stype": "int",
-    "value": 0
   },
   {
     "type": "EXTERNAL_OPTION",
@@ -250,5 +215,54 @@
     "info": "Makes mutation more balanced and interesting.",
     "stype": "bool",
     "value": true
+  },
+  {
+    "type": "EXTERNAL_OPTION",
+    "name": "MANA_REGEN_IS_FLAT",
+    "info": "A boolean for whether mana regen is a flat rate or based on regenerating all your mana in a given number of hours",
+    "stype": "bool",
+    "value": false
+  },
+  {
+    "type": "EXTERNAL_OPTION",
+    "name": "MANA_REGEN_HOURS_RATE",
+    "info": "The integer number of hours that it should take for the player's mana to fully regenerate by default.",
+    "stype": "int",
+    "value": 8
+  },
+  {
+    "type": "EXTERNAL_OPTION",
+    "name": "MANA_REGEN_FLAT",
+    "info": "The integer flat rate for mana regen (per hour) that should be used as a baseline if enabled.",
+    "stype": "int",
+    "value": 100
+  },
+  {
+    "type": "EXTERNAL_OPTION",
+    "name": "MAGIC_STAT_SCALING_PERCENT",
+    "info": "The percentage bonus (or malus) that each point away from the base 8 should get you (i.e. 10 is 10%).",
+    "stype": "int",
+    "value": 10
+  },
+  {
+    "type": "EXTERNAL_OPTION",
+    "name": "UNDERGROUND_TEMPERATURE_INFLUENCED_BY_SURFACE",
+    "info": "If true, underground temperatures are influenced by surface weather conditions. At z=-1 (50% influence), z=-2 (25%), z<=-3 (0%, annual average only).",
+    "stype": "bool",
+    "value": false
+  },
+  {
+    "type": "EXTERNAL_OPTION",
+    "name": "AVATAR_LEVEL_XP_COEFF",
+    "info": "An integer coefficient for determining the XP thresholds for leveling up in STK and similar",
+    "stype": "int",
+    "value": 400
+  },
+  {
+    "type": "EXTERNAL_OPTION",
+    "name": "ALWAYS_SHOW_MANA",
+    "info": "If true, always display the mana in the sidebar. Primarily useful for magic-related mods.",
+    "stype": "bool",
+    "value": false
   }
 ]

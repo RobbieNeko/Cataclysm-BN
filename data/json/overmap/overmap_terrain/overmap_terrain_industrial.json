@@ -104,6 +104,14 @@
   },
   {
     "type": "overmap_terrain",
+    "id": "solar_farm",
+    "name": "solar farm",
+    "sym": "#",
+    "color": "i_yellow",
+    "see_cost": 5
+  },
+  {
+    "type": "overmap_terrain",
     "id": "pwr_sub_s",
     "name": "small power substation",
     "sym": "H",
@@ -986,9 +994,8 @@
   {
     "type": "overmap_terrain",
     "id": "industrial_center_light_industry_roof",
-    "copy-from": "generic_city_building_no_sidewalk",
-    "name": "light industry roof",
-    "color": "dark_gray"
+    "copy-from": "industrial_center_light_industry",
+    "name": "light industry roof"
   },
   {
     "type": "overmap_terrain",
@@ -1048,9 +1055,14 @@
   {
     "type": "overmap_terrain",
     "id": "industrial_center_data_center_roof",
-    "name": "data center roof",
-    "copy-from": "generic_city_building_no_sidewalk",
-    "color": "light_gray"
+    "copy-from": "industrial_center_data_center",
+    "name": "data center roof"
+  },
+  {
+    "type": "overmap_terrain",
+    "id": "industrial_center_data_center_upper_roof",
+    "copy-from": "industrial_center_data_center",
+    "name": "data center roof"
   },
   {
     "type": "overmap_terrain",
@@ -1063,8 +1075,8 @@
   {
     "type": "overmap_terrain",
     "id": "industrial_center_admin_roof",
-    "name": "administration roof",
-    "copy-from": "industrial_center_admin"
+    "copy-from": "industrial_center_admin",
+    "name": "administration roof"
   },
   {
     "type": "overmap_terrain",
@@ -1150,6 +1162,14 @@
     "color": "dark_gray",
     "see_cost": 5,
     "flags": [ "KNOWN_UP" ]
+  },
+  {
+    "type": "overmap_terrain",
+    "id": "mine_shaft_lower_sub_station",
+    "name": "subway station?",
+    "sym": "S",
+    "color": "dark_gray",
+    "see_cost": 5
   },
   {
     "type": "overmap_terrain",

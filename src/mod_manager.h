@@ -1,6 +1,6 @@
 #pragma once
-#ifndef CATA_SRC_MOD_MANAGER_H
-#define CATA_SRC_MOD_MANAGER_H
+
+#include "catalua_type_operators.h"
 
 #include <cstddef>
 #include <map>
@@ -14,9 +14,7 @@
 #include "ret_val.h"
 #include "type_id.h"
 
-struct WORLD;
-
-using WORLDPTR = WORLD *;
+struct WORLDINFO;
 class JsonObject;
 class dependency_tree;
 class mod_manager;
@@ -28,7 +26,7 @@ const std::map<std::string, std::string> &get_mod_list_cat_tab();
 struct translatable_mod_info {
     private:
         std::string mod_path;
-        std::string name_raw;
+        std::string name_raw_;
         std::string name_tr;
         std::string description_raw;
         std::string description_tr;
@@ -37,8 +35,9 @@ struct translatable_mod_info {
     public:
         translatable_mod_info();
         translatable_mod_info( std::string name, std::string description, std::string path );
-        std::string name();
-        std::string description();
+        auto name() -> std::string;
+        auto name_raw() const -> std::string;
+        auto description() -> std::string;
 };
 
 struct MOD_INFORMATION {
@@ -46,8 +45,9 @@ struct MOD_INFORMATION {
         mutable translatable_mod_info translatable_info;
 
     public:
-        std::string name() const;
-        std::string description() const;
+        auto name() const -> std::string;
+        auto name_raw() const -> std::string;
+        auto description() const -> std::string;
 
         void set_translatable_info( translatable_mod_info &&tmi ) {
             translatable_info = std::move( tmi );
@@ -60,6 +60,13 @@ struct MOD_INFORMATION {
 
         /** Full path to modinfo.json, for debug purposes */
         std::string path_full;
+
+        /**
+         *  The license the mod is under, preferably named such that people may find it
+         *  Ex: CC-BY-SA 4.0, GPL v3 only, MIT, CC0, BSD 3-clause, Hippocratic License 3.0
+         *  Non-FOSS should use "All Rights Reserved" or "Source Available"
+         */
+        std::string license;
 
         /** All authors who have added content to the mod (excluding maintenance changes) */
         std::set<std::string> authors;
@@ -93,6 +100,8 @@ struct MOD_INFORMATION {
         bool obsolete = false;
 
         std::pair<int, std::string> category = { -1, "" };
+
+        LUA_TYPE_OPS( MOD_INFORMATION, ident );
 };
 
 namespace mod_management
@@ -165,12 +174,12 @@ class mod_manager
          * Save list of mods that are active in that world to
          * the world folder.
          */
-        void save_mods_list( WORLDPTR world ) const;
+        void save_mods_list( WORLDINFO *world ) const;
         /**
          * Load list of mods that should be active in that
          * world.
          */
-        void load_mods_list( WORLDPTR world ) const;
+        void load_mods_list( WORLDINFO *world ) const;
         const t_mod_list &get_default_mods() const;
         bool set_default_mods( const t_mod_list &mods );
         std::vector<mod_id> get_all_sorted() const;
@@ -184,7 +193,7 @@ class mod_manager
          * @returns path of a file in the world folder that contains
          * the list of mods that should be loaded for this world.
          */
-        static std::string get_mods_list_file( WORLDPTR world );
+        static std::string get_mods_list_file( WORLDINFO *world );
 
         /**
          * Add mods from given list to the pool.
@@ -224,4 +233,4 @@ class mod_ui
         bool can_shift_down( size_t selection, const std::vector<mod_id> &active_list );
 };
 
-#endif // CATA_SRC_MOD_MANAGER_H
+

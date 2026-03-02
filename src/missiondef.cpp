@@ -104,6 +104,7 @@ static const std::map<std::string, std::function<void( mission * )>> mission_fun
         { "place_dog", mission_start::place_dog },
         { "place_zombie_mom", mission_start::place_zombie_mom },
         { "kill_horde_master", mission_start::kill_horde_master },
+        { "kill_nemesis", mission_start::kill_nemesis },
         { "place_npc_software", mission_start::place_npc_software },
         { "place_priest_diary", mission_start::place_priest_diary },
         { "place_deposit_box", mission_start::place_deposit_box },
@@ -178,11 +179,13 @@ std::string enum_to_string<mission_goal>( mission_goal data )
         case MGOAL_KILL_MONSTER: return "MGOAL_KILL_MONSTER";
         case MGOAL_KILL_MONSTER_TYPE: return "MGOAL_KILL_MONSTER_TYPE";
         case MGOAL_KILL_MONSTER_SPEC: return "MGOAL_KILL_MONSTER_SPEC";
+        case MGOAL_KILL_NEMESIS: return "MGOAL_KILL_NEMESIS";
         case MGOAL_RECRUIT_NPC: return "MGOAL_RECRUIT_NPC";
         case MGOAL_RECRUIT_NPC_CLASS: return "MGOAL_RECRUIT_NPC_CLASS";
         case MGOAL_COMPUTER_TOGGLE: return "MGOAL_COMPUTER_TOGGLE";
         case MGOAL_TALK_TO_NPC: return "MGOAL_TALK_TO_NPC";
         case MGOAL_CONDITION: return "MGOAL_CONDITION";
+        case MGOAL_KILL_MONSTERS: return "MGOAL_KILL_MONSTERS";
         // *INDENT-ON*
         case mission_goal::NUM_MGOAL:
             break;
@@ -250,7 +253,7 @@ void mission_type::load( const JsonObject &jo, const std::string &src )
         }
     }
 
-    if( std::any_of( origins.begin(), origins.end(), []( mission_origin origin ) {
+    if( std::ranges::any_of( origins, []( mission_origin origin ) {
     return origin == ORIGIN_ANY_NPC || origin == ORIGIN_OPENER_NPC || origin == ORIGIN_SECONDARY;
 } ) ) {
         auto djo = jo.get_object( "dialogue" );
@@ -464,7 +467,7 @@ mission_type_id mission_type::get_random_id( const mission_origin origin,
 {
     std::vector<mission_type_id> valid;
     for( auto &t : get_all() ) {
-        if( std::find( t.origins.begin(), t.origins.end(), origin ) == t.origins.end() ) {
+        if( std::ranges::find( t.origins, origin ) == t.origins.end() ) {
             continue;
         }
         if( t.place( p ) ) {

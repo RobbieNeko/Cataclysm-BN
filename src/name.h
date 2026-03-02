@@ -1,6 +1,4 @@
 #pragma once
-#ifndef CATA_SRC_NAME_H
-#define CATA_SRC_NAME_H
 
 #include <string>
 
@@ -18,6 +16,11 @@ enum nameFlags {
 
 namespace Name
 {
+
+nameFlags usage_flag( const std::string &usage );
+
+nameFlags gender_flag( const std::string &gender );
+
 /// Load names from given json file to use for generation
 void load_from_file( const std::string &filename );
 
@@ -41,4 +44,4 @@ inline nameFlags operator&( nameFlags l, nameFlags r )
     return static_cast<nameFlags>( static_cast<unsigned>( l ) & static_cast<unsigned>( r ) );
 }
 
-#endif // CATA_SRC_NAME_H
+

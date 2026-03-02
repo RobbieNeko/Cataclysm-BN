@@ -69,7 +69,6 @@ static const bionic_id bio_leaky( "bio_leaky" );
 static const bionic_id bio_noise( "bio_noise" );
 static const bionic_id bio_power_weakness( "bio_power_weakness" );
 static const bionic_id bio_reactor( "bio_reactor" );
-static const bionic_id bio_advreactor( "bio_advreactor" );
 static const bionic_id bio_reactoroverride( "bio_reactoroverride" );
 static const bionic_id bio_shakes( "bio_shakes" );
 static const bionic_id bio_sleepy( "bio_sleepy" );
@@ -103,6 +102,7 @@ static const efftype_id effect_sleep( "sleep" );
 static const efftype_id effect_stunned( "stunned" );
 static const efftype_id effect_took_antiasthmatic( "took_antiasthmatic" );
 static const efftype_id effect_took_thorazine( "took_thorazine" );
+static const efftype_id effect_took_antinarcoleptic( "took_antinarcoleptic" );
 static const efftype_id effect_valium( "valium" );
 static const efftype_id effect_visuals( "visuals" );
 
@@ -124,6 +124,7 @@ static const trait_id trait_DEBUG_STORAGE( "DEBUG_STORAGE" );
 static const trait_id trait_FRESHWATEROSMOSIS( "FRESHWATEROSMOSIS" );
 static const trait_id trait_GILLS( "GILLS" );
 static const trait_id trait_GILLS_CEPH( "GILLS_CEPH" );
+static const trait_id trait_HAS_NEMESIS( "HAS_NEMESIS" );
 static const trait_id trait_JITTERY( "JITTERY" );
 static const trait_id trait_KILLER( "KILLER" );
 static const trait_id trait_LEAVES( "LEAVES" );
@@ -256,7 +257,7 @@ void Character::suffer_while_underwater()
             add_msg_if_player( m_bad, _( "You're drowning!" ) );
             // NPCs are not currently programmed to avoid or get out of deep water,
             // so disable drowning damage for them.
-            // https://github.com/cataclysmbnteam/Cataclysm-BN/issues/3266
+            // https://github.com/cataclysmbn/Cataclysm-BN/issues/3266
             if( !is_npc() ) {
                 apply_damage( nullptr, bodypart_id( "torso" ), rng( 1, 4 ) );
             }
@@ -297,12 +298,24 @@ void Character::suffer_from_addictions()
 
 void Character::suffer_while_awake( const int current_stim )
 {
-    if( !has_trait( trait_DEBUG_STORAGE ) &&
-        ( weight_carried() > 4 * weight_capacity() ) ) {
-        if( has_effect( effect_downed ) ) {
-            add_effect( effect_downed, 1_turns, bodypart_str_id::NULL_ID(), 0 );
+    if( !has_trait( trait_DEBUG_STORAGE ) ) {
+        units::mass w_carry;
+        units::mass w_cap;
+        if( is_mounted() ) {
+            auto &mount = *mounted_creature;
+            w_carry = mount.get_carried_weight() + this->get_weight();
+            w_cap = 4 * mount.weight_capacity();
         } else {
-            add_effect( effect_downed, 2_turns, bodypart_str_id::NULL_ID(), 0 );
+            w_carry = weight_carried();
+            w_cap = 4 * weight_capacity();
+        }
+
+        if( w_carry > w_cap ) {
+            if( has_effect( effect_downed ) ) {
+                add_effect( effect_downed, 1_turns, bodypart_str_id::NULL_ID(), 0 );
+            } else {
+                add_effect( effect_downed, 2_turns, bodypart_str_id::NULL_ID(), 0 );
+            }
         }
     }
     if( has_trait( trait_CHEMIMBALANCE ) ) {
@@ -313,7 +326,8 @@ void Character::suffer_while_awake( const int current_stim )
         suffer_from_schizophrenia();
     }
 
-    if( ( has_trait( trait_NARCOLEPTIC ) || has_artifact_with( AEP_SCHIZO ) ) ) {
+    if( ( has_trait( trait_NARCOLEPTIC ) || has_artifact_with( AEP_SCHIZO ) ) &&
+        !has_effect( effect_took_antinarcoleptic ) ) {
         if( one_turn_in( 8_hours ) ) {
             add_msg_player_or_npc( m_bad,
                                    _( "You're suddenly overcome with the urge to sleep and you pass out." ),
@@ -343,6 +357,10 @@ void Character::suffer_while_awake( const int current_stim )
 
     if( has_trait( trait_VOMITOUS ) && one_turn_in( 7_hours ) ) {
         vomit();
+    }
+
+    if( has_trait( trait_HAS_NEMESIS ) && one_turn_in( 2_minutes ) ) {
+        signal_nemesis();
     }
 
     if( has_trait( trait_SHOUT1 ) && one_turn_in( 6_hours ) ) {
@@ -499,15 +517,10 @@ void Character::suffer_from_schizophrenia()
         shout( SNIPPET.random_from_category( "schizo_self_shout" ).value_or( translation() ).translated() );
         return;
     }
-    // Drop weapon
-    if( one_turn_in( 2_days ) && !weapon.is_null() ) {
-        const translation snip = SNIPPET.random_from_category( "schizo_weapon_drop" ).value_or(
-                                     translation() );
-        std::string str = string_format( snip, i_name_w );
-        str[0] = toupper( str[0] );
-
-        add_msg_if_player( m_bad, "%s", str );
-        drop( primary_weapon(), pos() );
+    // Focus debuff
+    if( one_turn_in( 8_hours ) ) {
+        add_msg_if_player( m_bad, _( "You find it hard to focus all of a sudden." ) );
+        focus_pool -= rng( 20, 40 );
         return;
     }
     // Talk to self
@@ -893,7 +906,7 @@ std::map<bodypart_id, float> Character::bodypart_exposure()
         // What body parts does this item cover?
         body_part_set covered = it->get_covered_body_parts();
         for( const bodypart_id &bp : all_body_parts )  {
-            if( bp->token != num_bp && !covered.test( bp.id() ) ) {
+            if( bp.id() && !covered.test( bp.id() ) ) {
                 continue;
             }
             // How much exposure does this item leave on this part? (1.0 == naked)
@@ -1246,48 +1259,21 @@ void Character::suffer_from_radiation()
         mod_rad( -5 );
     }
 
-    // Microreactor CBM
-    if( get_fuel_type_available( itype_plut_cell ) > 0 ) {
-        if( calendar::once_every( 60_minutes ) ) {
-            int rad_mod = 0;
-            rad_mod += has_bionic( bio_reactor ) ? 3 : 0;
+    // Microreactor CBM. advanced microreactor is safe to use
+    if( has_active_bionic( bio_reactor ) ) {
+        mod_rad( 1 );
+    }
+    // Reactor override increases power output but irradiates you faster
+    if( has_active_bionic( bio_reactoroverride ) ) {
+        int current_fuel_stock = std::stoi( get_value( itype_plut_cell.str() ) );
 
-            if( rad_mod > 1 ) {
-                mod_rad( rad_mod );
-            }
-        }
+        current_fuel_stock -= 50;
 
-        bool powered_reactor = false;
+        set_value( itype_plut_cell.str(), std::to_string( current_fuel_stock ) );
+        update_fuel_storage( itype_plut_cell );
 
-        if( has_bionic( bio_reactor ) ) {
-            if( get_bionic_state( bio_reactor ).powered ) {
-                powered_reactor = true;
-            } else {
-                mod_power_level( 50_J );
-            }
-        }
-
-        if( has_bionic( bio_advreactor ) ) {
-            if( get_bionic_state( bio_advreactor ).powered ) {
-                powered_reactor = true;
-            } else {
-                mod_power_level( 75_J );
-            }
-        }
-
-        if( has_bionic( bio_reactoroverride ) && powered_reactor ) {
-            if( get_bionic_state( bio_reactoroverride ).powered ) {
-                int current_fuel_stock = std::stoi( get_value( itype_plut_cell.str() ) );
-
-                current_fuel_stock -= 50;
-
-                set_value( itype_plut_cell.str(), std::to_string( current_fuel_stock ) );
-                update_fuel_storage( itype_plut_cell );
-
-                mod_power_level( 40_kJ );
-                mod_rad( 2 );
-            }
-        }
+        mod_power_level( 40_kJ );
+        mod_rad( 2 );
     }
 }
 
@@ -1545,7 +1531,7 @@ void Character::suffer()
         }
     }
 
-    for( bionic &bio : *my_bionics ) {
+    for( bionic &bio : get_bionic_collection() ) {
         process_bionic( bio );
     }
 
@@ -1917,7 +1903,7 @@ void Character::add_addiction( add_type type, int strength )
 
 bool Character::has_addiction( add_type type ) const
 {
-    return std::any_of( addictions.begin(), addictions.end(),
+    return std::ranges::any_of( addictions,
     [type]( const addiction & ad ) {
         return ad.type == type && ad.intensity >= MIN_ADDICTION_LEVEL;
     } );
@@ -1925,7 +1911,7 @@ bool Character::has_addiction( add_type type ) const
 
 void Character::rem_addiction( add_type type )
 {
-    auto iter = std::find_if( addictions.begin(), addictions.end(),
+    auto iter = std::ranges::find_if( addictions,
     [type]( const addiction & ad ) {
         return ad.type == type;
     } );
@@ -1938,7 +1924,7 @@ void Character::rem_addiction( add_type type )
 
 int Character::addiction_level( add_type type ) const
 {
-    auto iter = std::find_if( addictions.begin(), addictions.end(),
+    auto iter = std::ranges::find_if( addictions,
     [type]( const addiction & ad ) {
         return ad.type == type;
     } );

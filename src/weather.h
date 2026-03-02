@@ -1,6 +1,4 @@
 #pragma once
-#ifndef CATA_SRC_WEATHER_H
-#define CATA_SRC_WEATHER_H
 
 #include "calendar.h"
 #include "color.h"
@@ -78,8 +76,17 @@ namespace weather_effect
 {
 void thunder( int intensity );
 void lightning( int intensity );
-void light_acid( int intensity );
-void acid( int intensity );
+void effect( int intensity, time_duration duration, bodypart_str_id bp_id,
+             int effect_intensity,
+             const std::string &effect_id_str,
+             const std::string &effect_msg,
+             int effect_msg_frequency, int effect_msg_blocked_frequency, game_message_type message_type,
+             std::string precipitation_name,
+             bool ignore_armor, int clothing_protection, int umbrella_protection );
+void morale( int intensity, int bonus, int bonus_max, time_duration duration,
+             time_duration decay_start,
+             const std::string &morale_id_str, const std::string &morale_msg,
+             int morale_msg_frequency, game_message_type message_type );
 void wet_player( int amount );
 } // namespace weather_effect
 
@@ -230,4 +237,4 @@ class weather_manager
 
 weather_manager &get_weather();
 
-#endif // CATA_SRC_WEATHER_H
+

@@ -1,8 +1,5 @@
 #pragma once
-#ifndef CATA_SRC_VEH_INTERACT_H
-#define CATA_SRC_VEH_INTERACT_H
 
-#include <cstddef>
 #include <functional>
 #include <map>
 #include <string>
@@ -31,12 +28,16 @@ enum task_reason {
     LACK_SKILL, //Player doesn't have high enough mechanics skill
     MOVING_VEHICLE, // vehicle is moving, no modifications allowed
     LOW_MORALE, // Player has too low morale (for operations that require it)
-    LOW_LIGHT // Player cannot see enough to work (for operations that require it)
+    LOW_LIGHT, // Player cannot see enough to work (for operations that require it)
+    DOUBLE_STACK // Player cannot interact with a vehicle that is blocked off by another vehicle
 };
 
 class ui_adaptor;
 class vehicle;
 struct vehicle_part;
+#if defined(TILES)
+struct vehicle_preview_window;
+#endif
 
 // For marking 'leaking' tanks/reactors/batteries
 const std::string leak_marker = "<color_red>*</color>";
@@ -52,7 +53,7 @@ class veh_interact
         static vehicle_part &select_part( const vehicle &veh, const part_selector &sel,
                                           const std::string &title = std::string() );
 
-        static void complete_vehicle( player &p );
+        static void complete_vehicle( Character &who );
 
     private:
         veh_interact( vehicle &veh, point p = point_zero );
@@ -61,9 +62,12 @@ class veh_interact
         item *target = nullptr;
 
         point dd = point_zero;
+        tripoint stored_view_offset;
         /* starting offset for vehicle parts description display and max offset for scrolling */
         int start_at = 0;
         int start_limit = 0;
+        /* starting offset for the parts list display */
+        int parts_list_offset = 0;
         /* starting offset for the overview and the max offset for scrolling */
         int overview_offset = 0;
         int overview_limit = 0;
@@ -88,6 +92,10 @@ class veh_interact
         catacurses::window w_list;
         catacurses::window w_details;
         catacurses::window w_name;
+
+#if defined(TILES)
+        std::unique_ptr<vehicle_preview_window> tile_preview;
+#endif
 
         bool ui_hidden = false;
         weak_ptr_fast<ui_adaptor> ui;
@@ -158,6 +166,9 @@ class veh_interact
 
         void display_grid();
         void display_veh();
+#if defined(TILES)
+        void display_veh_tiles();
+#endif
         void display_stats() const;
         void display_name();
         void display_mode();
@@ -222,7 +233,7 @@ class veh_interact
         vehicle_part *get_most_repariable_part() const;
 
         //do_remove supporting operation, writes requirements to ui
-        bool can_remove_part( int idx, const player &p );
+        bool can_remove_part( int idx, const Character &who );
         //do install support, writes requirements to ui
         bool update_part_requirements();
         //true if trying to install foot crank with electric engines for example
@@ -268,4 +279,4 @@ class veh_interact
         bool can_self_jack();
 };
 
-#endif // CATA_SRC_VEH_INTERACT_H
+

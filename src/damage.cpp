@@ -1,5 +1,6 @@
 #include "damage.h"
 
+#include <algorithm>
 #include <cstddef>
 #include <algorithm>
 #include <map>
@@ -46,6 +47,12 @@ const std::string damage_unit::get_name() const
             return "Heat";
         case DT_COLD:
             return "Cold";
+        case DT_DARK:
+            return "Dark";
+        case DT_LIGHT:
+            return "Light";
+        case DT_PSI:
+            return "Psionic";
         case DT_ELECTRIC:
             return "Electric";
         case DT_BULLET:
@@ -53,6 +60,7 @@ const std::string damage_unit::get_name() const
         case NUM_DT:
             return std::to_string( NUM_DT );
     }
+    return std::to_string( NUM_DT );
 }
 
 damage_instance::damage_instance() = default;
@@ -131,7 +139,7 @@ void damage_instance::add( const damage_instance &added_di )
 
 void damage_instance::add( const damage_unit &new_du )
 {
-    auto iter = std::find_if( damage_units.begin(), damage_units.end(),
+    auto iter = std::ranges::find_if( damage_units,
     [&new_du]( const damage_unit & du ) {
         return du.type == new_du.type;
     } );
@@ -310,6 +318,12 @@ std::string io::enum_to_string<damage_type>( damage_type dt )
             return "DT_HEAT";
         case DT_COLD:
             return "DT_COLD";
+        case DT_DARK:
+            return "DT_DARK";
+        case DT_LIGHT:
+            return "DT_LIGHT";
+        case DT_PSI:
+            return "DT_PSI";
         case DT_ELECTRIC:
             return "DT_ELECTRIC";
         case DT_BULLET:
@@ -331,6 +345,9 @@ static const std::map<std::string, damage_type> dt_map = {
     { translate_marker_context( "damage_type", "bullet" ), DT_BULLET },
     { translate_marker_context( "damage type", "heat" ), DT_HEAT },
     { translate_marker_context( "damage type", "cold" ), DT_COLD },
+    { translate_marker_context( "damage type", "dark" ), DT_DARK },
+    { translate_marker_context( "damage type", "light" ), DT_LIGHT },
+    { translate_marker_context( "damage type", "psionic" ), DT_PSI },
     { translate_marker_context( "damage type", "electric" ), DT_ELECTRIC }
 };
 
@@ -407,8 +424,8 @@ static damage_unit load_damage_unit_inherit( const JsonObject &curr, const damag
     damage_unit ret = load_damage_unit( curr );
 
     const std::vector<damage_unit> &parent_damage = parent.damage_units;
-    auto du_iter = std::find_if( parent_damage.begin(),
-    parent_damage.end(), [&ret]( const damage_unit & dmg ) {
+    auto du_iter = std::ranges::find_if( parent_damage,
+    [&ret]( const damage_unit & dmg ) {
         return dmg.type == ret.type;
     } );
 
@@ -480,43 +497,60 @@ damage_instance load_damage_instance_inherit( const JsonArray &jarr, const damag
     return di;
 }
 
-std::map<damage_type, float> load_damage_map( const JsonObject &jo )
+namespace
 {
-    std::map<damage_type, float> ret;
-    std::optional<float> init_val = jo.has_float( "all" ) ?
-                                    jo.get_float( "all", 0.0f ) :
-                                    std::optional<float>();
 
-    auto load_if_present = [&ret, &jo]( const std::string & name, damage_type dt,
-    std::optional<float> fallback ) {
-        if( jo.has_float( name ) ) {
-            float val = jo.get_float( name );
-            ret[dt] = val;
-        } else if( fallback ) {
-            ret[dt] = *fallback;
+struct DamageMapping { std::string name; damage_type type; };
+
+constexpr auto physical_damage_mappings = std::array<DamageMapping, 4>
+{{
+        { .name = "bash",       .type = DT_BASH,       },
+        { .name = "cut",        .type = DT_CUT,        },
+        { .name = "stab",       .type = DT_STAB,       },
+        { .name = "bullet",     .type = DT_BULLET,     },
+    }
+};
+constexpr auto non_physical_damage_mappings = std::array<DamageMapping, 8>
+{{
+        { .name = "biological", .type = DT_BIOLOGICAL, },
+        { .name = "acid",       .type = DT_ACID,       },
+        { .name = "heat",       .type = DT_HEAT,       },
+        { .name = "cold",       .type = DT_COLD,       },
+        { .name = "dark",       .type = DT_DARK,       },
+        { .name = "light",      .type = DT_LIGHT,      },
+        { .name = "psi",        .type = DT_PSI,        },
+        { .name = "electric",   .type = DT_ELECTRIC,   },
+    }
+};
+
+auto get_float_optional( const JsonObject &jo, const std::string &name,
+                         const std::optional<float> fallback = std::nullopt ) -> std::optional<float>
+{
+    return jo.has_member( name ) ? std::make_optional<float>( jo.get_float( name, 0.0f ) ) : fallback;
+}
+
+} // namespace
+
+auto load_damage_map( const JsonObject &jo ) -> std::map<damage_type, float>
+{
+    const auto all_fallback = get_float_optional( jo, "all" );
+    const auto physical_fallback = get_float_optional( jo, "physical", all_fallback );
+    const auto non_phys_fallback = get_float_optional( jo, "non_physical", all_fallback );
+
+    auto ret = std::map<damage_type, float> {};
+
+    for( const auto &mapping : physical_damage_mappings ) {
+        auto value = get_float_optional( jo, mapping.name ).or_else( [&] { return physical_fallback; } );
+        if( value ) {
+            ret[mapping.type] = *value;
         }
-    };
-
-    std::optional<float> phys = jo.has_float( "physical" ) ?
-                                jo.get_float( "physical", 0.0f ) :
-                                std::optional<float>();
-
-
-    load_if_present( "bash", DT_BASH, phys ? *phys : init_val );
-    load_if_present( "cut", DT_CUT, phys ? *phys : init_val );
-    load_if_present( "stab", DT_STAB, phys ? *phys : init_val );
-    load_if_present( "bullet", DT_BULLET, phys ? *phys : init_val );
-
-    std::optional<float> non_phys = jo.has_float( "non_physical" ) ?
-                                    jo.get_float( "non_physical", 0.0f ) :
-                                    std::optional<float>();
-
-    load_if_present( "biological", DT_BIOLOGICAL, non_phys ? *non_phys : init_val );
-    load_if_present( "acid", DT_ACID, non_phys ? *non_phys : init_val );
-    load_if_present( "heat", DT_HEAT, non_phys ? *non_phys : init_val );
-    load_if_present( "cold", DT_COLD, non_phys ? *non_phys : init_val );
-    load_if_present( "electric", DT_ELECTRIC, non_phys ? *non_phys : init_val );
-
+    }
+    for( const auto &mapping : non_physical_damage_mappings ) {
+        auto value = get_float_optional( jo, mapping.name ).or_else( [&] { return non_phys_fallback; } );
+        if( value ) {
+            ret[mapping.type] = *value;
+        }
+    }
     // DT_TRUE should never be resisted
     ret[ DT_TRUE ] = 0.0f;
     return ret;

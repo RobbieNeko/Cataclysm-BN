@@ -3,6 +3,7 @@
     "type": "palette",
     "id": "mansion_palette_common",
     "furniture": {
+      "`": [ [ "f_null", 90 ], [ "f_space_heater_off", 6 ], [ "f_space_heater_large", 4 ] ],
       "(": "f_trashcan",
       ")": "f_trashcan",
       "/": "f_bench",
@@ -61,6 +62,7 @@
       "w": "f_washer",
       "y": "f_sink",
       "z": "f_dresser",
+      "{": "f_mannequin",
       "}": "f_pinball_machine"
     },
     "terrain": {
@@ -113,7 +115,7 @@
       "x": "t_wall_glass",
       "|": "t_railing_v"
     },
-    "nested": { "O": { "chunks": [ [ "null", 95 ], [ "house_place_air_conditioner", 5 ] ] } }
+    "nested": { "O": { "chunks": [ [ "null", 195 ], [ "house_place_air_conditioner", 5 ] ] } }
   },
   {
     "type": "palette",

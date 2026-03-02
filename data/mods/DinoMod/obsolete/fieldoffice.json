@@ -16,12 +16,10 @@
       [ "ruger_1022", 12 ],
       [ "22_fmj", 6 ],
       [ "22_lr", 8 ],
-      [ "22_cb", 10 ],
+      [ "22_cphp", 10 ],
       [ "22_ratshot", 8 ],
       [ "browning_blr", 5 ],
       [ "remington_700", 10 ],
-      [ "remington700_270", 10 ],
-      [ "270win_jsp", 8 ],
       [ "rifle_scope", 10 ],
       [ "laser_sight", 10 ],
       [ "rail_laser_sight", 10 ]

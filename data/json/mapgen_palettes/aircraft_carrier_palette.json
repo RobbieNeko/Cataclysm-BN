@@ -225,10 +225,10 @@
         { "item": "allclothes", "chance": 10 }
       ],
       "W": [
-        { "item": "clothing_military_distribution", "chance": 30, "custom-flags": [ "FILTHY" ] },
-        { "item": "clothing_military_pilot_distribution", "chance": 20, "custom-flags": [ "FILTHY" ] },
-        { "item": "gi", "chance": 5, "custom-flags": [ "FILTHY" ] },
-        { "item": "allclothes", "chance": 15, "custom-flags": [ "FILTHY" ] }
+        { "item": "clothing_military_distribution", "chance": 30 },
+        { "item": "clothing_military_pilot_distribution", "chance": 20 },
+        { "item": "gi", "chance": 5 },
+        { "item": "allclothes", "chance": 15 }
       ],
       "п": [ { "item": "inactive_bots_milspec", "chance": 20, "repeat": [ 0, 3 ] } ],
       "q": [
@@ -308,7 +308,7 @@
       "β": [
         { "item": "SUS_cookware", "chance": 100, "repeat": [ 0, 4 ] },
         { "item": "SUS_knife_drawer", "chance": 100, "repeat": [ 0, 4 ] },
-        { "item": "SUS_utensils", "chance": 100, "repeat": [ 0, 4 ] },
+        { "item": "SUS_kitchen_misc", "chance": 100, "repeat": [ 0, 4 ] },
         { "item": "SUS_dishes", "chance": 100, "repeat": [ 0, 4 ] },
         { "item": "SUS_spice_collection", "chance": 100, "repeat": [ 0, 15 ] }
       ],

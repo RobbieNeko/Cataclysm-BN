@@ -4,9 +4,23 @@ on:
   # push:
   #   branches: [main]
   #   paths: [ "**.cpp", "**.h", "**.c", "**/CMakeLists.txt", "**/Makefile", "**.hpp", "**.cmake", "build-scripts/**","tools/clang-tidy-plugin/**", ".github/workflows/clang-tidy.yml", "**/.clang-tidy" ]
+  workflow_dispatch:
   pull_request:
     branches: [main]
-    paths: [ "**.cpp", "**.h", "**.c", "**/CMakeLists.txt", "**/Makefile", "**.hpp", "**.cmake", "build-scripts/**", "tools/clang-tidy-plugin/**", ".github/workflows/clang-tidy.yml", "**/.clang-tidy" ]
+    paths:
+      [
+        "**.cpp",
+        "**.h",
+        "**.c",
+        "**/CMakeLists.txt",
+        "**/Makefile",
+        "**.hpp",
+        "**.cmake",
+        "build-scripts/**",
+        "tools/clang-tidy-plugin/**",
+        ".github/workflows/clang-tidy.yml",
+        "**/.clang-tidy",
+      ]
 
 # We only care about the latest revision of a PR, so cancel all previous instances.
 concurrency:
@@ -14,27 +28,12 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  skip-duplicates:
-    continue-on-error: true
-    runs-on: ubuntu-24.04
-    # Map a step output to a job output
-    outputs:
-      should_skip: ${{ steps.skip_check.outputs.should_skip }}
-    steps:
-      - id: skip_check
-        uses: fkirc/skip-duplicate-actions@master
-        with:
-          cancel_others: "true"
-          paths: '[ "**.cpp", "**.h", "**.c", "**/CMakeLists.txt", "**/Makefile", "**.hpp", "**.cmake", "build-scripts/**", "tools/clang-tidy-plugin/**", ".github/workflows/clang-tidy.yml", "**/.clang-tidy" ]'
   build:
-    needs: skip-duplicates
-    if: ${{ needs.skip-duplicates.outputs.should_skip != 'true' }}
-
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     env:
       CMAKE: 1
-      CLANG: /usr/bin/clang++-18
-      COMPILER: /usr/bin/clang++-18
+      CLANG: /usr/bin/clang++-20
+      COMPILER: /usr/bin/clang++-20
       TILES: 1
       SOUND: 1
       BUILD_PATH: "build"
@@ -48,31 +47,29 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install \
-            cmake gettext ninja-build mold ccache jq \
-            clang-18 libclang-18-dev llvm-18 llvm-18-dev clang-tidy-18 \
-            libsdl2-dev libsdl2-ttf-dev libsdl2-image-dev libsdl2-mixer-dev libpulse-dev libflac-dev
+            cmake gettext ninja-build mold jq \
+            libsdl2-dev libsdl2-ttf-dev libsdl2-image-dev libsdl2-mixer-dev libpulse-dev libflac-dev \
+            sqlite3 libsqlite3-dev zlib1g-dev
 
-      - name: ensure clang 18 is installed
-        run: |
-          if [ -z "$(command -v clang++-18)" ]; then
-            echo "clang 18 not found"
-            exit 1
-          fi
-          ls -al /usr/lib/llvm-18/lib
-          if [ ! -d /usr/lib/llvm-18/lib ]; then
-            echo "llvm-18 not found"
-            exit 1
-          fi
-
-          sudo update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-18 100
-          sudo update-alternatives --install /usr/bin/FileCheck FileCheck /usr/bin/FileCheck-18 100
-          sudo update-alternatives --install /usr/bin/llvm-config llvm-config /usr/bin/llvm-config-18 100
+          VERSION=20
+          wget https://apt.llvm.org/llvm.sh
+          chmod +x ./llvm.sh
+          sudo ./llvm.sh $VERSION all
+          for bin in clang clang++ clang-format clang-tidy run-clang-tidy llvm-config; do
+            sudo update-alternatives --install /usr/bin/$bin $bin /usr/bin/$bin-$VERSION 200
+          done
 
       - name: Setup ccache
-        uses: Chocobo1/setup-ccache-action@v1
+        uses: hendrikmuhs/ccache-action@v1.2
         with:
-          install_ccache: false
-          update_packager_index: false
+          key: clang-tidy-${{ github.ref_name }}
+          restore-keys: |
+            clang-tidy-${{ github.ref_name }}
+            clang-tidy-main
+            clang-tidy-
+          max-size: 500M
+          verbose: 2
+          save: ${{ github.event_name != 'pull_request' }}
 
       - name: add problem matcher
         run: |
@@ -84,6 +81,7 @@ jobs:
       - uses: ammaraskar/gcc-problem-matcher@master
 
       - uses: denoland/setup-deno@v2
+        with: { cache: true }
 
       - name: build clang-tidy plugin
         run: |

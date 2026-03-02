@@ -5,14 +5,12 @@
 #include <clang-tidy/ClangTidyModuleRegistry.h>
 #include "CombineLocalsIntoPointCheck.h"
 #include "DeterminismCheck.h"
-#include "HeaderGuardCheck.h"
 #include "JsonTranslationInputCheck.h"
 #include "NoLongCheck.h"
 #include "NoStaticGettextCheck.h"
 #include "PointInitializationCheck.h"
 #include "SimplifyPointConstructorsCheck.h"
 #include "TestFilenameCheck.h"
-#include "TextStyleCheck.h"
 #include "TranslatorCommentsCheck.h"
 #include "UnusedStaticsCheck.h"
 #include "UseLocalizedSortingCheck.h"
@@ -45,7 +43,6 @@ class CataModule : public ClangTidyModule
             CheckFactories.registerCheck<CombineLocalsIntoPointCheck>(
                 "cata-combine-locals-into-point" );
             CheckFactories.registerCheck<DeterminismCheck>( "cata-determinism" );
-            CheckFactories.registerCheck<CataHeaderGuardCheck>( "cata-header-guard" );
             CheckFactories.registerCheck<JsonTranslationInputCheck>( "cata-json-translation-input" );
             CheckFactories.registerCheck<NoLongCheck>( "cata-no-long" );
             CheckFactories.registerCheck<NoStaticGettextCheck>( "cata-no-static-gettext" );
@@ -53,7 +50,6 @@ class CataModule : public ClangTidyModule
             CheckFactories.registerCheck<SimplifyPointConstructorsCheck>(
                 "cata-simplify-point-constructors" );
             CheckFactories.registerCheck<TestFilenameCheck>( "cata-test-filename" );
-            CheckFactories.registerCheck<TextStyleCheck>( "cata-text-style" );
             CheckFactories.registerCheck<TranslatorCommentsCheck>( "cata-translator-comments" );
             CheckFactories.registerCheck<UnusedStaticsCheck>( "cata-unused-statics" );
             CheckFactories.registerCheck<UseLocalizedSortingCheck>( "cata-use-localized-sorting" );

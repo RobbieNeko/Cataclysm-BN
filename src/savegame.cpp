@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <map>
+#include <ranges>
 #include <sstream>
 #include <string>
 #include <type_traits>
@@ -34,6 +35,8 @@
 #include "output.h"
 #include "overmap.h"
 #include "overmap_types.h"
+#include "overmapbuffer.h"
+#include "fluid_grid.h"
 #include "popup.h"
 #include "regional_settings.h"
 #include "scent_map.h"
@@ -55,7 +58,7 @@ static const oter_str_id oter_omt_obsolete( "omt_obsolete" );
  * Changes that break backwards compatibility should bump this number, so the game can
  * load a legacy format loader.
  */
-const int savegame_version = 28;
+const int savegame_version = 29;
 
 /*
  * This is a global set by detected version header in .sav, maps.txt, or overmap.
@@ -88,6 +91,7 @@ void game::serialize( std::ostream &fout )
     json.member( "auto_travel_mode", auto_travel_mode );
     json.member( "run_mode", static_cast<int>( safe_mode ) );
     json.member( "mostseen", mostseen );
+    json.member( "show_zone_overlay", show_zone_overlay );
     // current map coordinates
     tripoint pos_sm = m.get_abs_sub();
     const point pos_om = sm_to_om_remain( pos_sm.x, pos_sm.y );
@@ -204,6 +208,7 @@ void game::unserialize( std::istream &fin )
         data.read( "auto_travel_mode", auto_travel_mode );
         data.read( "run_mode", tmprun );
         data.read( "mostseen", mostseen );
+        data.read( "show_zone_overlay", show_zone_overlay );
         data.read( "levx", lev.x );
         data.read( "levy", lev.y );
         data.read( "levz", lev.z );
@@ -471,6 +476,51 @@ void overmap::unserialize( std::istream &fin, const std::string &file_path )
                     }
                 }
             }
+        } else if( name == "fluid_grid_connections" ) {
+            auto &fluid_connections = fluid_grid::connections_for( *this );
+            jsin.start_array();
+            while( !jsin.end_array() ) {
+                jsin.start_array();
+                auto origin = tripoint_om_omt{};
+                jsin.read( origin );
+                auto &conn = fluid_connections[origin];
+                while( !jsin.end_array() ) {
+                    auto offset = tripoint{};
+                    jsin.read( offset );
+                    const auto iter = std::ranges::find( six_cardinal_directions, offset );
+                    if( iter != six_cardinal_directions.end() ) {
+                        const auto index = std::distance( six_cardinal_directions.begin(), iter );
+                        conn.set( index, true );
+                    }
+                }
+            }
+        } else if( name == "fluid_grid_storage" ) {
+            auto &storage = fluid_grid::storage_for( *this );
+            jsin.start_array();
+            while( !jsin.end_array() ) {
+                const auto entry = jsin.get_object();
+                auto origin = tripoint_om_omt{};
+                auto capacity_ml = 0;
+                entry.read( "pos", origin );
+                entry.read( "capacity_ml", capacity_ml );
+
+                auto state = fluid_grid::liquid_storage_state{
+                    .stored_by_type = {},
+                    .capacity = units::from_milliliter( capacity_ml )
+                };
+                const auto liquids = entry.get_array( "liquids" );
+                std::ranges::for_each( std::views::iota( size_t{ 0 }, liquids.size() ),
+                [&]( size_t i ) {
+                    const auto liquid_entry = liquids.get_array( i );
+                    const auto liquid_type = itype_id( liquid_entry.get_string( 0 ) );
+                    const auto volume_ml = liquid_entry.get_int( 1 );
+                    if( volume_ml > 0 ) {
+                        state.stored_by_type[liquid_type] += units::from_milliliter( volume_ml );
+                    }
+                } );
+
+                storage[origin] = state;
+            }
         } else if( name == "radios" ) {
             jsin.start_array();
             while( !jsin.end_array() ) {
@@ -481,7 +531,7 @@ void overmap::unserialize( std::istream &fin, const std::string &file_path )
                     if( radio_member_name == "type" ) {
                         const std::string radio_name = jsin.get_string();
                         const auto mapping =
-                            find_if( radio_type_names.begin(), radio_type_names.end(),
+                            std::ranges::find_if( radio_type_names,
                         [radio_name]( const std::pair<radio_type, std::string> &p ) {
                             return p.second == radio_name;
                         } );
@@ -1035,6 +1085,45 @@ void overmap::serialize( std::ostream &fout ) const
     }
     json.end_array();
 
+    const auto &fluid_connections = fluid_grid::connections_for( *this );
+    json.member( "fluid_grid_connections" );
+    json.start_array();
+    std::ranges::for_each( fluid_connections, [&]( const auto & conn ) {
+        json.start_array();
+        json.write( conn.first );
+        std::ranges::for_each( std::views::iota( size_t{ 0 }, six_cardinal_directions.size() ),
+        [&]( size_t i ) {
+            if( conn.second[i] ) {
+                json.write( six_cardinal_directions[i] );
+            }
+        } );
+        json.end_array();
+    } );
+    json.end_array();
+
+    const auto &fluid_storage = fluid_grid::storage_for( *this );
+    json.member( "fluid_grid_storage" );
+    json.start_array();
+    std::ranges::for_each( fluid_storage, [&]( const auto & entry ) {
+        json.start_object();
+        json.member( "pos", entry.first );
+        json.member( "capacity_ml", units::to_milliliter<int>( entry.second.capacity ) );
+        json.member( "liquids" );
+        json.start_array();
+        std::ranges::for_each( entry.second.stored_by_type, [&]( const auto & liquid_entry ) {
+            if( liquid_entry.second <= 0_ml ) {
+                return;
+            }
+            json.start_array();
+            json.write( liquid_entry.first );
+            json.write( units::to_milliliter<int>( liquid_entry.second ) );
+            json.end_array();
+        } );
+        json.end_array();
+        json.end_object();
+    } );
+    json.end_array();
+
     std::vector<std::pair<om_pos_dir, std::string>> flattened_joins_used(
                 joins_used.begin(), joins_used.end() );
     json.member( "joins_used", flattened_joins_used );
@@ -1062,12 +1151,14 @@ void mongroup::io( Archive &archive )
 {
     archive.io( "type", type );
     archive.io( "pos", pos, tripoint_om_sm() );
+    archive.io( "abs_pos", abs_pos, tripoint_abs_sm() );
     archive.io( "radius", radius, 1u );
     archive.io( "population", population, 1u );
     archive.io( "diffuse", diffuse, false );
     archive.io( "dying", dying, false );
     archive.io( "horde", horde, false );
     archive.io( "target", target, tripoint_om_sm() );
+    archive.io( "nemesis_target", nemesis_target, tripoint_abs_sm() );
     archive.io( "interest", interest, 0 );
     archive.io( "horde_behaviour", horde_behaviour, io::empty_default_tag() );
     archive.io( "monsters", monsters, io::empty_default_tag() );
@@ -1096,6 +1187,8 @@ void mongroup::deserialize_legacy( JsonIn &json )
             type = mongroup_id( json.get_string() );
         } else if( name == "pos" ) {
             pos.deserialize( json );
+        } else if( name == "abs_pos" ) {
+            abs_pos.deserialize( json );
         } else if( name == "radius" ) {
             radius = json.get_int();
         } else if( name == "population" ) {
@@ -1108,6 +1201,8 @@ void mongroup::deserialize_legacy( JsonIn &json )
             horde = json.get_bool();
         } else if( name == "target" ) {
             target.deserialize( json );
+        } else if( name == "nemesis_target" ) {
+            nemesis_target.deserialize( json );
         } else if( name == "interest" ) {
             interest = json.get_int();
         } else if( name == "horde_behaviour" ) {
@@ -1167,6 +1262,8 @@ void game::unserialize_master( std::istream &fin )
                 jsin.read( *faction_manager_ptr );
             } else if( name == "seed" ) {
                 jsin.read( seed );
+            } else if( name == "placed_unique_specials" ) {
+                overmap_buffer.deserialize_placed_unique_specials( jsin );
             } else if( name == "weather" ) {
                 JsonObject w = jsin.get_object();
                 w.read( "lightning", get_weather().lightning_active );
@@ -1201,6 +1298,9 @@ void game::serialize_master( std::ostream &fout )
 
         json.member( "active_missions" );
         mission::serialize_all( json );
+
+        json.member( "placed_unique_specials" );
+        overmap_buffer.serialize_placed_unique_specials( json );
 
         json.member( "factions", *faction_manager_ptr );
         json.member( "seed", seed );
@@ -1282,4 +1382,18 @@ void Creature_tracker::serialize( JsonOut &jsout ) const
         jsout.write( *monster_ptr );
     }
     jsout.end_array();
+}
+
+void overmapbuffer::serialize_placed_unique_specials( JsonOut &json ) const
+{
+    json.write_as_array( placed_unique_specials );
+}
+
+void overmapbuffer::deserialize_placed_unique_specials( JsonIn &jsin )
+{
+    placed_unique_specials.clear();
+    jsin.start_array();
+    while( !jsin.end_array() ) {
+        placed_unique_specials.emplace( jsin.get_string() );
+    }
 }

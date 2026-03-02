@@ -219,7 +219,8 @@ static void assert_encumbrance( npc &shooter, int encumbrance )
 {
     for( const body_part bp : all_body_parts ) {
         INFO( "Body Part: " << body_part_name( bp ) );
-        REQUIRE( shooter.encumb( convert_bp( bp ) ) == encumbrance );
+        REQUIRE( shooter.encumb( convert_bp( bp ) ) == std::max( encumbrance - shooter.get_skill_level(
+                     skill_id( "swimming" ) ), 0 ) );
     }
 }
 
@@ -268,7 +269,7 @@ TEST_CASE( "competent_shooter_accuracy", "[ranged] [balance]" )
 {
     clear_all_state();
     standard_npc shooter( "Shooter", shooter_pos, {}, 5, 10, 10, 10, 10 );
-    equip_shooter( shooter, { "cloak_wool", "footrags_wool", "gloves_wraps_fur", "glasses_safety", "balclava" } );
+    equip_shooter( shooter, { "cloak_wool", "footrags_wool", "footrags_leather", "gloves_wraps_wool", "gloves_wraps_leather", "glasses_safety", "balclava" } );
     assert_encumbrance( shooter, 5 );
 
     SECTION( "a skilled shooter with an accurate pistol" ) {
@@ -331,7 +332,7 @@ TEST_CASE( "expert_shooter_accuracy", "[ranged] [balance]" )
         test_fast_shooting( shooter, 30, 0.5 );
     }
     SECTION( "an expert shooter with an excellent smg" ) {
-        arm_character( shooter, "ppsh", { "holo_sight" } );
+        arm_character( shooter, "rm2000_smg", { "holo_sight" } );
         test_shooting_scenario( shooter, 20, 30, 190 );
         test_fast_shooting( shooter, 30, 0.5 );
     }

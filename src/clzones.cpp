@@ -40,6 +40,7 @@
 #include "vehicle.h"
 #include "vehicle_part.h"
 #include "vpart_position.h"
+#include "world.h"
 
 static const item_category_id itcat_food( "food" );
 
@@ -54,6 +55,7 @@ static const zone_type_id zone_LOOT_PDRINK( "LOOT_PDRINK" );
 static const zone_type_id zone_LOOT_PFOOD( "LOOT_PFOOD" );
 static const zone_type_id zone_LOOT_SEEDS( "LOOT_SEEDS" );
 static const zone_type_id zone_LOOT_UNSORTED( "LOOT_UNSORTED" );
+static const zone_type_id zone_LOOT_DUMP( "LOOT_DUMP" );
 static const zone_type_id zone_LOOT_WOOD( "LOOT_WOOD" );
 static const zone_type_id zone_NO_AUTO_PICKUP( "NO_AUTO_PICKUP" );
 static const zone_type_id zone_NO_NPC_PICKUP( "NO_NPC_PICKUP" );
@@ -63,42 +65,6 @@ zone_manager::zone_manager()
     for( const zone_type &zone : zone_type::get_all() ) {
         types.emplace( zone.id, zone );
     }
-
-    types.emplace( zone_type_id( "SOURCE_FIREWOOD" ),
-                   zone_type( translate_marker( "Source: Firewood" ),
-                              translate_marker( "Source for firewood or other flammable materials in this zone may be used to automatically refuel fires.  "
-                                      "This will be done to maintain light during long-running tasks such as crafting, reading or waiting." ) ) );
-    types.emplace( zone_CONSTRUCTION_BLUEPRINT,
-                   zone_type( translate_marker( "Construction: Blueprint" ),
-                              translate_marker( "Designate a blueprint zone for construction." ) ) );
-    types.emplace( zone_FARM_PLOT,
-                   zone_type( translate_marker( "Farm: Plot" ),
-                              translate_marker( "Designate a farm plot for tilling and planting." ) ) );
-    types.emplace( zone_type_id( "CHOP_TREES" ),
-                   zone_type( translate_marker( "Chop Trees" ),
-                              translate_marker( "Designate an area to chop down trees." ) ) );
-    types.emplace( zone_type_id( "FISHING_SPOT" ),
-                   zone_type( translate_marker( "Fishing Spot" ),
-                              translate_marker( "Designate an area to fish from." ) ) );
-    types.emplace( zone_type_id( "MINING" ),
-                   zone_type( translate_marker( "Mine Terrain" ),
-                              translate_marker( "Designate an area to mine." ) ) );
-    types.emplace( zone_type_id( "VEHICLE_DECONSTRUCT" ),
-                   zone_type( translate_marker( "Vehicle Deconstruct Zone" ),
-                              translate_marker( "Any vehicles in this area are marked for deconstruction." ) ) );
-    types.emplace( zone_type_id( "VEHICLE_REPAIR" ),
-                   zone_type( translate_marker( "Vehicle Repair Zone" ),
-                              translate_marker( "Any vehicles in this area are marked for repair work." ) ) );
-    types.emplace( zone_type_id( "VEHICLE_PATROL" ),
-                   zone_type( translate_marker( "Vehicle Patrol Zone" ),
-                              translate_marker( "Vehicles with an autopilot will patrol in this zone." ) ) );
-    types.emplace( zone_type_id( "AUTO_EAT" ),
-                   zone_type( translate_marker( "Auto Eat" ),
-                              translate_marker( "Items in this zone will be automatically eaten during a long activity if you get hungry." ) ) );
-    types.emplace( zone_type_id( "AUTO_DRINK" ),
-                   zone_type( translate_marker( "Auto Drink" ),
-                              translate_marker( "Items in this zone will be automatically consumed during a long activity if you get thirsty." ) ) );
-
 }
 
 zone_manager &zone_manager::get_manager()
@@ -121,6 +87,8 @@ std::string zone_type::desc() const
 {
     return _( desc_ );
 }
+
+auto zone_type::color() const -> nc_color { return color_; }
 
 namespace
 {
@@ -159,6 +127,7 @@ void zone_type::load( const JsonObject &jo, const std::string & )
     mandatory( jo, was_loaded, "name", name_ );
     mandatory( jo, was_loaded, "id", id );
     optional( jo, was_loaded, "description", desc_, "" );
+    optional( jo, was_loaded, "color", color_, c_white );
 }
 
 shared_ptr_fast<zone_options> zone_options::create( const zone_type_id &type )
@@ -199,7 +168,7 @@ construction_id blueprint_options::get_final_construction(
     }
 
     for( const construction_id &c_id : list_constructions ) {
-        if( c_id == id || skip_index.find( c_id ) != skip_index.end() ) {
+        if( c_id == id || skip_index.contains( c_id ) ) {
             continue;
         }
         const construction &c = *c_id;
@@ -672,7 +641,7 @@ bool zone_manager::has( const zone_type_id &type, const tripoint &where,
 {
     const auto &point_set = get_point_set( type, fac );
     const auto &vzone_set = get_vzone_set( type, fac );
-    return point_set.find( where ) != point_set.end() || vzone_set.find( where ) != vzone_set.end();
+    return point_set.contains( where ) || vzone_set.contains( where );
 }
 
 bool zone_manager::has_near( const zone_type_id &type, const tripoint &where, int range,
@@ -847,7 +816,7 @@ zone_type_id zone_manager::get_near_zone_type_for_item( const item &it,
         return *zone_check_first;
     }
 
-    if( cat.zone() ) {
+    if( cat.zone() && has_near( *cat.zone(), where, range ) ) {
         return *cat.zone();
     }
 
@@ -868,9 +837,15 @@ zone_type_id zone_manager::get_near_zone_type_for_item( const item &it,
                 return zone_LOOT_PFOOD;
             }
         }
-
-        return zone_LOOT_FOOD;
+        if( has_near( zone_LOOT_FOOD, where, range ) ) {
+            return zone_LOOT_FOOD;
+        }
     }
+
+    if( has_near( zone_LOOT_DUMP, where, range ) ) {
+        return zone_LOOT_DUMP;
+    }
+
 
     return zone_type_id();
 }
@@ -1182,12 +1157,10 @@ void zone_data::deserialize( JsonIn &jsin )
 
 bool zone_manager::save_zones()
 {
-    std::string savefile = g->get_player_base_save_path() + ".zones.json";
-
     added_vzones.clear();
     changed_vzones.clear();
     removed_vzones.clear();
-    return write_to_file( savefile, [&]( std::ostream & fout ) {
+    return g->get_active_world()->write_to_player_file( ".zones.json", [&]( std::ostream & fout ) {
         JsonOut jsout( fout );
         serialize( jsout );
     }, _( "zones date" ) );
@@ -1195,12 +1168,10 @@ bool zone_manager::save_zones()
 
 void zone_manager::load_zones()
 {
-    std::string savefile = g->get_player_base_save_path() + ".zones.json";
-
-    read_from_file_optional( savefile, [&]( std::istream & fin ) {
+    g->get_active_world()->read_from_player_file( ".zones.json", [&]( std::istream & fin ) {
         JsonIn jsin( fin );
         deserialize( jsin );
-    } );
+    }, true );
     revert_vzones();
     added_vzones.clear();
     changed_vzones.clear();

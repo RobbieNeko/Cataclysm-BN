@@ -1,6 +1,4 @@
 #pragma once
-#ifndef CATA_SRC_EMIT_H
-#define CATA_SRC_EMIT_H
 
 #include <map>
 #include <string>
@@ -69,6 +67,9 @@ class emit
 
         /** used during JSON loading only */
         std::string field_name;
+
+    public:
+        LUA_TYPE_OPS( emit, id_ );
 };
 
-#endif // CATA_SRC_EMIT_H
+

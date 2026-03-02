@@ -15,16 +15,18 @@
     "price": "4 cent",
     "price_postapoc": "50 cent",
     "//": "Small cans--needs upsized after the string freeze.",
-    "material": "tomato",
+    "material": [ "tomato" ],
     "volume": "500 ml",
     "charges": 8,
     "phase": "liquid",
-    "flags": [ "EATEN_HOT" ],
-    "fun": 1
+    "flags": [ "EATEN_HOT", "NO_COOKING_BUFF" ],
+    "fun": 1,
+    "vitamins": [ [ "veggy_allergen", 1 ] ]
   },
   {
     "id": "maple_sap",
     "type": "COMESTIBLE",
+    "category": "cooking_ingredients",
     "symbol": "~",
     "color": "light_cyan",
     "name": { "str_sp": "maple sap" },
@@ -55,16 +57,18 @@
     "description": "A gloppy mix of egg, oil, and salt that is traditionally used to moisten sandwiches.",
     "price": "187 cent",
     "price_postapoc": "5 USD",
-    "material": [ "junk", "egg" ],
+    "material": [ "egg" ],
     "weight": "15 g",
     "volume": "250 ml",
     "comestible_type": "DRINK",
     "container": "condiment_bottle_unsealed",
     "calories": 106,
+    "flags": [ "NO_COOKING_BUFF" ],
     "spoils_in": "6 days 16 hours",
     "charges": 16,
     "fun": -7,
-    "phase": "liquid"
+    "phase": "liquid",
+    "vitamins": [ [ "egg_allergen", 1 ] ]
   },
   {
     "id": "ketchup",
@@ -81,10 +85,12 @@
     "comestible_type": "DRINK",
     "container": "condiment_bottle_unsealed",
     "calories": 21,
+    "flags": [ "NO_COOKING_BUFF" ],
     "spoils_in": "15 days",
     "charges": 16,
     "fun": -6,
-    "phase": "liquid"
+    "phase": "liquid",
+    "vitamins": [ [ "veggy_allergen", 1 ], [ "junk_allergen", 1 ] ]
   },
   {
     "id": "mustard",
@@ -95,13 +101,14 @@
     "description": "A condiment made from the seeds of a mustard plant (/Brassica/ or /Sinapis/), vinegar, salt, and spices.",
     "price": "50 cent",
     "price_postapoc": "1 USD",
-    "material": "junk",
+    "material": [ "water" ],
     "weight": "5 g",
     "volume": "250 ml",
     "comestible_type": "DRINK",
     "container": "condiment_bottle_unsealed",
     "fun": -8,
     "calories": 10,
+    "flags": [ "NO_COOKING_BUFF" ],
     "spoils_in": "15 days",
     "charges": 48,
     "phase": "liquid",
@@ -126,7 +133,7 @@
     "charges": 16,
     "healthy": 1,
     "fun": 3,
-    "flags": [ "NUTRIENT_OVERRIDE" ],
+    "flags": [ "NUTRIENT_OVERRIDE", "NO_COOKING_BUFF" ],
     "phase": "liquid"
   },
   {
@@ -143,25 +150,26 @@
     "volume": "250 ml",
     "comestible_type": "DRINK",
     "container": "jar_glass_sealed",
-    "primary_material": "junk",
+    "material": [ "nut" ],
     "quench": -2,
     "calories": 190,
     "charges": 8,
     "phase": "liquid",
-    "flags": [ "USE_EAT_VERB" ],
+    "flags": [ "USE_EAT_VERB", "NO_COOKING_BUFF" ],
     "vitamins": [ [ "iron", 6 ] ],
     "fun": 2
   },
   {
     "id": "peanutbutter_imitation",
     "type": "COMESTIBLE",
-    "name": "imitation peanutbutter",
+    "name": "imitation peanut butter",
     "description": "A thick, nutty brown paste.",
     "copy-from": "peanutbutter"
   },
   {
     "type": "COMESTIBLE",
     "id": "vinegar",
+    "category": "cooking_ingredients",
     "name": { "str_sp": "vinegar" },
     "weight": "15 g",
     "color": "white",
@@ -176,11 +184,13 @@
     "phase": "liquid",
     "charges": 16,
     "calories": 3,
+    "flags": [ "NO_COOKING_BUFF" ],
     "fun": -10
   },
   {
     "type": "COMESTIBLE",
     "id": "cooking_oil",
+    "category": "cooking_ingredients",
     "name": { "str_sp": "vegetable cooking oil" },
     "weight": "15 g",
     "color": "yellow",
@@ -198,16 +208,33 @@
     "charges": 16,
     "phase": "liquid",
     "fun": -25,
-    "flags": [ "NUTRIENT_OVERRIDE" ],
-    "vitamins": [  ]
+    "flags": [ "NUTRIENT_OVERRIDE", "NO_COOKING_BUFF" ],
+    "vitamins": [ [ "veggy_allergen", 1 ] ]
   },
   {
     "type": "COMESTIBLE",
     "id": "cooking_oil2",
+    "category": "cooking_ingredients",
     "name": { "str_sp": "animal cooking oil" },
-    "copy-from": "cooking_oil",
+    "//": "Can't copy-from the vegetable oil because it extends vitamins instead of overwriting them",
+    "weight": "15 g",
+    "color": "yellow",
+    "container": "jug_plastic",
+    "comestible_type": "DRINK",
+    "symbol": "~",
+    "quench": -1,
+    "healthy": -2,
+    "calories": 127,
     "description": "Thin yellow animal oil used for cooking.",
-    "material": [ "flesh", "oil" ]
+    "price": "40 cent",
+    "price_postapoc": "5 USD",
+    "material": [ "flesh", "oil" ],
+    "volume": "250 ml",
+    "charges": 16,
+    "phase": "liquid",
+    "fun": -25,
+    "flags": [ "NUTRIENT_OVERRIDE", "NO_COOKING_BUFF" ],
+    "vitamins": [ [ "meat_allergen", 1 ] ]
   },
   {
     "type": "COMESTIBLE",
@@ -224,13 +251,13 @@
     "description": "An extremely sugary tar-like syrup, produced by repeatedly boiling the juice of sugarcane or sugar beets.  It has a slightly bitter aftertaste.",
     "price": "2 USD",
     "price_postapoc": "5 USD",
-    "material": "junk",
+    "material": [ "junk" ],
     "volume": "250 ml",
     "phase": "liquid",
     "charges": 4,
     "fun": 2,
-    "flags": [ "USE_EAT_VERB" ],
-    "vitamins": [ [ "calcium", 18 ], [ "iron", 23 ] ]
+    "flags": [ "USE_EAT_VERB", "NO_COOKING_BUFF" ],
+    "vitamins": [ [ "calcium", 18 ], [ "iron", 23 ], [ "junk_allergen", 1 ] ]
   },
   {
     "id": "horseradish",
@@ -241,17 +268,19 @@
     "description": "A spicy grated root vegetable packed in vinegared brine.",
     "price": "75 cent",
     "price_postapoc": "1 USD",
-    "material": "veggy",
+    "material": [ "veggy" ],
     "weight": "6 g",
     "volume": "250 ml",
     "comestible_type": "FOOD",
     "container": "jar_glass",
+    "flags": [ "NO_COOKING_BUFF" ],
     "quench": -10,
     "calories": 31,
     "charges": 48,
     "healthy": 1,
     "fun": -20,
-    "phase": "liquid"
+    "phase": "liquid",
+    "vitamins": [ [ "veggy_allergen", 1 ] ]
   },
   {
     "type": "COMESTIBLE",
@@ -271,11 +300,13 @@
     "description": "A thick syrup made of water and sugar strained through coffee grounds.  Can be used to flavor many foods and beverages.",
     "price": "8 USD",
     "price_postapoc": "1 USD",
-    "material": "junk",
+    "material": [ "junk" ],
     "volume": "250 ml",
     "phase": "liquid",
     "charges": 8,
     "calories": 80,
-    "fun": 6
+    "flags": [ "NO_COOKING_BUFF" ],
+    "fun": 6,
+    "vitamins": [ [ "junk_allergen", 1 ] ]
   }
 ]

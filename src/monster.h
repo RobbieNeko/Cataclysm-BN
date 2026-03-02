@@ -1,6 +1,4 @@
 #pragma once
-#ifndef CATA_SRC_MONSTER_H
-#define CATA_SRC_MONSTER_H
 
 #include <bitset>
 #include <climits>
@@ -10,6 +8,8 @@
 #include <optional>
 #include <set>
 #include <string>
+#include <type_traits>
+#include <unordered_map>
 #include <utility>
 #include <vector>
 
@@ -30,6 +30,8 @@
 #include "type_id.h"
 #include "units.h"
 #include "value_ptr.h"
+#include "monster_action.h"
+#include "monster_plan.h"
 #include "visitable.h"
 
 class Character;
@@ -38,6 +40,7 @@ class JsonObject;
 class JsonOut;
 class effect;
 class item;
+class npc;
 class player;
 struct dealt_projectile_attack;
 struct pathfinding_settings;
@@ -68,6 +71,7 @@ enum monster_attitude : int {
     MATT_FOLLOW,
     MATT_ATTACK,
     MATT_ZLAVE,
+    MATT_UNKNOWN,
     NUM_MONSTER_ATTITUDES
 };
 
@@ -192,7 +196,7 @@ class monster : public Creature, public location_visitable<monster>
         void shift( point sm_shift ); // Shifts the monster to the appropriate submap
         void set_goal( const tripoint &p );
         // Updates current pos AND our plans
-        bool wander(); // Returns true if we have no plans
+        bool is_wandering() const; // Returns true if we have no plans
 
         /**
          * Checks whether we can move to/through p. This does not account for bashing.
@@ -230,10 +234,82 @@ class monster : public Creature, public location_visitable<monster>
         void wander_to( const tripoint &p, int f ); // Try to get to (x, y), we don't know
         // the route.  Give up after f steps.
 
-        // How good of a target is given creature (checks for visibility)
-        float rate_target( Creature &c, float best, bool smart = false ) const;
+        // How good of a target is given creature (checks for visibility).
+        // Pass precalc_dist >= 0 to skip re-computing rl_dist_fast() internally
+        // when the caller already has the distance (PERF-LOSS-4).
+        float rate_target( Creature &c, float best, bool smart = false,
+                           int precalc_dist = -1 ) const;
         void plan();
-        void move(); // Actual movement
+        /**
+         * Snapshot of alive creature pointers passed to compute_plan() so that
+         * worker threads never call weak_ptr_fast::lock() (non-atomic, _S_single)
+         * on the main thread's creature collections.  Build both vectors serially
+         * on the main thread before launching the parallel planning pass.
+         * If either pointer is null, compute_plan() falls back to
+         * g->all_monsters() / g->all_npcs() — safe only on the main thread.
+         */
+        struct compute_plan_context {
+            const std::vector<monster *> *monsters;
+            const std::vector<npc *> *npcs;
+            constexpr compute_plan_context() noexcept : monsters( nullptr ), npcs( nullptr ) {}
+            constexpr compute_plan_context( const std::vector<monster *> *m,
+                                            const std::vector<npc *> *n )
+            noexcept : monsters( m ), npcs( n ) {}
+        };
+
+        /**
+         * Pure planning pass: reads game state and returns a fully-described
+         * plan without mutating *this.  Safe to call from a worker thread once
+         * P-5 (thread-local RNG), P-6 (vision cache mutex), and ctx snapshots
+         * are in place.
+         */
+        monster_plan_t compute_plan( const compute_plan_context &ctx = compute_plan_context{} ) const;
+        /**
+         * Commit phase: applies a previously computed plan to *this.
+         * Must be called on the main thread — calls remove_effect(),
+         * add_faction_anger(), trigger_character_aggro(), etc.
+         */
+        void apply_plan( const monster_plan_t &plan );
+
+        /**
+         * Phase 2+ decision pass: reads monster and world state to determine
+         * the single action this monster intends to take.  const — no mutations
+         * to *this.  Safe to call from a worker thread in Phase 2+ once the
+         * same thread-safety preconditions as compute_plan() are met.
+         *
+         * Key constraint: must NOT call Pathfinding::route() (d_maps/d_maps_store
+         * are global static, not thread-local; see Phase 3 / Step 10 for the fix).
+         * Sets needs_repath = true in the returned action when a fresh A* is
+         * needed; execute_action() performs the actual repath.
+         */
+        monster_action_t decide_action() const;
+
+        /**
+         * Pre-warm the per-turn sight cache for the (this, target) pair.
+         * Call serially before the parallel planning phase so that
+         * compute_plan() hits the shared_lock read path instead of taking
+         * a unique_lock insert for every monster-player/NPC pair.
+         * (PERF-A / GAIN-A: replaces bare mon->sees(target) pre-warm.)
+         */
+        void prewarm_sight( const Creature &target ) const;
+
+        /**
+         * Phase 2+ execution pass: applies the action returned by decide_action().
+         * Must run on the main thread (or a thread that has exclusive access to
+         * this monster's position in the reservation map, Phase 3+).
+         *
+         * Also handles the pre-move mutations that cannot be done in the const
+         * decide pass (wandf decrement, move_effects, behavior oracle, etc.).
+         * If a pre-move guard prevents movement (move_effects returns false,
+         * drowning, etc.) the precomputed action is silently discarded and the
+         * appropriate early-exit behavior is applied.
+         *
+         * process_triggers() and map::creature_in_field() are NOT called here;
+         * the caller (game::monmove LOD-D) is responsible for those.
+         */
+        void execute_action( const monster_action_t &action );
+
+        void move(); // Thin wrapper: decide_action() → execute_action()
         void footsteps( const tripoint &p ); // noise made by movement
         void shove_vehicle( const tripoint &remote_destination,
                             const tripoint &nearby_destination ); // shove vehicles out of the way
@@ -246,7 +322,7 @@ class monster : public Creature, public location_visitable<monster>
         // chance is the one_in( chance ) that the monster will drown
         bool die_if_drowning( const tripoint &at_pos, int chance = 1 );
 
-        tripoint scent_move();
+        tripoint scent_move() const;
         int calc_movecost( const tripoint &f, const tripoint &t ) const;
         int calc_climb_cost( const tripoint &f, const tripoint &t ) const;
 
@@ -302,18 +378,18 @@ class monster : public Creature, public location_visitable<monster>
         bool push_to( const tripoint &p, int boost, size_t depth );
 
         /** Returns innate monster bash skill, without calculating additional from helpers */
-        int bash_skill();
-        int bash_estimate();
+        int bash_skill() const;
+        int bash_estimate( const tripoint &target ) const;
         /** Returns ability of monster and any cooperative helpers to
          * bash the designated target.  **/
-        int group_bash_skill( const tripoint &target );
+        int group_bash_skill( const tripoint &target ) const;
 
         void stumble();
         void knock_back_to( const tripoint &to ) override;
 
         // Combat
-        bool is_fleeing( player &u ) const; // True if we're fleeing
-        monster_attitude attitude( const Character *u = nullptr ) const; // See the enum above
+        bool is_fleeing( Character &who ) const; // True if we're fleeing
+        auto attitude( const Character *u = nullptr ) const -> monster_attitude; // See the enum above
         Attitude attitude_to( const Creature &other ) const override;
         void process_triggers(); // Process things that anger/scare us
 
@@ -336,6 +412,10 @@ class monster : public Creature, public location_visitable<monster>
         void melee_attack( Creature &target, float accuracy );
         void melee_attack( Creature &p, bool ) = delete;
         using Creature::deal_projectile_attack;
+        void deal_projectile_attack( Creature *source, item *source_weapon,
+                                     dealt_projectile_attack &attack, bool manual_retaliation );
+        void deal_projectile_attack( Creature *source, item *source_weapon,
+                                     dealt_projectile_attack &attack ) override;
         void deal_projectile_attack( Creature *source, dealt_projectile_attack &attack ) override;
         void apply_damage( Creature *source, item *source_weapon, item *source_projectile, bodypart_id bp,
                            int dam,
@@ -370,8 +450,10 @@ class monster : public Creature, public location_visitable<monster>
         /** Performs any monster-specific modifications to the arguments before passing to Creature::add_effect(). */
         void add_effect( const efftype_id &eff_id, const time_duration &dur, const bodypart_str_id &bp,
                          int intensity = 0, bool force = false, bool deferred = false ) override;
-        void add_effect( const efftype_id &eff_id, const time_duration &dur, body_part bp = num_bp,
-                         int intensity = 0, bool force = false, bool deferred = false );
+        void add_effect( const efftype_id &eff_id, const time_duration &dur );
+        // Use the bodypart_str_id variant instead
+        void add_effect( const efftype_id &eff_id, const time_duration &dur, body_part bp,
+                         int intensity = 0, bool force = false, bool deferred = false ) = delete;
         /** Returns a std::string containing effects for descriptions */
         std::string get_effect_status() const;
 
@@ -406,6 +488,8 @@ class monster : public Creature, public location_visitable<monster>
         bool has_grab_break_tec() const override;
 
         float stability_roll() const override;
+        void on_hit( Creature *source, bodypart_id bp_hit,
+                     dealt_projectile_attack const *proj = nullptr, bool manual_retaliation = false );
         void on_hit( Creature *source, bodypart_id bp_hit,
                      dealt_projectile_attack const *proj = nullptr ) override;
         void on_damage_of_type( int amt, damage_type dt, const bodypart_id &bp ) override;
@@ -487,17 +571,32 @@ class monster : public Creature, public location_visitable<monster>
         tripoint wander_pos; // Wander destination - Just try to move in that direction
         int wandf;           // Urge to wander - Increased by sound, decrements each move
 
+        // LOD-1 scheduling: game turn on which this monster next enters the
+        // move loop.  Default 0 → eligible immediately on first turn after
+        // load.  Not persisted — 0 on load is safe (all monsters become
+        // eligible on the first turn, which is correct).
+        int next_turn = 0;
+
+        // LOD tier assigned by game::tier_assign_all() each monmove() pass.
+        //   0 = Full   (≤20 tiles from player, or has an active target)
+        //   1 = Coarse (20–60 tiles: reuse cached path, skip faction queries)
+        //   2 = Macro  (>60 tiles: single Manhattan step every MACRO_INTERVAL)
+        // Transient — not saved or loaded; recalculated each monmove().
+        int8_t lod_tier     = 0;
+        int     lod_cooldown = 0;  // turns remaining before demotion is allowed
+
 
         Character *mounted_player = nullptr; // player that is mounting this creature
         character_id mounted_player_id; // id of player that is mounting this creature ( for save/load )
         character_id dragged_foe_id; // id of character being dragged by the monster
-        units::mass get_carried_weight();
-        units::volume get_carried_volume();
+        units::mass get_carried_weight() const;
+        units::volume get_carried_volume() const;
 
         // DEFINING VALUES
         int friendly;
         int anger = 0;
         int morale = 0;
+        std::unordered_map<mfaction_id, int> faction_anger;  //< Per-faction anger tracking
         // Our faction (species, for most monsters)
         mfaction_id faction;
         // If we're related to a mission
@@ -511,6 +610,8 @@ class monster : public Creature, public location_visitable<monster>
         bool death_drops = true;
         bool is_dead() const;
         bool made_footstep;
+        // Returns true if this is a nemesis monster from the hunted scenario.
+        bool is_nemesis() const;
         // If we're unique
         std::string unique_name;
         bool hallucination;
@@ -530,6 +631,9 @@ class monster : public Creature, public location_visitable<monster>
         }
 
         short ignoring;
+
+        bool aggro_character = true;
+
         std::optional<time_point> lastseen_turn;
 
         // Stair data.
@@ -564,8 +668,11 @@ class monster : public Creature, public location_visitable<monster>
          */
         void on_load();
 
-        const pathfinding_settings &get_pathfinding_settings() const override;
-        std::set<tripoint> get_path_avoid() const override;
+        const pathfinding_settings &get_legacy_pathfinding_settings() const override;
+        std::set<tripoint> get_legacy_path_avoid() const override;
+
+        std::pair<PathfindingSettings, RouteSettings> get_pathfinding_pair() const override;
+
         // summoned monsters via spells
         void set_summon_time( const time_duration &length );
         // handles removing the monster if the timer runs out
@@ -595,9 +702,19 @@ class monster : public Creature, public location_visitable<monster>
         detached_ptr<item> remove_corpse_component( item &it );
         std::vector<detached_ptr<item>> remove_corpse_components();
 
+        // Faction-specific anger tracking
+        void add_faction_anger( mfaction_id target_faction, int amount );
+        auto get_faction_anger( mfaction_id target_faction ) const -> int;
+
     private:
         void process_trigger( mon_trigger trig, int amount );
-        void process_trigger( mon_trigger trig, const std::function<int()> &amount_func );
+        void process_trigger( mon_trigger trig, const std::function < auto() -> int > &amount_func );
+        void process_trigger( mon_trigger trig, int amount, mfaction_id target_faction );
+        void process_trigger( mon_trigger trig, const std::function < auto() -> int > &amount_func,
+                              mfaction_id target_faction );
+
+        void trigger_character_aggro( const char *reason );
+        void trigger_character_aggro_chance( int chance, const char *reason );
 
         location_vector<item> corpse_components; // Hack to make bionic corpses generate CBMs on death
 
@@ -619,13 +736,16 @@ class monster : public Creature, public location_visitable<monster>
         monster_horde_attraction horde_attraction;
         /** Found path. Note: Not used by monsters that don't pathfind! **/
         std::vector<tripoint> path;
+        bool repath_requested = false;
         std::bitset<NUM_MEFF> effect_cache;
         std::optional<time_duration> summon_time_limit = std::nullopt;
+
 
         player *find_dragged_foe();
         void nursebot_operate( player *dragged_foe );
 
     protected:
+        bool has_processable_items = false;
         location_ptr<item, false> tied_item; // item used to tie the monster
         location_ptr<item, false> tack_item; // item representing saddle and reins and such
         location_ptr<item, false> armor_item; // item of armor the monster may be wearing
@@ -639,4 +759,3 @@ class monster : public Creature, public location_visitable<monster>
         void process_one_effect( effect &it, bool is_new ) override;
 };
 
-#endif // CATA_SRC_MONSTER_H
