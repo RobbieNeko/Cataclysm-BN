@@ -1715,7 +1715,7 @@ void test_crossing_threshold( Character &guy, const mutation_category_trait &m_c
                 break;
             }
         }
-        if (has_thresh) {
+        if( has_thresh ) {
             return;
         } else {
             // The character does not have a threshold mutation but has a tier greater than 0
@@ -1749,7 +1749,7 @@ void test_crossing_threshold( Character &guy, const mutation_category_trait &m_c
                 break;
             }
         }
-        if (has_thresh) {
+        if( has_thresh ) {
             return;
         } else {
             // The character does not have a threshold mutation but has a tier greater than 0
