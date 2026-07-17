@@ -813,6 +813,30 @@ void spell::use_components(Character& who) const {
 
 int spell::get_difficulty() const { return type->difficulty; }
 
+int spell::terrain_damage(const int base_damage) const {
+    switch (dmg_type()) {
+        case DT_BASH:
+        case DT_BULLET:
+            return base_damage; // Bash and ballistic are very good at damaging terrain
+        case DT_CUT:
+        case DT_STAB:
+            return std::floor(base_damage * 0.8); // Cut and Stab are fairly good at damaging terrain
+        case DT_HEAT:
+        case DT_COLD:
+        case DT_ACID:
+            return std::floor(base_damage * 0.75); // Some elemental damage types are okay at damaging terrain
+        case DT_LIGHT:
+        case DT_DARK:
+        case DT_ELECTRIC:
+            return std::floor(base_damage * 0.5); // Some elemental damage types are bad at damaging terrain
+        case DT_PSI:
+        case DT_BIOLOGICAL:
+            return std::floor(base_damage * 0.1); // Terrain is generally not biological nor does it have a brain to be psionically attacked
+        default:
+            return base_damage; // We don't know how we want to handle this damage type, let's just assume it's good at damaging terrain
+    }
+}
+
 int spell::casting_time(const Character& guy) const {
     // casting time in moves
     int casting_time = 0;

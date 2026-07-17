@@ -488,6 +488,9 @@ public:
     // difficulty of the level
     int get_difficulty() const;
 
+    // how much damage this spell should do to terrain
+    int terrain_damage(const int base_damage) const;
+
     // tries to create a field at the location specified
     void create_field(const tripoint_bub_ms& at) const;
 
