@@ -1775,6 +1775,9 @@ static std::string enumerate_spell_data(const spell& sp) {
     if (sp.has_flag(spell_flag::DIVIDE_DAMAGE)) {
         spell_data.emplace_back(_("divides damage evenly among its targets"));
     }
+    if (sp.has_flag(spell_flag::DAMAGE_TERRAIN)) {
+        spell_data.emplace_back(_("damages terrain"));
+    }
     if (!sp.type->melee_dam.empty()) {
         std::string damage_names;
         // I don't like unsigned int here but otherwise compiler complains about comparing signed
