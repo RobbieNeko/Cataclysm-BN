@@ -148,6 +148,8 @@ template <> std::string enum_to_string<spell_flag>(spell_flag data) {
             return "MOD_MELEE_MOVES";
         case spell_flag::MOD_MELEE_STAM:
             return "MOD_MELEE_STAM";
+        case spell_flag::DAMAGE_TERRAIN:
+            return "DAMAGE_TERRAIN";
         case spell_flag::LAST:
             break;
     }
