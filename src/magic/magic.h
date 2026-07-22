@@ -650,6 +650,7 @@ void morale(const spell& sp, Creature& caster, const tripoint_bub_ms& target);
 void charm_monster(const spell& sp, Creature& caster, const tripoint_bub_ms& target);
 void mutate(const spell& sp, Creature& caster, const tripoint_bub_ms& target);
 void bash(const spell& sp, Creature& caster, const tripoint_bub_ms& target);
+void bash_area(const spell& sp, Creature& caster, const std::set<tripoint_bub_ms> area);
 void dash(const spell& sp, Creature& caster, const tripoint_bub_ms& target);
 void none(const spell& sp, Creature&, const tripoint_bub_ms& target);
 } // namespace spell_effect

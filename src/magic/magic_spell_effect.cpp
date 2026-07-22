@@ -507,33 +507,35 @@ void spell_effect::projectile_attack(
 
 void spell_effect::target_attack(
     const spell& sp, Creature& caster, const tripoint_bub_ms& epicenter) {
+    auto targets = spell_effect_area(
+            sp, epicenter, spell_effect_blast, caster, sp.has_flag(spell_flag::IGNORE_WALLS));
     damage_targets(
         sp, caster,
-        spell_effect_area(
-            sp, epicenter, spell_effect_blast, caster, sp.has_flag(spell_flag::IGNORE_WALLS)));
+        targets);
     if (sp.has_flag(spell_flag::DAMAGE_TERRAIN)) {
-        bash(sp, caster, epicenter);
+        bash_area(sp, caster, targets);
     }
     if (sp.has_flag(spell_flag::SWAP_POS)) { swap_pos(caster, epicenter); }
 }
 
 void spell_effect::cone_attack(const spell& sp, Creature& caster, const tripoint_bub_ms& target) {
+    auto affected = spell_effect_area(
+            sp, target, spell_effect_cone, caster, sp.has_flag(spell_flag::IGNORE_WALLS));
     damage_targets(
         sp, caster,
-        spell_effect_area(
-            sp, target, spell_effect_cone, caster, sp.has_flag(spell_flag::IGNORE_WALLS)));
+        affected);
     if (sp.has_flag(spell_flag::DAMAGE_TERRAIN)) {
-        bash(sp, caster, target);
+        bash_area(sp, caster, affected);
     }
 }
 
 void spell_effect::line_attack(const spell& sp, Creature& caster, const tripoint_bub_ms& target) {
+    auto affected = spell_effect_area(
+            sp, target, spell_effect_line, caster, sp.has_flag(spell_flag::IGNORE_WALLS));
     damage_targets(
-        sp, caster,
-        spell_effect_area(
-            sp, target, spell_effect_line, caster, sp.has_flag(spell_flag::IGNORE_WALLS)));
+        sp, caster, affected);
     if (sp.has_flag(spell_flag::DAMAGE_TERRAIN)) {
-        bash(sp, caster, target);
+        bash_area(sp, caster, affected);
     }
 }
 
@@ -1143,6 +1145,10 @@ void spell_effect::mutate(const spell& sp, Creature& caster, const tripoint_bub_
 void spell_effect::bash(const spell& sp, Creature& caster, const tripoint_bub_ms& target) {
     const std::set<tripoint_bub_ms> area =
         spell_effect_blast(sp, caster.bub_pos(), target, sp.aoe(), true);
+    bash_area(sp, caster, area);
+}
+
+void spell_effect::bash_area(const spell& sp, Creature& caster, const std::set<tripoint_bub_ms> area) {
     for (const tripoint_bub_ms& potential_target : area) {
         if (!sp.is_valid_target(caster, potential_target)) { continue; }
         // the bash already makes noise, so no need for spell::make_sound()
