@@ -1,5 +1,6 @@
 #pragma once
 
+#include "enchantment_condition.h"
 #include "json.h"
 #include "string_id.h"
 #include "type_id.h"
@@ -31,12 +32,14 @@ public:
 
     enchantment_value_id id;
 
+    std::set<enchantment_condition_type> unsupported_conditions;
+
     bool was_loaded = false;
     bool can_add = true;
     bool can_mult = true;
     bool can_max = false;
 
-    std::string desc = "How did you get here?";
+    translation desc;
     bool increase_good = true;
 
     bool has_parent() const;

@@ -1563,7 +1563,7 @@ int iuse::petfood( player *p, item *it, bool, const tripoint_bub_ms & )
             p->add_msg_if_player( _( petfood.feed ), mon.get_name() );
         }
 
-        mon.make_pet();
+        mon.make_pet( *p->as_character() );
 
         // Apply well_fed effect to improve monster productivity
         // This effect increases reproduction rate, milk production, growth speed, and HP recovery
@@ -2288,7 +2288,7 @@ int iuse::note_bionics( player *p, item *it, bool t, const tripoint_bub_ms &pos 
         if( !cbms.empty() ) {
             corpse->set_flag( flag_CBM_SCANNED );
             auto bionics_string = enumerate_as_string( cbms.begin(), cbms.end(),
-            []( const auto entry ) { return entry->display_name(); }, enumeration_conjunction::none );
+            []( const auto entry ) { return entry->type_name(); }, enumeration_conjunction::none );
             //~ %1 is corpse name, %2 is direction, %3 is bionic name
             p->add_msg_if_player( m_good, _( "A %1$s located %2$s contains %3$s." ),
                                   corpse->display_name().c_str(),

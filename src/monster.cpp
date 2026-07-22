@@ -16,6 +16,7 @@
 #include "bodypart.h"
 #include "catalua.h"
 #include "catalua_hooks.h"
+#include "catalua_icallback_actor.h"
 #include "catalua_impl.h"
 #include "catalua_sol.h"
 #include "character.h"
@@ -36,6 +37,7 @@
 #include "int_id.h"
 #include "init.h"
 #include "item_group.h"
+#include "item_factory.h"
 #include "item.h"
 #include "item_category.h"
 #include "itype.h"
@@ -55,6 +57,7 @@
 #include "mondefense.h"
 #include "monfaction.h"
 #include "mongroup.h"
+#include "mattack_actors.h"
 #include "morale_types.h"
 #include "mtype.h"
 #include "mutation.h"
@@ -91,12 +94,50 @@ static const efftype_id effect_corroding( "corroding" );
 static const efftype_id effect_dazed( "dazed" );
 static const efftype_id effect_deaf( "deaf" );
 static const efftype_id effect_docile( "docile" );
+
+namespace
+{
+
+auto compatible_ammo_for_gun( const gun_actor &gun_attack ) -> std::vector<itype_id>
+{
+    namespace ranges = std::ranges;
+
+    if( !gun_attack.ammo_types.empty() ) {
+        return gun_attack.ammo_types;
+    }
+
+    const auto gun = item::spawn_temporary( gun_attack.gun_type );
+    if( !gun ) {
+        return {};
+    }
+
+    auto compatible_ammo = std::vector<itype_id> {};
+    const auto default_ammo = gun->ammo_default();
+    if( !default_ammo.is_null() ) {
+        compatible_ammo.push_back( default_ammo );
+    }
+
+    const auto gun_ammo_types = gun->ammo_types();
+    for( const auto *const ammo_item : item_controller->find( [&gun_ammo_types](
+    const itype & candidate ) {
+    return candidate.ammo != nullptr && gun_ammo_types.contains( candidate.ammo->type );
+    } ) ) {
+        if( !ranges::contains( compatible_ammo, ammo_item->get_id() ) ) {
+            compatible_ammo.push_back( ammo_item->get_id() );
+        }
+    }
+
+    return compatible_ammo;
+}
+
+} // namespace
 static const efftype_id effect_downed( "downed" );
 static const efftype_id effect_emp( "emp" );
 static const efftype_id effect_feral_infighting_punishment( "feral_infighting_punishment" );
 static const efftype_id effect_feral_killed_recently( "feral_killed_recently" );
 static const efftype_id effect_grabbed( "grabbed" );
 static const efftype_id effect_grabbing( "grabbing" );
+static const efftype_id effect_has_bag( "has_bag" );
 static const efftype_id effect_heavysnare( "heavysnare" );
 static const efftype_id effect_hit_by_player( "hit_by_player" );
 static const efftype_id effect_in_pit( "in_pit" );
@@ -114,6 +155,7 @@ static const efftype_id effect_paralyzepoison( "paralyzepoison" );
 static const efftype_id effect_poison( "poison" );
 static const efftype_id effect_ridden( "ridden" );
 static const efftype_id effect_run( "run" );
+static const efftype_id effect_saddled( "monster_saddled" );
 static const efftype_id effect_smoke( "smoke" );
 static const efftype_id effect_stunned( "stunned" );
 static const efftype_id effect_supercharged( "supercharged" );
@@ -779,6 +821,68 @@ auto monster::spawn( const tripoint_bub_ms &p ) -> void
     unset_dest();
 }
 
+auto monster::ammo_slot_items( const itype_id &ammo_id ) const -> std::vector<itype_id>
+{
+    namespace ranges = std::ranges;
+
+    auto slot_items = std::vector<itype_id> { ammo_id };
+    for( const auto &[special_name, special_attack] : type->special_attacks ) {
+        static_cast<void>( special_name );
+        if( special_attack->id != "gun" ) {
+            continue;
+        }
+        const auto *const gun_attack = dynamic_cast<const gun_actor *>( special_attack.get() );
+        if( gun_attack == nullptr ) {
+            continue;
+        }
+        const auto compatible_ammo = compatible_ammo_for_gun( *gun_attack );
+        if( !ranges::contains( compatible_ammo, ammo_id ) ) {
+            continue;
+        }
+        for( const auto &compatible_ammo_id : compatible_ammo ) {
+            if( !ranges::contains( slot_items, compatible_ammo_id ) ) {
+                slot_items.push_back( compatible_ammo_id );
+            }
+        }
+    }
+    return slot_items;
+}
+
+auto monster::ammo_capacity_for_slot( const itype_id &ammo_id ) const -> int
+{
+    if( const auto iter = type->starting_ammo.find( ammo_id ); iter != type->starting_ammo.end() ) {
+        return iter->second;
+    }
+    return 0;
+}
+
+auto monster::ammo_count_for_slot( const itype_id &ammo_id ) const -> int
+{
+    auto total_ammo = 0;
+    for( const auto &slot_ammo_id : ammo_slot_items( ammo_id ) ) {
+        if( const auto iter = ammo.find( slot_ammo_id ); iter != ammo.end() ) {
+            total_ammo += iter->second;
+        }
+    }
+    return total_ammo;
+}
+
+auto monster::loaded_ammo_for_slot( const itype_id &ammo_id ) const -> itype_id
+{
+    auto selected_ammo = itype_id {};
+    auto selected_count = 0;
+    for( const auto &slot_ammo_id : ammo_slot_items( ammo_id ) ) {
+        const auto current_count = ammo.contains( slot_ammo_id ) ? ammo.at( slot_ammo_id ) : 0;
+        const auto prefer_current = current_count > selected_count ||
+                                    ( current_count == selected_count && slot_ammo_id == ammo_id );
+        if( prefer_current ) {
+            selected_ammo = slot_ammo_id;
+            selected_count = current_count;
+        }
+    }
+    return selected_count > 0 ? selected_ammo : itype_id {};
+}
+
 std::string monster::get_name() const
 {
     return name( 1 );
@@ -1151,16 +1255,18 @@ std::string monster::extended_description() const
         ss += std::string( _( "It has a head." ) ) + "\n";
     }
 
-    if( bonded_character_id == g->u.getID() ) {
-        ss += string_format( _( "It regards you as family. (%s)\n" ), pet_bond_level );
-    } else if( pet_bond_level > 5 ) {
-        ss += string_format( _( "It really likes you. (%s)\n" ), pet_bond_level );
-    } else if( pet_bond_level > 2 ) {
-        ss += string_format( _( "It likes you. (%s)\n" ), pet_bond_level );
-    } else if( pet_bond_level > 0 ) {
-        ss += string_format( _( "It is curious about you. (%s)\n" ), pet_bond_level );
-    } else {
-        ss += string_format( _( "It is unsure about you. (%s)\n" ), pet_bond_level );
+    if( is_pet() ) {
+        if( bonded_character_id == g->u.getID() ) {
+            ss += string_format( _( "It regards you as family. (%s)\n" ), pet_bond_level );
+        } else if( pet_bond_level > 5 ) {
+            ss += string_format( _( "It really likes you. (%s)\n" ), pet_bond_level );
+        } else if( pet_bond_level > 2 ) {
+            ss += string_format( _( "It likes you. (%s)\n" ), pet_bond_level );
+        } else if( pet_bond_level > 0 ) {
+            ss += string_format( _( "It is curious about you. (%s)\n" ), pet_bond_level );
+        } else {
+            ss += string_format( _( "It is unsure about you. (%s)\n" ), pet_bond_level );
+        }
     }
 
     if( training_level > 0 && type->pet_training ) {
@@ -1433,12 +1539,14 @@ detached_ptr<item> monster::set_tack_item( detached_ptr<item> &&to )
 {
     if( to && to->typeId() != itype_id::NULL_ID() ) {
         has_processable_items = true;
+        add_effect( effect_saddled, 1_turns );
     }
     return tack_item.swap( std::move( to ) );
 }
 
 detached_ptr<item> monster::remove_tack_item()
 {
+    remove_effect( effect_saddled );
     return set_tack_item( detached_ptr<item>() );
 }
 
@@ -1475,12 +1583,17 @@ detached_ptr<item> monster::set_armor_item( detached_ptr<item> &&to )
 {
     if( to && to->typeId() != itype_id::NULL_ID() ) {
         has_processable_items = true;
+        add_effect( effect_monster_armor, 1_turns );
     }
     return armor_item.swap( std::move( to ) );
 }
 
 detached_ptr<item> monster::remove_armor_item()
 {
+    if( armor_item ) {
+        armor_item->erase_var( "pet_armor" );
+        remove_effect( effect_monster_armor );
+    }
     return set_armor_item( detached_ptr<item>() );
 }
 
@@ -1496,12 +1609,14 @@ detached_ptr<item> monster::set_storage_item( detached_ptr<item> &&to )
 {
     if( to && to->typeId() != itype_id::NULL_ID() ) {
         has_processable_items = true;
+        add_effect( effect_has_bag, 1_turns );
     }
     return storage_item.swap( std::move( to ) );
 }
 
 detached_ptr<item> monster::remove_storage_item()
 {
+    remove_effect( effect_has_bag );
     return set_storage_item( detached_ptr<item>() );
 }
 
@@ -2092,6 +2207,10 @@ bool monster::is_immune_effect( const efftype_id &effect ) const
 
     if( effect == effect_tpollen ) {
         return type->in_species( PLANT );
+    }
+
+    if( effect == effect_blind ) {
+        return !has_flag( MF_SEES );
     }
 
     // Used by screecher zombies to prevent dazing monsters that can't hear
@@ -3822,6 +3941,19 @@ void monster::make_pet()
     add_effect( effect_pet, 1_turns );
 }
 
+void monster::make_pet( Character &actor )
+{
+    // There is another call of make_pet in spawn_monsters_submap so the original call remains
+    make_pet();
+    if( const auto _lua_callbacks = type->lua_callbacks ) {
+        _lua_callbacks->call_on_tame( actor, *this );
+    }
+
+    cata::run_hooks( "on_monster_tame", [&](
+    auto & params ) { params["avatar"] = &actor; params["monster"] = *this; }
+                   );
+}
+
 bool monster::is_pet() const
 {
     return ( friendly == -1 && has_effect( effect_pet ) );
@@ -4382,4 +4514,12 @@ auto monster::get_faction_anger( mfaction_id target_faction ) const -> int
 
     auto it = faction_anger.find( target_faction );
     return ( it != faction_anger.end() ) ? it->second : 0;
+}
+
+const lua_monster_callback_actor *monster::get_lua_callbacks() const
+{
+    if( type && type->lua_callbacks ) {
+        return type->lua_callbacks;
+    }
+    return nullptr;
 }
