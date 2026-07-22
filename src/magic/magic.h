@@ -74,7 +74,7 @@ enum spell_flag {
               // and is sort-of a replacement of martial arts.
     MOD_MELEE_MOVES, // Use melee attack cost as a base and add spell cost on top
     MOD_MELEE_STAM,  // Use melee stamina cost as a base and add spell cost on top
-    DAMAGE_TERRAIN, // Enables the spell to damage the terrain
+    DAMAGE_TERRAIN,  // Enables the spell to damage the terrain
     LAST
 };
 
