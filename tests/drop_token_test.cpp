@@ -1,3 +1,4 @@
+#include "../src/map/map.h"
 #include "activity_handlers.h"
 #include "avatar.h"
 #include "calendar.h"
@@ -5,9 +6,8 @@
 #include "drop_token.h"
 #include "item.h"
 #include "locations.h"
-#include "map.h"
+#include "map/map_selector.h"
 #include "map_helpers.h"
-#include "map_selector.h"
 #include "pickup.h"
 #include "pickup_token.h"
 #include "player_helpers.h"
@@ -31,11 +31,11 @@ public:
     testing_stack(): item_stack(new location_vector<item>(new fake_item_location())) {}
     ~testing_stack() override { delete (items); }
 
-    item_stack::iterator insert_with_return(detached_ptr<item>&& newitem) {
+    auto insert_with_return(detached_ptr<item>&& newitem) -> item_stack::iterator {
         return items->insert(items->end(), std::move(newitem));
     }
     void insert(detached_ptr<item>&& newitem) override { insert_with_return(std::move(newitem)); }
-    detached_ptr<item> remove(item* to_remove) override {
+    auto remove(item* to_remove) -> detached_ptr<item> override {
         for (auto it = items->begin(); it != items->end(); it++) {
             if (*it == to_remove) {
                 detached_ptr<item> out;
@@ -45,11 +45,11 @@ public:
         }
         return detached_ptr<item>();
     }
-    iterator erase(const_iterator it, detached_ptr<item>* out = nullptr) override {
+    auto erase(const_iterator it, detached_ptr<item>* out = nullptr) -> iterator override {
         return items->erase(it, out);
     }
-    int count_limit() const override { return INT_MAX; }
-    units::volume max_volume() const override {
+    auto count_limit() const -> int override { return INT_MAX; }
+    auto max_volume() const -> units::volume override {
         return units::from_milliliter(std::numeric_limits<units::volume::value_type>::max());
     }
 };
@@ -469,7 +469,7 @@ TEST_CASE(
     CHECK(dropped_favorites == 0);
 }
 
-static std::vector<item_stack::iterator> iterators_in_vector(item_stack& the_stack) {
+static auto iterators_in_vector(item_stack& the_stack) -> std::vector<item_stack::iterator> {
     std::vector<item_stack::iterator> unstacked;
 
     for (auto iter = the_stack.begin(); iter != the_stack.end(); iter++) {

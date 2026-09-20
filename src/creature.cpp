@@ -1,14 +1,5 @@
 #include "creature.h"
 
-#include <algorithm>
-#include <array>
-#include <cmath>
-#include <cstdint>
-#include <cstdlib>
-#include <map>
-#include <memory>
-#include <optional>
-
 #include "action_time_scale.h"
 #include "anatomy.h"
 #include "avatar.h"
@@ -25,42 +16,51 @@
 #include "enums.h"
 #include "event.h"
 #include "event_bus.h"
-#include "field.h"
 #include "flag.h"
 #include "game.h"
 #include "game_constants.h"
 #include "int_id.h"
 #include "item.h"
 #include "json.h"
-#include "lightmap.h"
 #include "line.h"
 #include "locations.h"
-#include "map.h"
-#include "mapbuffer.h"
-#include "mapbuffer_registry.h"
+#include "map/field.h"
+#include "map/lightmap.h"
+#include "map/map.h"
+#include "map/mapbuffer.h"
+#include "map/mapbuffer_registry.h"
+#include "map/mapdata.h"
+#include "map/submap_load_manager.h"
 #include "map_iterator.h"
-#include "mapdata.h"
 #include "messages.h"
 #include "monster.h"
 #include "mtype.h"
 #include "npc.h"
 #include "output.h"
+#include "overmapbuffer_registry.h"
 #include "player.h"
 #include "point.h"
+#include "profile.h"
 #include "projectile.h"
 #include "ranged.h"
 #include "rng.h"
 #include "string_id.h"
 #include "string_utils.h"
-#include "submap_load_manager.h"
-#include "utils/string_to_int.h"
 #include "translations.h"
+#include "utils/string_to_int.h"
 #include "value_ptr.h"
-#include "vehicle.h"
-#include "vehicle_part.h"
-#include "vpart_position.h"
-#include "overmapbuffer_registry.h"
-#include "profile.h"
+#include "vehicle/vehicle.h"
+#include "vehicle/vehicle_part.h"
+#include "vehicle/vpart_position.h"
+
+#include <algorithm>
+#include <array>
+#include <cmath>
+#include <cstdint>
+#include <cstdlib>
+#include <map>
+#include <memory>
+#include <optional>
 
 auto Creature::get_dimension() const -> const dimension_id &
 {
@@ -138,6 +138,7 @@ static const ammo_effect_str_id ammo_effect_TANGLE( "TANGLE" );
 static const ammo_effect_str_id ammo_effect_THROWN( "THROWN" );
 
 static const efftype_id effect_badpoison( "badpoison" );
+static const efftype_id effect_bleed( "bleed" );
 static const efftype_id effect_blind( "blind" );
 static const efftype_id effect_bounced( "bounced" );
 static const efftype_id effect_downed( "downed" );
@@ -840,7 +841,6 @@ auto get_stun_srength( const projectile &proj, creature_size size ) -> int
 void Creature::deal_projectile_attack( Creature *source, item *source_weapon,
                                        dealt_projectile_attack &attack )
 {
-
     const double missed_by = attack.missed_by;
     if( missed_by >= 1.0 ) {
         // Total miss.
@@ -1242,6 +1242,13 @@ void Creature::deal_projectile_attack( Creature *source, item *source_weapon,
     check_dead_state();
     attack.hit_critter = this;
     attack.missed_by = goodhit;
+    if( sourceplayer || sourcenpc ) {
+        cata::run_hooks( "on_creature_attacked_by_character", [ &, this]( auto & params ) {
+            params["char"] = source;
+            params["target"] = this;
+            params["success"] = true;
+        } );
+    }
 }
 
 void Creature::deal_projectile_attack( Creature *source, dealt_projectile_attack &attack )
@@ -1342,6 +1349,30 @@ void Creature::deal_damage_handle_type( const damage_unit &du, bodypart_id bp, i
         case DT_BULLET:
             // Volatile enemies sometimes go up
             set_volatiles_on_fire( 16 );
+            // Cause bleed if high damage goes through armor and enemy is made of flesh
+            if( adjusted_damage > 15 ) {
+                if( !is_immune_effect( effect_bleed ) ) {
+                    if( is_monster() ) {
+                        add_effect( effect_bleed, 4_seconds * rng( 1, adjusted_damage ), bp.id() );
+                    } else {
+                        add_effect( effect_bleed, 1_minutes * rng( 1, adjusted_damage ), bp.id() );
+                    }
+                }
+            }
+            break;
+
+        case DT_CUT:
+        case DT_STAB:
+            // Cause bleed if high damage goes through armor and enemy is made of flesh
+            if( adjusted_damage > 15 ) {
+                if( !is_immune_effect( effect_bleed ) ) {
+                    if( is_monster() ) {
+                        add_effect( effect_bleed, 4_seconds * rng( 1, adjusted_damage ), bp.id() );
+                    } else {
+                        add_effect( effect_bleed, 1_minutes * rng( 1, adjusted_damage ), bp.id() );
+                    }
+                }
+            }
             break;
 
         case DT_ACID:

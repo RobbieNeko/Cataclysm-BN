@@ -35,15 +35,16 @@ using firing_statistics = statistics<bool>;
 class Threshold {
 public:
     Threshold(const double accuracy, const double chance): _accuracy(accuracy), _chance(chance) {};
-    double accuracy() const { return _accuracy; }
-    double chance() const { return _chance; }
+    auto accuracy() const -> double { return _accuracy; }
+    auto chance() const -> double { return _chance; }
 
 private:
     double _accuracy;
     double _chance;
 };
 
-template <class T> std::ostream& operator<<(std::ostream& os, const std::vector<T>& v) {
+template <class T>
+auto operator<<(std::ostream& os, const std::vector<T>& v) -> std::ostream& { // *NOPAD*
     os << "[";
     for (typename std::vector<T>::const_iterator ii = v.begin(); ii != v.end(); ++ii) {
         os << " " << *ii;
@@ -52,7 +53,8 @@ template <class T> std::ostream& operator<<(std::ostream& os, const std::vector<
     return os;
 }
 
-std::ostream& operator<<(std::ostream& stream, const dispersion_sources& sources) {
+auto operator<<(std::ostream& stream, const dispersion_sources& sources)
+    -> std::ostream& { // *NOPAD*
     if (!sources.normal_sources.empty()) { stream << "Normal: " << sources.normal_sources << '\n'; }
     if (!sources.linear_sources.empty()) { stream << "Linear: " << sources.linear_sources << '\n'; }
     if (!sources.multipliers.empty()) { stream << "Mult: " << sources.multipliers << '\n'; }
@@ -68,8 +70,9 @@ static void equip_shooter(npc& shooter, const std::vector<std::string>& apparel)
 
 std::array<double, 3> accuracy_levels = {{accuracy_grazing, accuracy_standard, accuracy_critical}};
 
-static firing_statistics firing_test(
-    const dispersion_sources& dispersion, const int range, const Threshold& threshold) {
+static auto firing_test(
+    const dispersion_sources& dispersion, const int range, const Threshold& threshold)
+    -> firing_statistics {
     firing_statistics firing_stats(Z99_99);
     bool threshold_within_confidence_interval = false;
     do {
@@ -91,9 +94,9 @@ static firing_statistics firing_test(
     return firing_stats;
 }
 
-static std::vector<firing_statistics> firing_test(
-    const dispersion_sources& dispersion, const int range,
-    const std::vector<Threshold>& thresholds) {
+static auto firing_test(
+    const dispersion_sources& dispersion, const int range, const std::vector<Threshold>& thresholds)
+    -> std::vector<firing_statistics> {
     std::vector<firing_statistics> firing_stats;
     for (const Threshold pear : thresholds) {
         firing_stats.push_back(firing_test(dispersion, range, pear));
@@ -101,7 +104,7 @@ static std::vector<firing_statistics> firing_test(
     return firing_stats;
 }
 
-static dispersion_sources get_dispersion(npc& shooter, const int aim_time) {
+static auto get_dispersion(npc& shooter, const int aim_time) -> dispersion_sources {
     item& gun = shooter.primary_weapon();
     dispersion_sources dispersion = ranged::get_weapon_dispersion(shooter, gun);
 

@@ -137,6 +137,7 @@
 "reliability" : 8,               // How reliable this this magazine on a range of 0 to 10? (see GAME_BALANCE.md)
 "reload_time" : 100,             // How long it takes to load each unit of ammo into the magazine
 "linkage" : "ammolink"           // If set one linkage (of given type) is dropped for each unit of ammo consumed (set for disintegrating ammo belts)
+"reloads_like": "light_minus_battery_cell" // If set, anything that takes that itype as a magazine will also take this itype
 ```
 
 ### Armor
@@ -863,6 +864,18 @@ The contents of use_action fields can either be a string indicating a built-in f
 the item is activated (defined in iuse.cpp), or one of several special definitions that invoke a
 more structured function.
 
+All object defined use actions support the following two types.
+
+```jsonc
+"use_action": {
+  "menu_text": "xyz", // What string is shown in the activate menu
+  // Unique key for the iuse, defaults to the `type`
+  // Note: This should only be used on repeated type definitions
+  // WARN: This does not work on `repair_item` iuse actors -> they have their own special `item_action_type`
+  "internal_name": "test"
+}
+```
+
 ```json
 "use_action": {
     "type": "transform",  // The type of method, in this case one that transforms the item.
@@ -1136,7 +1149,7 @@ more structured function.
     "charges_to_start": 50, // Static cost per item crafted
     "charges_per_minute": 1, // Cost per minute of craft time
     "time_mult": 1, //Multiplier for craft time, 2 is twice as long, 0.5 is half as long, 0 is instant
-    "recipes": [ "water_clean" ], //Any specific item itype in this list can be crafted
+    "recipes": [ "water_clean" ], //Any recipie ident (crafted item + its suffix, e.g water_clean_using_water_purifier) in this list can be crafted
     "subcategories": [ "CSC_FOOD_MEAT", "CSC_FOOD_VEGGI", "CSC_FOOD_PASTA" ], //Any item in these subcategories can be crafted
     "temporary_tools": [ "hotplate", "tongs", "toolset", "pot" ] //Temporary items spawned when crafting to allow for innate qualities
 },

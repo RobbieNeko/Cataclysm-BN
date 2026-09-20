@@ -1,23 +1,24 @@
-#include <unordered_set>
-#include <algorithm>
-#include <climits>
-#include <cstdint>
-#include <ranges>
-
-#include "utils/algo.h"
-#include "character.h"
-#include "debug.h"
 #include "distribution_grid.h"
+
 #include "active_tile_data.h"
 #include "active_tile_data_def.h"
-#include "map.h"
-#include "mapbuffer.h"
+#include "character.h"
+#include "debug.h"
+#include "map/map.h"
+#include "map/mapbuffer.h"
+#include "map/submap.h"
 #include "messages.h"
-#include "submap.h"
 #include "options.h"
 #include "overmapbuffer.h"
 #include "overmapbuffer_registry.h"
 #include "profile.h"
+#include "utils/algo.h"
+
+#include <algorithm>
+#include <climits>
+#include <cstdint>
+#include <ranges>
+#include <unordered_set>
 
 distribution_grid::distribution_grid( const std::vector<tripoint_abs_sm> &global_submap_coords,
                                       mapbuffer &buffer ) :
@@ -70,8 +71,8 @@ void distribution_grid::update( time_point to )
 }
 
 // TODO: Shouldn't be here
-#include "vehicle.h"
-#include "vehicle_part.h"
+#include "vehicle/vehicle.h"
+#include "vehicle/vehicle_part.h"
 static itype_id itype_battery( "battery" );
 int distribution_grid::mod_resource( int amt, bool recurse )
 {
@@ -791,11 +792,18 @@ std::string grid_furn_transform_queue::to_string() const
 
 void distribution_grid_tracker::update( time_point to )
 {
-    ZoneScoped;
-    flush_dirty_omts();
+    ZoneScopedN( "all_distribution_grid_update" );
+    {
+        ZoneScopedN( "flush_dirty_omt_distribution_grid_update" );
+        flush_dirty_omts();
+    }
     for( const shared_ptr_fast<distribution_grid> &grid : grids_requiring_updates ) {
+        ZoneScopedN( "individual_grid_update" );
         grid->update( to );
     }
-    transform_queue.apply( mb, *this, get_player_character(), get_map() );
-    transform_queue.clear();
+    {
+        ZoneScopedN( "apply_transformation_queue" );
+        transform_queue.apply( mb, *this, get_player_character(), get_map() );
+        transform_queue.clear();
+    }
 }

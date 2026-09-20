@@ -1,15 +1,17 @@
+#include "../src/map/map.h"
+#include "../src/vehicle/vehicle_part.h"
+#include "../src/vehicle/vpart_position.h"
 #include "avatar.h"
 #include "calendar.h"
 #include "catch/catch.hpp"
 #include "coordinates.h"
 #include "faction.h"
-#include "field.h"
-#include "field_type.h"
 #include "game.h"
 #include "item.h"
 #include "itype.h"
 #include "line.h"
-#include "map.h"
+#include "map/field.h"
+#include "map/field_type.h"
 #include "map_helpers.h"
 #include "memory_fast.h"
 #include "npc.h"
@@ -21,10 +23,8 @@
 #include "state_helpers.h"
 #include "text_snippets.h"
 #include "type_id.h"
-#include "veh_type.h"
-#include "vehicle.h"
-#include "vehicle_part.h"
-#include "vpart_position.h"
+#include "vehicle/veh_type.h"
+#include "vehicle/vehicle.h"
 
 #include <memory>
 #include <optional>
@@ -127,7 +127,7 @@ static void create_model(npc& model_npc) {
     model_npc.set_mutation(trait_id("WEB_WEAVER"));
 }
 
-static std::string get_list_of_npcs(const std::string& title) {
+static auto get_list_of_npcs(const std::string& title) -> std::string {
 
     std::ostringstream npc_list;
     npc_list << title << ":\n";

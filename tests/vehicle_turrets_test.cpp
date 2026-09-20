@@ -1,3 +1,5 @@
+#include "../src/map/map.h"
+#include "../src/vehicle/vehicle_part.h"
 #include "ammo.h"
 #include "avatar.h"
 #include "calendar.h"
@@ -8,7 +10,6 @@
 #include "game.h"
 #include "item.h"
 #include "itype.h"
-#include "map.h"
 #include "map_helpers.h"
 #include "monster.h"
 #include "npc.h"
@@ -18,10 +19,9 @@
 #include "type_id.h"
 #include "units.h"
 #include "value_ptr.h"
-#include "veh_type.h"
-#include "vehicle.h"
-#include "vehicle_functions.h"
-#include "vehicle_part.h"
+#include "vehicle/veh_type.h"
+#include "vehicle/vehicle.h"
+#include "vehicle/vehicle_functions.h"
 
 #include <algorithm>
 #include <map>
@@ -29,7 +29,7 @@
 #include <utility>
 #include <vector>
 
-static std::vector<const vpart_info*> turret_types() {
+static auto turret_types() -> std::vector<const vpart_info*> {
     std::vector<const vpart_info*> res;
 
     for (const auto& vp : vpart_info::get_all()) {

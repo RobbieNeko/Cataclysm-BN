@@ -1,4 +1,43 @@
+#include "achievement.h"
+#include "avatar.h"
+#include "calendar.h"
+#include "cata_io.h"
+#include "coordinates.h"
+#include "creature_tracker.h"
+#include "debug.h"
+#include "dimension_info.h"
+#include "drop_token.h"
+#include "enum_conversions.h"
+#include "faction.h"
+#include "fluid_grid.h"
 #include "game.h" // IWYU pragma: associated
+#include "game_constants.h"
+#include "hash_utils.h"
+#include "int_id.h"
+#include "json.h"
+#include "kill_tracker.h"
+#include "map/map.h"
+#include "messages.h"
+#include "mission.h"
+#include "mongroup.h"
+#include "monster.h"
+#include "npc.h"
+#include "omdata.h"
+#include "options.h"
+#include "output.h"
+#include "overmap.h"
+#include "overmap_types.h"
+#include "overmapbuffer.h"
+#include "overmapbuffer_registry.h"
+#include "popup.h"
+#include "regional_settings.h"
+#include "scent_map.h"
+#include "stats_tracker.h"
+#include "string_id.h"
+#include "translations.h"
+#include "ui_manager.h"
+#include "weather/weather.h"
+#include "world_type.h"
 
 #include <algorithm>
 #include <cstdint>
@@ -11,46 +50,6 @@
 #include <unordered_set>
 #include <utility>
 #include <vector>
-
-#include "achievement.h"
-#include "avatar.h"
-#include "calendar.h"
-#include "cata_io.h"
-#include "coordinates.h"
-#include "creature_tracker.h"
-#include "debug.h"
-#include "dimension_info.h"
-#include "drop_token.h"
-#include "enum_conversions.h"
-#include "faction.h"
-#include "game_constants.h"
-#include "hash_utils.h"
-#include "int_id.h"
-#include "json.h"
-#include "kill_tracker.h"
-#include "map.h"
-#include "messages.h"
-#include "mission.h"
-#include "mongroup.h"
-#include "monster.h"
-#include "npc.h"
-#include "omdata.h"
-#include "options.h"
-#include "output.h"
-#include "overmap.h"
-#include "overmap_types.h"
-#include "overmapbuffer.h"
-#include "fluid_grid.h"
-#include "popup.h"
-#include "regional_settings.h"
-#include "scent_map.h"
-#include "stats_tracker.h"
-#include "string_id.h"
-#include "translations.h"
-#include "ui_manager.h"
-#include "weather.h"
-#include "world_type.h"
-#include "overmapbuffer_registry.h"
 
 #if defined(__ANDROID__)
 #include "input.h"
@@ -242,6 +241,13 @@ auto game::unserialize( std::istream &fin ) -> bool
         auto saved_reality_bubble_size = g_reality_bubble_size;
         const auto has_saved_reality_bubble_size = data.read( "reality_bubble_size",
                 saved_reality_bubble_size );
+        if( has_saved_reality_bubble_size ) {
+            // For all saves post bubble size changing PR with a bubble size
+            resize_reality_bubble_to( saved_reality_bubble_size );
+        } else {
+            // Otherwise: default initialization
+            resize_reality_bubble();
+        }
         auto saved_player_abs = tripoint_abs_ms::zero();
         auto has_saved_player_abs = false;
         if( data.has_object( "player" ) ) {

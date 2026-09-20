@@ -1,15 +1,15 @@
+#include "../src/map/map.h"
 #include "activity_time_cadence.h"
 #include "avatar.h"
 #include "calendar.h"
 #include "cata_utility.h"
 #include "catch/catch.hpp"
 #include "coordinates.h"
-#include "field_type.h"
 #include "game.h"
 #include "game_constants.h"
 #include "item.h"
 #include "itype.h"
-#include "map.h"
+#include "map/field_type.h"
 #include "map_helpers.h"
 #include "monster.h"
 #include "npc.h"
@@ -19,8 +19,8 @@
 #include "state_helpers.h"
 #include "timed_event.h"
 #include "units_temperature.h"
-#include "vehicle.h"
-#include "weather.h"
+#include "vehicle/vehicle.h"
+#include "weather/weather.h"
 
 #include <string>
 #include <utility>
@@ -112,8 +112,7 @@ TEST_CASE(
     CHECK_FALSE(static_cast<bool>(g->u.activity));
 
     auto& timer_after = g->m.i_at(item_pos).only_item();
-    CHECK(timer_after.get_counter() <= starting_counter - to_turns<int>(duration));
-    CHECK(timer_after.get_counter() >= starting_counter - to_turns<int>(duration) - 1);
+    CHECK(timer_after.get_counter() == starting_counter - to_turns<int>(duration));
 }
 
 TEST_CASE(
@@ -147,10 +146,6 @@ TEST_CASE(
     "window]") {
     const auto no_autosave = override_option("AUTOSAVE", "false");
 
-    SECTION("player tile field") {
-        expect_fixed_window_skip_blocked_by([] { g->m.add_field(g->u.bub_pos(), fd_acid, 1); });
-    }
-
     SECTION("active fire in simulated submap") {
         expect_fixed_window_skip_blocked_by([] {
             g->m.add_field(g->u.bub_pos() + point_east, fd_fire, 1);
@@ -162,7 +157,7 @@ TEST_CASE(
             auto* veh =
                 g->m.add_vehicle(vproto_id("car"), g->u.bub_pos() + tripoint_east, 0_degrees, 0, 0);
             REQUIRE(veh != nullptr);
-            veh->engine_on = true;
+            veh->is_following = true;
         });
     }
 

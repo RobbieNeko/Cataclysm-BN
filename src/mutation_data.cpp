@@ -1,4 +1,5 @@
 #include "mutation_data.h" // IWYU pragma: associated
+#include "generic_readers.h"
 #include "mutation.h" // IWYU pragma: associated
 
 #include <array>
@@ -330,8 +331,8 @@ void mutation_branch::load( const JsonObject &jo, const std::string & )
 
     if( jo.has_array( "bodytemp_modifiers" ) ) {
         auto bodytemp_array = jo.get_array( "bodytemp_modifiers" );
-        bodytemp_min = bodytemp_array.get_int( 0 );
-        bodytemp_max = bodytemp_array.get_int( 1 );
+        bodytemp_min = units::from_legacy_bodypart_temp_delta( bodytemp_array.get_int( 0 ) );
+        bodytemp_max = units::from_legacy_bodypart_temp_delta( bodytemp_array.get_int( 1 ) );
         if( bodytemp_max < bodytemp_min ) {
             std::swap( bodytemp_min, bodytemp_max );
             jo.throw_error( _( "First temperature modifier can't be higher than the second" ),
@@ -339,7 +340,9 @@ void mutation_branch::load( const JsonObject &jo, const std::string & )
         }
     }
 
-    optional( jo, was_loaded, "bodytemp_sleep", bodytemp_sleep, 0 );
+    auto legacy_bodytemp_sleep = units::to_legacy_bodypart_temp_delta( bodytemp_sleep );
+    optional( jo, was_loaded, "bodytemp_sleep", legacy_bodytemp_sleep, 0 );
+    bodytemp_sleep = units::from_legacy_bodypart_temp_delta( legacy_bodytemp_sleep );
     optional( jo, was_loaded, "threshold", threshold, false );
     unsigned short tier_default;
     if( jo.has_array( "threshreq" ) ) {
@@ -459,6 +462,8 @@ void mutation_branch::load( const JsonObject &jo, const std::string & )
     optional( jo, was_loaded, "changes_to", replacements, trait_reader{} );
     optional( jo, was_loaded, "leads_to", additions, trait_reader{} );
     optional( jo, was_loaded, "flags", flags, auto_flags_reader<trait_flag_str_id> {} );
+    optional( jo, was_loaded, "allowed_items", allowed_items, auto_flags_reader<flag_id> {} );
+    optional( jo, was_loaded, "restricts_gear", restricts_gear, bodypart_reader{} );
     optional( jo, was_loaded, "types", types, string_reader{} );
     optional( jo, was_loaded, "enchantments", enchantments );
     if( jo.has_array( "mut_enchantments" ) ) {
@@ -534,14 +539,6 @@ void mutation_branch::load( const JsonObject &jo, const std::string & )
         std::string part_id = ec.next_string();
         int enc = ec.next_int();
         encumbrance_covered[get_body_part_token( part_id )] = enc;
-    }
-
-    for( const std::string line : jo.get_array( "restricts_gear" ) ) {
-        restricts_gear.insert( get_body_part_token( line ) );
-    }
-
-    for( const std::string line : jo.get_array( "allowed_items" ) ) {
-        allowed_items.insert( flag_id( line ) );
     }
 
     for( JsonObject ao : jo.get_array( "armor" ) ) {

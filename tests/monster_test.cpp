@@ -1,27 +1,28 @@
+#include "../src/map/map.h"
+#include "../src/vehicle/vehicle_part.h"
+#include "../src/vehicle/vpart_position.h"
 #include "action_time_scale.h"
 #include "avatar.h"
 #include "catch/catch.hpp"
 #include "coordinates.h"
-#include "field_type.h"
 #include "game.h"
 #include "game_constants.h"
 #include "item.h"
 #include "line.h"
-#include "map.h"
+#include "map/field_type.h"
 #include "map/utils/map_functions.h"
 #include "map_helpers.h"
 #include "monattack.h"
 #include "monster.h"
 #include "monster_action.h"
+#include "monster_hallucination.h"
 #include "options.h"
 #include "options_helpers.h"
 #include "player.h"
 #include "state_helpers.h"
 #include "test_statistics.h"
 #include "type_id.h"
-#include "vehicle.h"
-#include "vehicle_part.h"
-#include "vpart_position.h"
+#include "vehicle/vehicle.h"
 
 #include <algorithm>
 #include <cmath>
@@ -122,6 +123,48 @@ TEST_CASE("hallucination_electric_field_does_not_ignite_items", "[monster][hallu
     CHECK(here.get_field(fuel_pos, fd_fire) == nullptr);
 }
 
+TEST_CASE(
+    "only stalled hallucinations qualify for lifecycle expiry fallback",
+    "[monster][hallucination]") {
+    auto test_monster = monster(mtype_id("debug_mon"));
+    test_monster.set_speed_base(0);
+    test_monster.hallucination = true;
+    test_monster.set_moves(0);
+
+    REQUIRE(test_monster.get_speed() == 0);
+    REQUIRE(test_monster.get_moves() == 0);
+
+    SECTION("a stalled hallucination needs lifecycle expiry") {
+        CHECK(monster_hallucination::needs_lifecycle_expiry(test_monster));
+    }
+
+    SECTION("real zero-speed monsters do not use hallucination expiry") {
+        test_monster.hallucination = false;
+
+        CHECK_FALSE(monster_hallucination::needs_lifecycle_expiry(test_monster));
+    }
+
+    SECTION("positive-speed hallucinations keep their action-path expiry") {
+        test_monster.set_speed_base(100);
+
+        REQUIRE(test_monster.get_speed() > 0);
+        CHECK_FALSE(monster_hallucination::needs_lifecycle_expiry(test_monster));
+    }
+
+    SECTION("zero-speed hallucinations with banked moves keep their action-path expiry") {
+        test_monster.set_moves(1);
+
+        CHECK_FALSE(monster_hallucination::needs_lifecycle_expiry(test_monster));
+    }
+
+    SECTION("dead hallucinations do not need lifecycle expiry") {
+        test_monster.set_hp(0);
+
+        REQUIRE(test_monster.is_dead());
+        CHECK_FALSE(monster_hallucination::needs_lifecycle_expiry(test_monster));
+    }
+}
+
 TEST_CASE("MONSTER_SPEED scales monster move credit", "[monster][speed]") {
     clear_all_state();
 
@@ -186,8 +229,9 @@ TEST_CASE(
     CHECK(slot_items.size() > 1);
 }
 
-static int moves_to_destination(
-    const std::string& monster_type, const tripoint_bub_ms& start, const tripoint_bub_ms& end) {
+static auto moves_to_destination(
+    const std::string& monster_type, const tripoint_bub_ms& start, const tripoint_bub_ms& end)
+    -> int {
     clear_creatures();
     REQUIRE(g->num_creatures() == 1); // the player
     monster& test_monster = spawn_test_monster(monster_type, start);
@@ -222,13 +266,14 @@ struct track {
     tripoint_bub_ms location;
 };
 
-static std::ostream& operator<<(std::ostream& os, track const& value) {
+static auto operator<<(std::ostream& os, track const& value) -> std::ostream& { // *NOPAD*
     os << value.participant << " l:" << value.location << " d:" << value.distance
        << " m:" << value.moves;
     return os;
 }
 
-static std::ostream& operator<<(std::ostream& os, const std::vector<track>& vec) {
+static auto operator<<(std::ostream& os, const std::vector<track>& vec)
+    -> std::ostream& { // *NOPAD*
     for (auto& track_instance : vec) { os << track_instance << " "; }
     return os;
 }
@@ -236,8 +281,8 @@ static std::ostream& operator<<(std::ostream& os, const std::vector<track>& vec)
 /**
  * Simulate a player running from the monster, checking if it can catch up.
  **/
-static int can_catch_player(
-    const std::string& monster_type, const tripoint_rel_ms& direction_of_flight) {
+static auto can_catch_player(
+    const std::string& monster_type, const tripoint_rel_ms& direction_of_flight) -> int {
     clear_map();
     REQUIRE(g->num_creatures() == 1); // the player
     player& test_player = get_avatar();
@@ -474,7 +519,7 @@ TEST_CASE("monster_speed_trig", "[speed][.][!mayfail]") {
     monster_check();
 }
 
-TEST_CASE("monster_move_through_vehicle_holes") {
+TEST_CASE("monster_move_through_vehicle_holes", "[.][monster]") {
     clear_all_state();
     move_player_out_of_the_way();
     tripoint_bub_ms origin(60, 60, 0);

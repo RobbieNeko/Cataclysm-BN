@@ -1,9 +1,5 @@
 #include "trap.h"
 
-#include <memory>
-#include <set>
-#include <vector>
-
 #include "assign.h"
 #include "bodypart.h"
 #include "character.h"
@@ -18,13 +14,17 @@
 #include "itype.h"
 #include "json.h"
 #include "line.h"
-#include "map.h"
+#include "map/map.h"
 #include "map_iterator.h"
-#include "mapgen_functions.h"
+#include "mapgen/mapgen_functions.h"
 #include "point.h"
 #include "rng.h"
 #include "string_id.h"
 #include "translations.h"
+
+#include <memory>
+#include <set>
+#include <vector>
 
 static const skill_id skill_traps( "traps" );
 
@@ -139,7 +139,9 @@ void trap::load( const JsonObject &jo, const std::string & )
     optional( jo, was_loaded, "always_invisible", always_invisible, false );
     optional( jo, was_loaded, "funnel_radius", funnel_radius_mm, 0 );
     optional( jo, was_loaded, "comfort", comfort, 0 );
-    optional( jo, was_loaded, "floor_bedding_warmth", floor_bedding_warmth, 0 );
+    auto legacy_floor_bedding_warmth = units::to_legacy_bodypart_temp_delta( floor_bedding_warmth );
+    optional( jo, was_loaded, "floor_bedding_warmth", legacy_floor_bedding_warmth, 0 );
+    floor_bedding_warmth = units::from_legacy_bodypart_temp_delta( legacy_floor_bedding_warmth );
     optional( jo, was_loaded, "spell_data", spell_data );
     optional( jo, was_loaded, "trigger_weight", trigger_weight, mass_reader(), -1_gram );
     if( was_loaded && jo.has_member( "copy-from" ) && looks_like.empty() ) {

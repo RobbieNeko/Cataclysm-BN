@@ -1,31 +1,10 @@
 #include "iuse.h"
 
-#include <algorithm>
-#include <array>
-#include <bitset>
-#include <climits>
-#include <cmath>
-#include <cstdlib>
-#include <exception>
-#include <functional>
-#include <iterator>
-#include <list>
-#include <map>
-#include <optional>
-#include <ranges>
-#include <set>
-#include <sstream>
-#include <string>
-#include <unordered_map>
-#include <unordered_set>
-#include <utility>
-#include <vector>
-
-#include "action_time_scale.h"
 #include "action.h"
+#include "action_time_scale.h"
+#include "active_tile_data_def.h"
 #include "activity_actor.h"
 #include "activity_actor_definitions.h"
-#include "active_tile_data_def.h"
 #include "animation.h"
 #include "artifact.h"
 #include "avatar.h"
@@ -50,11 +29,10 @@
 #include "event.h"
 #include "event_bus.h"
 #include "explosion.h"
-#include "field.h"
-#include "field_type.h"
 #include "flag.h"
-#include "fstream_utils.h"
 #include "flat_set.h"
+#include "fluid_grid.h"
+#include "fstream_utils.h"
 #include "fungal_effects.h"
 #include "game.h"
 #include "game_constants.h"
@@ -72,10 +50,12 @@
 #include "json.h"
 #include "line.h"
 #include "locations.h"
-#include "map.h"
+#include "map/field.h"
+#include "map/field_type.h"
+#include "map/map.h"
+#include "map/map_selector.h"
+#include "map/mapdata.h"
 #include "map_iterator.h"
-#include "map_selector.h"
-#include "mapdata.h"
 #include "martialarts.h"
 #include "memorial_logger.h"
 #include "memory_fast.h"
@@ -83,7 +63,6 @@
 #include "monattack.h"
 #include "mongroup.h"
 #include "monster.h"
-#include "fluid_grid.h"
 #include "morale_types.h"
 #include "mtype.h"
 #include "mutation.h"
@@ -103,6 +82,7 @@
 #include "requirements.h"
 #include "ret_val.h"
 #include "rng.h"
+#include "skill.h"
 #include "sounds.h"
 #include "speech.h"
 #include "string_formatter.h"
@@ -118,16 +98,36 @@
 #include "ui.h"
 #include "units_utility.h"
 #include "value_ptr.h"
-#include "veh_type.h"
-#include "vehicle.h"
-#include "vehicle_part.h"
-#include "vehicle_selector.h"
+#include "vehicle/veh_type.h"
+#include "vehicle/vehicle.h"
+#include "vehicle/vehicle_part.h"
+#include "vehicle/vehicle_selector.h"
+#include "vehicle/vpart_position.h"
+#include "vehicle/vpart_range.h"
 #include "visitable.h"
-#include "skill.h"
-#include "vpart_position.h"
-#include "vpart_range.h"
-#include "weather.h"
-#include "weather_gen.h"
+#include "weather/weather.h"
+#include "weather/weather_gen.h"
+
+#include <algorithm>
+#include <array>
+#include <bitset>
+#include <climits>
+#include <cmath>
+#include <cstdlib>
+#include <exception>
+#include <functional>
+#include <iterator>
+#include <list>
+#include <map>
+#include <optional>
+#include <ranges>
+#include <set>
+#include <sstream>
+#include <string>
+#include <unordered_map>
+#include <unordered_set>
+#include <utility>
+#include <vector>
 
 static const activity_id ACT_BURROW( "ACT_BURROW" );
 static const activity_id ACT_CHOP_LOGS( "ACT_CHOP_LOGS" );
@@ -238,6 +238,7 @@ static const itype_id itype_arrow_flamming( "arrow_flamming" );
 static const itype_id itype_battery( "battery" );
 static const itype_id itype_barometer( "barometer" );
 static const itype_id itype_c4armed( "c4armed" );
+static const itype_id itype_c4_breaching_armed( "c4_breaching_armed" );
 static const itype_id itype_canister_empty( "canister_empty" );
 static const itype_id itype_cig( "cig" );
 static const itype_id itype_cigar( "cigar" );
@@ -3515,6 +3516,21 @@ int iuse::c4( player *p, item *it, bool, const tripoint_bub_ms & )
     return it->type->charges_to_use();
 }
 
+int iuse::c4_breaching( player *p, item *it, bool, const tripoint_bub_ms & )
+{
+    int time;
+    bool got_value = query_int( time, _( "Set the timer to (0 to cancel)?" ) );
+    if( !got_value || time <= 0 ) {
+        p->add_msg_if_player( _( "Never mind." ) );
+        return 0;
+    }
+    p->add_msg_if_player( _( "You set the timer to %d." ), time );
+    it->convert( itype_c4_breaching_armed );
+    it->charges = time;
+    it->activate();
+    return it->type->charges_to_use();
+}
+
 int iuse::acidbomb_act( player *p, item *it, bool, const tripoint_bub_ms &pos )
 {
     if( !p->has_item( *it ) ) {
@@ -4219,7 +4235,7 @@ int iuse::portable_game( player *p, item *it, bool t, const tripoint_bub_ms & )
         }
 
         if( game_score != 0 ) {
-            p->add_morale( MORALE_GAME, game_score, 60, 2_hours, 30_minutes, true );
+            p->add_morale( MORALE_GAME, game_score, 20, 3_hours, 30_minutes, true );
         }
     }
     return 0;
@@ -8328,7 +8344,7 @@ static void set_cable_active( player *const who, item *const it,
     data.set_vars( it );
     it->activate();
     it->attempt_detach( [&who]( detached_ptr<item> &&e ) {
-        return item::process( std::move( e ), who, who->bub_pos(), false );
+        return item::process( std::move( e ), who, who->bub_pos(), false, 1 );
     } );
     who->mod_moves( -15 );
 };

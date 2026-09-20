@@ -526,10 +526,10 @@ class Character : public Creature, public location_visitable<Character>
 
         /** Getters/setters for body part temperature.
          *  This could go under Creature, but Character is the class with update_bodytemp. */
-        int  get_part_temp_cur( const bodypart_id &id ) const;
-        void set_part_temp_cur( const bodypart_id &id, int temp );
-        std::map<bodypart_id, int> get_temp_cur();
-        void set_temp_cur( int temp );
+        auto get_part_temp_cur( const bodypart_id &id ) const -> units::temperature;
+        auto set_part_temp_cur( const bodypart_id &id, units::temperature temp ) -> void;
+        auto get_temp_cur() -> std::map<bodypart_id, units::temperature>;
+        auto set_temp_cur( units::temperature temp ) -> void;
 
         /** Define blood loss (in percents) */
         int blood_loss( const bodypart_id &bp ) const;
@@ -577,7 +577,8 @@ class Character : public Creature, public location_visitable<Character>
         /** Returns character luminosity based on the brightest active item they are carrying */
         float active_light() const;
 
-        bool sees_with_specials( const Creature &critter ) const;
+        enchantment_vision_id sees_with_specials( const Creature &critter,
+                const bool force_path = false ) const;
 
         /** Bitset of all the body parts covered only with items with `flag` (or nothing) */
         body_part_set exclusive_flag_coverage( const flag_id &flag ) const;
@@ -609,7 +610,7 @@ class Character : public Creature, public location_visitable<Character>
         /** Processes human-specific effects of an effect. */
         void process_one_effect( effect &it, bool is_new ) override;
         /** Process active items */
-        void process_items();
+        void process_items( int turns = 1 );
 
         /** Recalculates HP after a change to max strength */
         void recalc_hp();
@@ -812,6 +813,9 @@ class Character : public Creature, public location_visitable<Character>
         bool has_base_trait( const trait_id &b ) const;
         /** Returns true if player has a trait with a flag */
         bool has_trait_flag( const trait_flag_str_id &b ) const;
+
+        bool has_trait_type( const std::string &mut_type ) const;
+
         /** Returns true if character has a trait which cancels the entered trait. */
         bool has_opposite_trait( const trait_id &flag ) const;
 
@@ -945,6 +949,12 @@ class Character : public Creature, public location_visitable<Character>
          * Calculate bonus from enchantments for given base value.
          */
         double bonus_from_enchantments( double base, enchantment_value_id value, bool round = false ) const;
+
+        /** Returns true if the player has an enchantment with that fake item */
+        bool has_enchantment_with_fake( const itype_id &it ) const;
+
+        /** Returns all fake items from currently active enchantments */
+        std::set<itype_id> get_enchantment_fake_items() const;
 
         /** Returns true if the player has any martial arts buffs attached */
         bool has_mabuff( const mabuff_id &buff_id ) const;
@@ -2064,18 +2074,19 @@ class Character : public Creature, public location_visitable<Character>
          * Warmth from terrain, furniture, vehicle furniture and traps.
          * Can be negative.
          **/
-        static int floor_bedding_warmth( const tripoint_bub_ms &pos );
+        static auto floor_bedding_warmth( const tripoint_bub_ms &pos ) -> units::temperature_delta;
         /** Warmth from clothing on the floor **/
-        static int floor_item_warmth( const tripoint_bub_ms &pos );
+        static auto floor_item_warmth( const tripoint_bub_ms &pos ) -> units::temperature_delta;
         /** Final warmth from the floor **/
-        int floor_warmth( const tripoint_bub_ms &pos ) const;
+        auto floor_warmth( const tripoint_bub_ms &pos ) const -> units::temperature_delta;
 
         /** Correction factor of the body temperature due to traits and mutations **/
-        int bodytemp_modifier_traits( bool overheated ) const;
+        auto bodytemp_modifier_traits( bool overheated ) const -> units::temperature_delta;
         /** Correction factor of the body temperature due to traits and mutations for player lying on the floor **/
-        int bodytemp_modifier_traits_floor() const;
+        auto bodytemp_modifier_traits_floor() const -> units::temperature_delta;
         /** Value of the body temperature corrected by climate control **/
-        int temp_corrected_by_climate_control( int temperature );
+        auto temp_corrected_by_climate_control( units::temperature temperature,
+                                                bodypart_id id ) -> units::temperature;
 
         bool in_sleep_state() const override;
 
@@ -2188,7 +2199,7 @@ class Character : public Creature, public location_visitable<Character>
          * depending on choice of ingredients */
         std::pair<nutrients, nutrients> compute_nutrient_range(
             const item &, const recipe_id &,
-            const cata::flat_set<flag_id> &extra_flags = {} ) const;
+        const cata::flat_set<flag_id> &extra_flags = {} ) const;
         /** Same, but across arbitrary recipes */
         std::pair<nutrients, nutrients> compute_nutrient_range(
             const itype_id &, const cata::flat_set<flag_id> &extra_flags = {} ) const;

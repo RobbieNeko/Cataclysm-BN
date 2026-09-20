@@ -6,10 +6,10 @@
 #include "coordinates.h"
 #include "cursesdef.h"
 #include "enums.h"
-#include "game_constants.h"
 #include "game.h"
+#include "game_constants.h"
 #include "line.h"
-#include "map.h"
+#include "map/map.h"
 #include "monster.h"
 #include "mtype.h"
 #include "options.h"
@@ -22,7 +22,7 @@
 #include "travel/travel_destination.h"
 #include "type_id.h"
 #include "ui_manager.h"
-#include "weather.h"
+#include "weather/weather.h"
 
 #if defined(TILES)
 #include <memory>

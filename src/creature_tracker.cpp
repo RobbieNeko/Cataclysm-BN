@@ -1,20 +1,20 @@
 #include "creature_tracker.h"
 
-#include <algorithm>
-#include <cassert>
-#include <ostream>
-#include <string>
-#include <utility>
-
 #include "debug.h"
 #include "explosion_queue.h"
-#include "map.h"
+#include "map/map.h"
 #include "mongroup.h"
 #include "monster.h"
 #include "mtype.h"
 #include "point.h"
 #include "string_formatter.h"
 #include "type_id.h"
+
+#include <algorithm>
+#include <cassert>
+#include <ostream>
+#include <string>
+#include <utility>
 
 #define dbg(x) DebugLogFL((x),DC::Game)
 
@@ -244,8 +244,12 @@ void Creature_tracker::rebuild_cache()
     monsters_by_location.clear();
     monster_faction_map_.clear();
     for( const shared_ptr_fast<monster> &mon_ptr : monsters_list ) {
-        monsters_by_location[mon_ptr->abs_pos()] = mon_ptr;
-        add_to_faction_map( mon_ptr );
+        if( !mon_ptr ) {
+            debugmsg( "Monster stored in creature cache was invalid." );
+        } else {
+            monsters_by_location[mon_ptr->abs_pos()] = mon_ptr;
+            add_to_faction_map( mon_ptr );
+        }
     }
 }
 

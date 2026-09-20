@@ -1,42 +1,25 @@
 #include "explosion.h" // IWYU pragma: associated
-#include "fragment_cloud.h" // IWYU pragma: associated
-
-#include <algorithm>
-#include <array>
-#include <cmath>
-#include <cstddef>
-#include <limits>
-#include <map>
-#include <memory>
-#include <optional>
-#include <queue>
-#include <random>
-#include <ranges>
-#include <set>
-#include <utility>
-#include <variant>
-#include <vector>
 
 #include "animation.h"
 #include "avatar.h"
 #include "ballistics.h"
-#include "catalua_hooks.h"
-#include "catalua_sol.h"
 #include "bodypart.h"
 #include "calendar.h"
-#include "character.h"
-#include "catalua_coord.h"
 #include "cata_utility.h"
-#include "utils/algo.h"
+#include "catalua.h"
+#include "catalua_coord.h"
+#include "catalua_hooks.h"
+#include "catalua_sol.h"
+#include "character.h"
 #include "color.h"
 #include "creature.h"
 #include "damage.h"
 #include "debug.h"
 #include "enums.h"
 #include "explosion_queue.h"
-#include "field_type.h"
-#include "flat_set.h"
 #include "flag.h"
+#include "flat_set.h"
+#include "fragment_cloud.h" // IWYU pragma: associated
 #include "game.h"
 #include "game_constants.h"
 #include "int_id.h"
@@ -45,9 +28,10 @@
 #include "itype.h"
 #include "json.h"
 #include "line.h"
-#include "map.h"
+#include "map/field_type.h"
+#include "map/map.h"
+#include "map/mapdata.h"
 #include "map_iterator.h"
-#include "mapdata.h"
 #include "material.h"
 #include "math_defines.h"
 #include "messages.h"
@@ -68,13 +52,30 @@
 #include "translations.h"
 #include "trap.h"
 #include "type_id.h"
-#include "units.h"
 #include "ui_manager.h"
+#include "units.h"
 #include "units_mass.h"
 #include "units_volume.h"
-#include "vehicle.h"
-#include "vehicle_part.h"
-#include "vpart_position.h"
+#include "utils/algo.h"
+#include "vehicle/vehicle.h"
+#include "vehicle/vehicle_part.h"
+#include "vehicle/vpart_position.h"
+
+#include <algorithm>
+#include <array>
+#include <cmath>
+#include <cstddef>
+#include <limits>
+#include <map>
+#include <memory>
+#include <optional>
+#include <queue>
+#include <random>
+#include <ranges>
+#include <set>
+#include <utility>
+#include <variant>
+#include <vector>
 
 static const ammo_effect_str_id ammo_effect_NULL_SOURCE( "NULL_SOURCE" );
 
@@ -87,17 +88,13 @@ static const efftype_id effect_teleglow( "teleglow" );
 static const species_id ROBOT( "ROBOT" );
 
 static const trait_id trait_LEG_TENT_BRACE( "LEG_TENT_BRACE" );
-static const trait_id trait_PER_SLIME( "PER_SLIME" );
-static const trait_id trait_PER_SLIME_OK( "PER_SLIME_OK" );
 
 static const mongroup_id GROUP_NETHER( "GROUP_NETHER" );
 
-static const bionic_id bio_ears( "bio_ears" );
-static const bionic_id bio_sunglasses( "bio_sunglasses" );
-
 static const itype_id itype_battery( "battery" );
 static const itype_id itype_e_handcuffs( "e_handcuffs" );
-static const itype_id itype_rm13_armor_on( "rm13_armor_on" );
+
+static const enchantment_value_id ench_val_FLASH_PROTECTION( "FLASH_PROTECTION" );
 
 namespace
 {
@@ -1757,18 +1754,10 @@ void explosion_funcs::flashbang( const queued_explosion &qe )
         // Deafening is now handled by the sound code.
         if( here.sees( g->u.bub_pos(), p, 8 ) ) {
             int flash_mod = 0;
-            if( g->u.has_trait( trait_PER_SLIME ) ) {
-                if( one_in( 2 ) ) {
-                    flash_mod = 3; // Yay, you weren't looking!
-                }
-            } else if( g->u.has_trait( trait_PER_SLIME_OK ) ) {
-                flash_mod = 8; // Just retract those and extrude fresh eyes
-            } else if( g->u.has_bionic( bio_sunglasses ) ||
-                       g->u.is_wearing( itype_rm13_armor_on ) ) {
-                flash_mod = 6;
-            } else if( g->u.worn_with_flag( flag_BLIND ) ||
-                       g->u.worn_with_flag( flag_FLASH_PROTECTION ) ) {
-                flash_mod = 3; // Not really proper flash protection, but better than nothing
+            flash_mod = g->u.bonus_from_enchantments( 0, ench_val_FLASH_PROTECTION );
+            if( g->u.worn_with_flag( flag_BLIND ) ||  g->u.worn_with_flag( flag_FLASH_PROTECTION ) ) {
+                // Not really proper flash protection, but better than nothing
+                flash_mod = std::max( flash_mod, 3 );
             }
             g->u.add_env_effect( effect_blind, body_part_eyes, ( 12 - flash_mod - dist ) / 2,
                                  time_duration::from_turns( 10 - dist ) );

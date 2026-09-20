@@ -1,14 +1,14 @@
 #pragma once
 
+#include "coordinates.h"
+#include "map/map.h"
+
 #include <functional>
 #include <map>
+#include <optional>
 #include <set>
 #include <string>
 #include <vector>
-#include <optional>
-
-#include "coordinates.h"
-#include "map.h"
 
 struct tripoint;
 struct point;
@@ -102,6 +102,8 @@ enum action_id : int {
     ACTION_SMASH,
     /** Examine or pick up items from adjacent square */
     ACTION_EXAMINE,
+    /** Jump across a single adjacent tile */
+    ACTION_JUMP,
     /** Pick up items from one current/adjacent square */
     ACTION_PICKUP,
     /** Pick up items from all current/adjacent squares */

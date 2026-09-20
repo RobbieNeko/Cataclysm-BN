@@ -26,7 +26,7 @@ public:
 
     void check() const;
 
-    static std::vector<enchantment_value> get_all();
+    static auto get_all() -> std::vector<enchantment_value>;
 
     static void reset();
 
@@ -39,12 +39,22 @@ public:
     bool can_mult = true;
     bool can_max = false;
 
-    translation desc;
     bool increase_good = true;
 
-    bool has_parent() const;
-    enchantment_value_id get_parent() const;
+    auto get_desc() const -> std::string;
+    auto has_parent() const -> bool;
+    auto get_parents() const -> std::vector<enchantment_value_id>;
+
+    // Needed for bindings
+    auto operator==(const enchantment_value& rhs) const -> bool { return id == rhs.id; }
+    auto operator<(const enchantment_value& rhs) const -> bool { return id < rhs.id; }
 
 private:
-    enchantment_value_id parent_id = enchantment_value_id::NULL_ID();
+    auto define_child_enchantments(
+        const enchantment_value& main, const std::vector<enchantment_value_id>& parents,
+        const JsonObject& obj, const bool first) const -> std::vector<enchantment_value_id>;
+
+    std::vector<enchantment_value_id> parent_ids;
+    translation desc;
+    std::vector<translation> desc_insert;
 };

@@ -1,17 +1,5 @@
 #include "clzones.h"
 
-#include <algorithm>
-#include <array>
-#include <climits>
-#include <cmath>
-#include <iosfwd>
-#include <iterator>
-#include <mutex>
-#include <string>
-#include <tuple>
-#include <utility>
-#include <ranges>
-
 #include "avatar.h"
 #include "cata_utility.h"
 #include "construction.h"
@@ -32,7 +20,7 @@
 #include "json.h"
 #include "line.h"
 #include "make_static.h"
-#include "map.h"
+#include "map/map.h"
 #include "map_iterator.h"
 #include "memory_fast.h"
 #include "output.h"
@@ -43,10 +31,22 @@
 #include "type_id_implement.h"
 #include "ui.h"
 #include "value_ptr.h"
-#include "vehicle.h"
-#include "vehicle_part.h"
-#include "vpart_position.h"
+#include "vehicle/vehicle.h"
+#include "vehicle/vehicle_part.h"
+#include "vehicle/vpart_position.h"
 #include "world.h"
+
+#include <algorithm>
+#include <array>
+#include <climits>
+#include <cmath>
+#include <iosfwd>
+#include <iterator>
+#include <mutex>
+#include <ranges>
+#include <string>
+#include <tuple>
+#include <utility>
 
 static const item_category_id itcat_food( "food" );
 

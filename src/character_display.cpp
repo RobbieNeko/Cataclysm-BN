@@ -1,11 +1,5 @@
 #include "character_display.h" // IWYU pragma: associated
 
-#include <algorithm>
-#include <array>
-#include <cmath>
-#include <cstdlib>
-#include <memory>
-
 #include "addiction.h"
 #include "avatar.h"
 #include "bionics.h"
@@ -20,8 +14,8 @@
 #include "game.h"
 #include "input.h"
 #include "melee.h"
-#include "mutation.h"
 #include "messages.h"
+#include "mutation.h"
 #include "options.h"
 #include "output.h"
 #include "pldata.h"
@@ -36,7 +30,13 @@
 #include "ui_manager.h"
 #include "units.h"
 #include "units_utility.h"
-#include "weather.h"
+#include "weather/weather.h"
+
+#include <algorithm>
+#include <array>
+#include <cmath>
+#include <cstdlib>
+#include <memory>
 
 static const skill_id skill_swimming( "swimming" );
 static const skill_id skill_unarmed( "unarmed" );
@@ -72,7 +72,7 @@ static nc_color encumb_color( int level )
     return c_red;
 }
 
-static int get_temp_conv( const Character &c, const bodypart_str_id &bp )
+static auto get_temp_conv( const Character &c, const bodypart_str_id &bp ) -> units::temperature
 {
     auto iter = c.get_body().find( bp );
     if( iter == c.get_body().end() ) {
@@ -89,7 +89,7 @@ nc_color warmth::bodytemp_color( const Character &c, const bodypart_str_id &bp )
         return c_light_gray;    // Eyes don't count towards warmth
     }
 
-    int temp_conv = get_temp_conv( c, bp );
+    const auto temp_conv = get_temp_conv( c, bp );
     if( temp_conv > BODYTEMP_SCORCHING ) {
         return c_red;
     } else if( temp_conv > BODYTEMP_VERY_HOT ) {
@@ -109,9 +109,10 @@ nc_color warmth::bodytemp_color( const Character &c, const bodypart_str_id &bp )
 }
 
 // Rescale temperature value to one that the player sees
-static int temperature_print_rescaling( int temp )
+static auto temperature_print_rescaling( units::temperature temp ) -> int
 {
-    return ( temp / 100.0 ) * 2 - 100;
+    const auto legacy_temp = units::to_legacy_bodypart_temp( temp );
+    return ( legacy_temp / 100.0 ) * 2 - 100;
 }
 
 static bool should_combine_bps( const Character &ch,
@@ -358,9 +359,9 @@ static bool is_cqb_skill( const skill_id &id )
     // TODO: this skill list here is used in other places as well. Useless redundancy and
     // dependency. Maybe change it into a flag of the skill that indicates it's a skill used
     // by the bionic?
-    static const std::array<skill_id, 5> cqb_skills = { {
+    static const std::array<skill_id, 6> cqb_skills = { {
             skill_id( "melee" ), skill_id( "unarmed" ), skill_id( "cutting" ),
-            skill_id( "bashing" ), skill_id( "stabbing" ),
+            skill_id( "bashing" ), skill_id( "stabbing" ), skill_id( "dodge" ),
         }
     };
     return std::ranges::contains( cqb_skills, id );
@@ -744,7 +745,10 @@ struct HeaderSkill {
 
 int character_display::display_empty_handed_base_damage( const Character &you )
 {
-    int empty_hand_base_damage = you.get_skill_level( skill_unarmed );
+    int empty_hand_base_damage = you.has_active_bionic( bionic_id( "bio_cqb" ) ) ? std::max(
+                                     you.get_skill_level(
+                                         skill_unarmed ), BIO_CQB_LEVEL ) : you.get_skill_level(
+                                     skill_unarmed );
     const bool left_empty = !you.natural_attack_restricted_on( bodypart_id( "hand_l" ) );
     const bool right_empty = !you.natural_attack_restricted_on( bodypart_id( "hand_r" ) );
 
@@ -844,7 +848,7 @@ static void draw_skills_tab( ui_adaptor &ui, const catacurses::window &w_skills,
             int level_num = you.get_skill_level( aSkill->ident() );
             bool locked = false;
             if( you.has_active_bionic( bionic_id( "bio_cqb" ) ) && is_cqb_skill( aSkill->ident() ) ) {
-                level_num = 5;
+                level_num = std::max( level_num, BIO_CQB_LEVEL );
                 exercise = 0;
                 locked = true;
             }

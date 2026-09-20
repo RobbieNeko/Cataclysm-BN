@@ -30,7 +30,8 @@
 
 auto reset_scenario(avatar& u, const scenario* scen) -> void;
 
-static std::ostream& operator<<(std::ostream& s, const std::vector<trait_id>& v) {
+static auto operator<<(std::ostream& s, const std::vector<trait_id>& v)
+    -> std::ostream& { // *NOPAD*
     for (const auto& e : v) { s << e.c_str() << " "; }
     return s;
 }
@@ -56,7 +57,7 @@ static auto starting_item_trait_sets(const std::vector<trait_id>& traits)
     return ret;
 }
 
-static bool try_set_traits(Character& ch, const std::vector<trait_id>& traits) {
+static auto try_set_traits(Character& ch, const std::vector<trait_id>& traits) -> bool {
     ch.clear_mutations();
     newcharacter::add_traits(ch); // mandatory prof/scen traits
     for (const auto& tr : traits) {
@@ -69,7 +70,7 @@ static bool try_set_traits(Character& ch, const std::vector<trait_id>& traits) {
     return true;
 }
 
-static avatar get_sanitized_player() {
+static auto get_sanitized_player() -> avatar {
     // You'd think that this hp stuff would be in the c'tor...
     // But the ctor is called by game::game, before we load anatomies
     avatar ret = avatar();
@@ -108,7 +109,9 @@ struct failure {
 
 namespace std {
 template <> struct less<failure> {
-    bool operator()(const failure& lhs, const failure& rhs) const { return lhs.prof < rhs.prof; }
+    auto operator()(const failure& lhs, const failure& rhs) const -> bool {
+        return lhs.prof < rhs.prof;
+    }
 };
 } // namespace std
 

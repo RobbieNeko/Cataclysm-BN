@@ -1,3 +1,6 @@
+#include "../src/map/map.h"
+#include "../src/vehicle/vehicle_part.h"
+#include "../src/vehicle/vehicle_selector.h"
 #include "avatar.h"
 #include "bodypart.h"
 #include "calendar.h"
@@ -7,9 +10,8 @@
 #include "game.h"
 #include "item.h"
 #include "itype.h"
-#include "map.h"
+#include "map/map_selector.h"
 #include "map_helpers.h"
-#include "map_selector.h"
 #include "morale_types.h"
 #include "options.h"
 #include "player_activity.h"
@@ -21,10 +23,8 @@
 #include "type_id.h"
 #include "units.h"
 #include "value_ptr.h"
-#include "vehicle.h"
-#include "vehicle_part.h"
-#include "vehicle_selector.h"
-#include "weather.h"
+#include "vehicle/vehicle.h"
+#include "weather/weather.h"
 
 #include <algorithm>
 #include <memory>
@@ -428,6 +428,7 @@ static void destroyed_book_test_helper(avatar& u, item* loc) {
             loc->detach();
             AND_WHEN("A turn passes for you") {
                 u.process_turn();
+                u.process_items();
                 CHECK(!u.activity->is_null());
                 process_activity(u);
                 THEN("The reading job is cancelled") { CHECK(u.activity->is_null()); }

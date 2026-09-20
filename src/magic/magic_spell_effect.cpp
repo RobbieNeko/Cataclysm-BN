@@ -12,8 +12,6 @@
 #include "debug.h"
 #include "enums.h"
 #include "explosion.h"
-#include "field.h"
-#include "field_type.h"
 #include "game.h"
 #include "handle_liquid.h"
 #include "item.h"
@@ -22,7 +20,9 @@
 #include "magic/magic_spell_effect_helpers.h"
 #include "magic/magic_teleporter_list.h"
 #include "magic/magic_ter_furn_transform.h"
-#include "map.h"
+#include "map/field.h"
+#include "map/field_type.h"
+#include "map/map.h"
 #include "map_iterator.h"
 #include "messages.h"
 #include "monster.h"
@@ -38,9 +38,9 @@
 #include "translations.h"
 #include "type_id.h"
 #include "units.h"
-#include "vehicle.h"
-#include "vehicle_part.h"
-#include "vpart_position.h"
+#include "vehicle/vehicle.h"
+#include "vehicle/vehicle_part.h"
+#include "vehicle/vpart_position.h"
 
 #include <algorithm>
 #include <array>
@@ -74,7 +74,7 @@ struct line_iterable {
           delta(delta),
           index(0) {}
 
-    point get() const { return cur_origin + delta_line[index]; }
+    auto get() const -> point { return cur_origin + delta_line[index]; }
     // Move forward along point set, wrap around and move origin forward if necessary
     void next() {
         index = (index + 1) % delta_line.size();
@@ -91,12 +91,12 @@ struct line_iterable {
     }
 };
 // Orientation of point C relative to line AB
-static int side_of(point a, point b, point c) {
+static auto side_of(point a, point b, point c) -> int {
     int cross = ((b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x));
     return (cross > 0) - (cross < 0);
 }
 // Tests if point c is between or on lines (a0, a0 + d) and (a1, a1 + d)
-static bool between_or_on(point a0, point a1, point d, point c) {
+static auto between_or_on(point a0, point a1, point d, point c) -> bool {
     return side_of(a0, a0 + d, c) != 1 && side_of(a1, a1 + d, c) != -1;
 }
 // Builds line until obstructed or outside of region bound by near and far lines. Stores result in
@@ -149,9 +149,9 @@ void spell_effect::pain_split(const spell& sp, Creature& caster, const tripoint_
     p->set_all_parts_hp_cur(hp_each);
 }
 
-static bool in_spell_aoe(
+static auto in_spell_aoe(
     const tripoint_bub_ms& start, const tripoint_bub_ms& end, const int& radius,
-    const bool ignore_walls) {
+    const bool ignore_walls) -> bool {
     if (rl_dist(start, end) > radius) { return false; }
     if (ignore_walls) { return true; }
     map& here = get_map();
@@ -167,9 +167,9 @@ static bool in_spell_aoe(
     return true;
 }
 
-std::set<tripoint_bub_ms> spell_effect::spell_effect_blast(
+auto spell_effect::spell_effect_blast(
     const spell&, const tripoint_bub_ms&, const tripoint_bub_ms& target, const int aoe_radius,
-    const bool ignore_walls) {
+    const bool ignore_walls) -> std::set<tripoint_bub_ms> {
     std::set<tripoint_bub_ms> targets;
     // TODO: Make this breadth-first
     for (const tripoint_bub_ms& potential_target : get_map().points_in_radius(target, aoe_radius)) {
@@ -180,9 +180,9 @@ std::set<tripoint_bub_ms> spell_effect::spell_effect_blast(
     return targets;
 }
 
-static std::set<tripoint_bub_ms> spell_effect_cone_range_override(
+static auto spell_effect_cone_range_override(
     const tripoint_bub_ms& source, const tripoint_bub_ms& target, const int aoe_radius,
-    const bool ignore_walls, const int range) {
+    const bool ignore_walls, const int range) -> std::set<tripoint_bub_ms> {
     std::set<tripoint_bub_ms> targets;
     const units::angle initial_angle = coord_to_angle(source, target);
     const units::angle half_width = units::from_degrees(aoe_radius / 2.0);
@@ -214,24 +214,26 @@ static std::set<tripoint_bub_ms> spell_effect_cone_range_override(
     return targets;
 }
 
-std::set<tripoint_bub_ms> spell_effect::spell_effect_cone(
+auto spell_effect::spell_effect_cone(
     const spell& sp, const tripoint_bub_ms& source, const tripoint_bub_ms& target,
-    const int aoe_radius, const bool ignore_walls) {
+    const int aoe_radius, const bool ignore_walls) -> std::set<tripoint_bub_ms> {
     // cones go all the way to end (if they don't hit an obstacle)
     const int range = sp.range() + 1;
     return spell_effect_cone_range_override(source, target, aoe_radius, ignore_walls, range);
 }
 
-static bool test_always_true(const tripoint_bub_ms&, const tripoint_bub_ms&) { return true; }
-static bool test_passable(const tripoint_bub_ms& p, const tripoint_bub_ms& prev) {
+static auto test_always_true(const tripoint_bub_ms&, const tripoint_bub_ms&) -> bool {
+    return true;
+}
+static auto test_passable(const tripoint_bub_ms& p, const tripoint_bub_ms& prev) -> bool {
     map& here = get_map();
     return (!here.obstructed_by_vehicle_rotation(prev, p)
             && (here.passable(p) || here.has_flag("THIN_OBSTACLE", p)));
 }
 
-std::set<tripoint_bub_ms> spell_effect::spell_effect_line(
+auto spell_effect::spell_effect_line(
     const spell&, const tripoint_bub_ms& source, const tripoint_bub_ms& target,
-    const int aoe_radius, const bool ignore_walls) {
+    const int aoe_radius, const bool ignore_walls) -> std::set<tripoint_bub_ms> {
     const auto delta = (target - source).raw().xy();
     const int dist = square_dist(point_zero, delta);
     // Early out to prevent unnecessary calculations
@@ -358,11 +360,11 @@ std::set<tripoint_bub_ms> spell_effect::spell_effect_line(
 
 // spells do not reduce in damage the further away from the epicenter the targets are
 // rather they do their full damage in the entire area of effect
-std::set<tripoint_bub_ms> calculate_spell_effect_area(
+auto calculate_spell_effect_area(
     const spell& sp, const tripoint_bub_ms& target,
     const std::function<std::set<tripoint_bub_ms>(
         const spell&, const tripoint_bub_ms&, const tripoint_bub_ms&, int, bool)>& aoe_func,
-    const Creature& caster, bool ignore_walls) {
+    const Creature& caster, bool ignore_walls) -> std::set<tripoint_bub_ms> {
     std::set<tripoint_bub_ms> targets = {target}; // initialize with epicenter
 
     const int aoe_radius = sp.aoe();
@@ -379,11 +381,11 @@ std::set<tripoint_bub_ms> calculate_spell_effect_area(
     return targets;
 }
 
-static std::set<tripoint_bub_ms> spell_effect_area(
+static auto spell_effect_area(
     const spell& sp, const tripoint_bub_ms& target,
     const std::function<std::set<tripoint_bub_ms>(
         const spell&, const tripoint_bub_ms&, const tripoint_bub_ms&, int, bool)>& aoe_func,
-    const Creature& caster, bool ignore_walls = false) {
+    const Creature& caster, bool ignore_walls = false) -> std::set<tripoint_bub_ms> {
     // calculate spell's effect area
     std::set<tripoint_bub_ms> targets =
         calculate_spell_effect_area(sp, target, aoe_func, caster, ignore_walls);
@@ -531,10 +533,13 @@ void spell_effect::line_attack(const spell& sp, Creature& caster, const tripoint
 area_expander::area_expander(): frontier(area_node_comparator(area)) {}
 
 // Check whether we have already visited this node.
-int area_expander::contains(const tripoint_bub_ms& pt) const { return area_search.contains(pt); }
+auto area_expander::contains(const tripoint_bub_ms& pt) const -> int {
+    return area_search.contains(pt);
+}
 
 // Adds node to a search tree. Returns true if new node is allocated.
-bool area_expander::enqueue(const tripoint_bub_ms& from, const tripoint_bub_ms& to, float cost) {
+auto area_expander::enqueue(const tripoint_bub_ms& from, const tripoint_bub_ms& to, float cost)
+    -> bool {
     if (contains(to)) {
         // We will modify existing node if its cost is lower.
         int index = area_search[to];
@@ -553,7 +558,7 @@ bool area_expander::enqueue(const tripoint_bub_ms& from, const tripoint_bub_ms& 
 }
 
 // Run wave propagation
-int area_expander::run(const tripoint_bub_ms& center) {
+auto area_expander::run(const tripoint_bub_ms& center) -> int {
     enqueue(center, center, 0.0);
 
     static constexpr std::array<int, 8> x_offset = {{-1, 1, 0, 0, 1, -1, -1, 1}};
@@ -884,15 +889,16 @@ void spell_effect::timed_event(const spell& sp, Creature& caster, const tripoint
     g->timed_events.add(spell_event, calendar::turn + sp.duration_turns());
 }
 
-static bool is_summon_friendly(const spell& sp) {
+static auto is_summon_friendly(const spell& sp) -> bool {
     const bool hostile = sp.has_flag(spell_flag::HOSTILE_SUMMON);
     bool friendly = !hostile;
     if (sp.has_flag(spell_flag::HOSTILE_50)) { friendly = friendly && rng(0, 1000) < 500; }
     return friendly;
 }
 
-static bool add_summoned_mon(
-    const mtype_id& id, const tripoint_bub_ms& pos, const time_duration& time, const spell& sp) {
+static auto add_summoned_mon(
+    const mtype_id& id, const tripoint_bub_ms& pos, const time_duration& time, const spell& sp)
+    -> bool {
     monster* const mon_ptr = g->place_critter_at(id, pos);
     if (!mon_ptr) { return false; }
     const bool permanent = sp.has_flag(spell_flag::PERMANENT);

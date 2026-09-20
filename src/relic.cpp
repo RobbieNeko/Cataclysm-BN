@@ -1,26 +1,26 @@
 #include "relic.h"
 
-#include <algorithm>
-#include <cmath>
-
 #include "action_time_scale.h"
 #include "calendar.h"
 #include "cata_unreachable.h"
-#include "creature.h"
 #include "character.h"
+#include "creature.h"
 #include "enchantments/enchantment.h"
-#include "field.h"
 #include "game.h"
 #include "json.h"
 #include "magic/magic.h"
-#include "map.h"
+#include "map/field.h"
+#include "map/map.h"
 #include "map_iterator.h"
 #include "messages.h"
 #include "rng.h"
 #include "translations.h"
 #include "trap.h"
 #include "type_id.h"
-#include "weather.h"
+#include "weather/weather.h"
+
+#include <algorithm>
+#include <cmath>
 
 static const efftype_id effect_sleep( "sleep" );
 
@@ -154,7 +154,7 @@ void relic::add_passive_effect( const enchantment &nench )
             return;
         }
     }
-    passive_effects.emplace_back( nench );
+    passive_effects.emplace_back( enchantment( nench ) );
 }
 
 void relic::add_recharge_scheme( const relic_recharge &r )
@@ -472,7 +472,7 @@ bool process_recharge_entry( item &itm, const relic_recharge &rech, Character *c
     }
     int rate_multiplier = 1; // Not quite sure where to put this
     int ticks;
-    if( rech.type == relic_recharge_type::time ) {
+    if( rech.type == relic_recharge_type::time || rech.type == relic_recharge_type::solar ) {
         int last_relic_process = itm.get_var( "last_relic_process", 0 );
         if( last_relic_process == 0 &&
             itm.get_var( "relic_was_in_inventory",
@@ -484,6 +484,11 @@ bool process_recharge_entry( item &itm, const relic_recharge &rech, Character *c
         }
         if( ticks > 0 ) {
             rate_multiplier = ticks;
+            // It's solar for roughly half the day
+            // This permits catchup without being broken
+            if( rech.type == relic_recharge_type::solar ) {
+                rate_multiplier /= 2;
+            }
         }
         itm.set_var( "last_relic_process", to_turn<int>( calendar::turn ) );
     }

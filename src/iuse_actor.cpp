@@ -1,23 +1,8 @@
 #include "iuse_actor.h"
 
-#include <algorithm>
-#include <array>
-#include <cctype>
-#include <cmath>
-#include <cstddef>
-#include <functional>
-#include <iterator>
-#include <list>
-#include <memory>
-#include <ret_val.h>
-#include <sstream>
-#include <string>
-#include <utility>
-#include <vector>
-#include <ranges>
-
-#include "action_time_scale.h"
 #include "action.h"
+#include "action_time_scale.h"
+#include "active_tile_data_def.h"
 #include "activity_handlers.h"
 #include "addiction.h"
 #include "ammo.h"
@@ -29,16 +14,16 @@
 #include "bodypart.h"
 #include "cached_options.h"
 #include "calendar.h"
-#include "catalua_hooks.h"
-#include "catalua_sol.h"
 #include "cata_utility.h"
+#include "catalua_hooks.h"
 #include "catalua_icallback_actor.h"
+#include "catalua_sol.h"
 #include "character.h"
 #include "character_functions.h"
 #include "character_id.h"
+#include "cloning_utils.h"
 #include "clothing_mod.h"
 #include "crafting.h"
-#include "active_tile_data_def.h"
 #include "creature.h"
 #include "debug.h"
 #include "dimension_info.h"
@@ -46,7 +31,7 @@
 #include "enum_conversions.h"
 #include "enums.h"
 #include "explosion.h"
-#include "field_type.h"
+#include "faction.h"
 #include "flag.h"
 #include "flat_set.h"
 #include "game.h"
@@ -65,11 +50,13 @@
 #include "line.h"
 #include "locations.h"
 #include "magic/magic.h"
-#include "map.h"
-#include "map_iterator.h"
-#include "map_selector.h"
+#include "map/field_type.h"
+#include "map/map.h"
+#include "map/map_selector.h"
+#include "map/mapdata.h"
+#include "map/submap_load_manager.h"
 #include "map/utils/map_utils.h"
-#include "mapdata.h"
+#include "map_iterator.h"
 #include "material.h"
 #include "memory_fast.h"
 #include "messages.h"
@@ -93,11 +80,9 @@
 #include "rng.h"
 #include "skill.h"
 #include "sounds.h"
-#include "cloning_utils.h"
 #include "string_formatter.h"
-#include "string_utils.h"
 #include "string_input_popup.h"
-#include "submap_load_manager.h"
+#include "string_utils.h"
 #include "text_snippets.h"
 #include "translations.h"
 #include "trap.h"
@@ -106,17 +91,33 @@
 #include "uistate.h"
 #include "units_utility.h"
 #include "value_ptr.h"
-#include "vehicle.h"
-#include "vehicle_part.h"
-#include "vehicle_selector.h"
+#include "vehicle/veh_type.h"
+#include "vehicle/vehicle.h"
+#include "vehicle/vehicle_part.h"
+#include "vehicle/vehicle_selector.h"
+#include "vehicle/vpart_position.h"
+#include "vehicle/vpart_range.h"
 #include "visitable.h"
 #include "vitamin.h"
-#include "vpart_position.h"
-#include "vpart_range.h"
-#include "veh_type.h"
-#include "weather.h"
+#include "weather/weather.h"
+#include "world.h"
 #include "world_type.h"
-#include "faction.h"
+
+#include <algorithm>
+#include <array>
+#include <cctype>
+#include <cmath>
+#include <cstddef>
+#include <functional>
+#include <iterator>
+#include <list>
+#include <memory>
+#include <ranges>
+#include <ret_val.h>
+#include <sstream>
+#include <string>
+#include <utility>
+#include <vector>
 
 static const activity_id ACT_FIRSTAID( "ACT_FIRSTAID" );
 static const activity_id ACT_HAND_CRANK( "ACT_HAND_CRANK" );
@@ -263,8 +264,6 @@ void iuse_transform::load( const JsonObject &obj )
     obj.read( "need_dry", need_dry );
 
     obj.read( "qualities_needed", qualities_needed );
-
-    obj.read( "menu_text", menu_text );
 }
 
 int iuse_transform::use( player &p, item &it, bool t, const tripoint_bub_ms &pos ) const
@@ -427,14 +426,6 @@ ret_val<bool> iuse_transform::can_use( const Character &p, const item &, bool,
     } );
     return ret_val<bool>::make_failure( vgettext( "You need a tool with %s.", "You need tools with %s.",
                                         unmet_reqs.size() ), unmet_reqs_string );
-}
-
-std::string iuse_transform::get_name() const
-{
-    if( !menu_text.empty() ) {
-        return menu_text.translated();
-    }
-    return iuse_actor::get_name();
 }
 
 void iuse_transform::finalize( const itype_id & )
@@ -3065,6 +3056,17 @@ void bandolier_actor::load( const JsonObject &obj )
     }
 
     draw_cost = obj.get_int( "draw_cost", draw_cost );
+}
+
+std::string bandolier_actor::check() const
+{
+    std::string res = "";
+    for( const auto &ammotype : ammo ) {
+        if( !ammotype.is_valid() ) {
+            res += string_format( "invalid ammotype %s\n", ammotype.str() );
+        }
+    }
+    return res;
 }
 
 void bandolier_actor::info( const item &, std::vector<iteminfo> &dump ) const
@@ -5835,7 +5837,7 @@ void multicooker_iuse::load( const JsonObject &obj )
     assign( obj, "charges_per_minute", charges_per_minute );
     assign( obj, "time_mult", time_mult );
     for( const std::string line : obj.get_array( "recipes" ) ) {
-        recipes.emplace( line );
+        recipes.emplace( recipe_id( line ) );
     }
     for( const std::string line : obj.get_array( "subcategories" ) ) {
         subcategories.emplace( line );
@@ -6030,7 +6032,7 @@ int multicooker_iuse::use( player &p, item &it, bool t, const tripoint_bub_ms &p
             int counter = 0;
 
             for( const auto &r : g->u.get_learned_recipes() ) {
-                if( subcategories.contains( r->subcategory ) || recipes.contains( r->result() ) ) {
+                if( subcategories.contains( r->subcategory ) || recipes.contains( r->ident() ) ) {
                     dishes.push_back( r );
                     const bool can_make = r->deduped_requirements().can_make_with_inventory(
                                               crafting_inv, r->get_component_filter() );
@@ -7198,6 +7200,10 @@ void iuse_dimension_travel::load( const JsonObject &obj )
 
 int iuse_dimension_travel::use( player &p, item &it, bool, const tripoint_bub_ms &pos ) const
 {
+    if( g->get_active_world()->info->world_save_format == save_format::V1 ) {
+        popup( "Dimensions are currently disfunctional in v1 saves. Please migrate this save to v2 or dont use the feature." );
+        return true;
+    }
     dimension_travel( p, it, pos );
     return need_charges;
 }
@@ -7330,6 +7336,10 @@ void iuse_pocket_dimension::load( const JsonObject &obj )
 
 int iuse_pocket_dimension::use( player &p, item &it, bool, const tripoint_bub_ms & ) const
 {
+    if( g->get_active_world()->info->world_save_format == save_format::V1 ) {
+        popup( "Dimensions are currently disfunctional in v1 saves. Please migrate this save to v2 or dont use the feature." );
+        return true;
+    }
     // If pocket is not initialized, initialize it on first use
     if( !it.pocket_dim.has_value() || !it.pocket_dim->pocket_info.has_value() ||
         !it.pocket_dim->pocket_info->is_initialized ) {
@@ -7795,8 +7805,12 @@ auto iuse_paint_stuff_do_paint( player &who, item &it,
             }
 
             if( painter.set_color( thing, n_col.value(), layer ) ) {
-                who.add_msg_if_player( m_info, _( "You paint the %s %s." ), painter.describe( thing ),
-                                       target_color.friendly_name() );
+                if( target_color == RGBColor{} ) {
+                    who.add_msg_if_player( m_info, _( "You strip the paint from the %s." ), painter.describe( thing ) );
+                } else {
+                    who.add_msg_if_player( m_info, _( "You paint the %s %s." ), painter.describe( thing ),
+                                           target_color.friendly_name() );
+                }
                 charges_used += iter_cost;
                 who.moves -= to_turns<int>( 30_seconds );
             }
@@ -8482,7 +8496,7 @@ void iuse_paint_stuff_config::set_color( item &it )
 ret_val<bool> iuse_paint_stuff::can_use( const Character &, const item &it, bool,
         const tripoint_bub_ms & ) const
 {
-    if( it.ammo_remaining() < 1 ) {
+    if( it.ammo_remaining() < charge_cost ) {
         return ret_val<bool>::make_failure( _( "The %s doesn't have enough charges." ), it.tname() );
     }
 

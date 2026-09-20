@@ -1,26 +1,17 @@
 #include "npc.h"
 
-#include <algorithm>
-#include <cassert>
-#include <climits>
-#include <cmath>
-#include <cstdlib>
-#include <functional>
-#include <limits>
-#include <memory>
-
 #include "action_time_scale.h"
 #include "auto_pickup.h"
 #include "avatar.h"
 #include "bodypart.h"
 #include "cached_options.h"
 #include "calendar.h"
-#include "character.h"
-#include "character_id.h"
-#include "character_functions.h"
-#include "character_martial_arts.h"
 #include "catalua_hooks.h"
 #include "catalua_sol.h"
+#include "character.h"
+#include "character_functions.h"
+#include "character_id.h"
+#include "character_martial_arts.h"
 #include "clzones.h"
 #include "damage.h"
 #include "debug.h"
@@ -45,11 +36,12 @@
 #include "json.h"
 #include "locations.h"
 #include "magic/magic.h"
-#include "map.h"
+#include "map/legacy_pathfinding.h"
+#include "map/map.h"
+#include "map/map_selector.h"
+#include "map/mapbuffer.h"
+#include "map/mapdata.h"
 #include "map_iterator.h"
-#include "map_selector.h"
-#include "mapbuffer.h"
-#include "mapdata.h"
 #include "math_defines.h"
 #include "messages.h"
 #include "mission.h"
@@ -63,7 +55,6 @@
 #include "overmap.h"
 #include "overmapbuffer.h"
 #include "overmapbuffer_registry.h"
-#include "legacy_pathfinding.h"
 #include "player_activity.h"
 #include "pldata.h"
 #include "ranged.h"
@@ -79,12 +70,21 @@
 #include "translations.h"
 #include "units.h"
 #include "value_ptr.h"
-#include "veh_type.h"
-#include "vehicle.h"
-#include "vehicle_part.h"
+#include "vehicle/veh_type.h"
+#include "vehicle/vehicle.h"
+#include "vehicle/vehicle_part.h"
+#include "vehicle/vpart_position.h"
+#include "vehicle/vpart_range.h"
 #include "visitable.h"
-#include "vpart_position.h"
-#include "vpart_range.h"
+
+#include <algorithm>
+#include <cassert>
+#include <climits>
+#include <cmath>
+#include <cstdlib>
+#include <functional>
+#include <limits>
+#include <memory>
 
 static const activity_id ACT_READ( "ACT_READ" );
 static const activity_id ACT_CRAFT( "ACT_CRAFT" );
@@ -1077,15 +1077,15 @@ void npc::finish_read( item *it )
 
         if( skill_level != originalSkillLevel ) {
             g->events().send<event_type::gains_skill_level>( getID(), skill, skill_level.level() );
+            // NPC continue reading until they can no longer learn from the book.
+            if( skill_level == reading->level ) {
+                revert_after_activity();
+                return;
+            }
             if( display_messages ) {
                 add_msg( m_good, _( "%s increases their %s level." ), disp_name(), skill_name );
-                // NPC continue reading until they can no longer learn from the book.
-                if( skill_level == reading->level ) {
-                    revert_after_activity();
-                    return;
-                }
-                continuous = true;
             }
+            continuous = true;
         } else {
             continuous = true;
             if( display_messages ) {

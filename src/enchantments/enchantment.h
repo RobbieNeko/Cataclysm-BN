@@ -29,34 +29,34 @@ public:
 
     // attempts to add two like enchantments together.
     // if their conditions don't match, return false. else true.
-    bool add(const enchantment& rhs);
+    auto add(const enchantment& rhs) -> bool;
 
     // adds two enchantments together and ignores their conditions
     void force_add(const enchantment& rhs);
 
     // Check if the enchantment has a certain value
-    bool has_value(enchantment_value_id value) const;
+    auto has_value(enchantment_value_id value) const -> bool;
 
-    int get_value_add(enchantment_value_id value) const;
-    double get_value_multiply(enchantment_value_id value) const;
-    int get_value_max(enchantment_value_id value) const;
+    auto get_value_add(enchantment_value_id value) const -> int;
+    auto get_value_multiply(enchantment_value_id value) const -> double;
+    auto get_value_max(enchantment_value_id value) const -> int;
 
     // Gets weather the enchantment has a flag or not
-    bool has_flag(enchantment_flag_id flag) const;
+    auto has_flag(enchantment_flag_id flag) const -> bool;
 
     /**
      * Calculate bonus provided by this enchantment for given base value.
      */
-    double calc_bonus(enchantment_value_id value, double base, bool round = false) const;
+    auto calc_bonus(enchantment_value_id value, double base, bool round = false) const -> double;
 
     // this enchantment has a valid condition and is in the right location
-    bool is_active(const Character& guy, const item& parent) const;
+    auto is_active(const Character& guy, const item& parent) const -> bool;
 
     // this enchantment has a valid condition and is in the right location
-    bool is_active(const item& parent) const;
+    auto is_active(const item& parent) const -> bool;
 
     // @active means the container for the enchantment is active, for comparison to active flag.
-    bool is_active(const Character& guy, bool active) const;
+    auto is_active(const Character& guy, bool active) const -> bool;
 
     // modifies character stats, or does other passive effects
     void activate_passive(Character& guy) const;
@@ -78,13 +78,26 @@ public:
     // casts all the hit_me_effects on self or a target depending on the enchantment definition
     void cast_hit_me(Character& caster, const Creature* target) const;
 
-    const std::set<trait_id>& get_mutations() const { return mutations; }
+    auto get_mutations() const -> const std::set<trait_id>& { return mutations; }
 
-    bool is_immune_effect(const efftype_id& eff) const { return immune_effects.contains(eff); }
+    auto get_fake_items() const -> const std::set<itype_id>& { return fake_items; }
 
-    bool is_immune_field(const field_type_id& fd) const { return immune_fields.contains(fd); }
+    auto is_immune_effect(const efftype_id& eff) const -> bool {
+        return immune_effects.contains(eff);
+    }
 
-    bool operator==(const enchantment& rhs) const;
+    auto is_immune_field(const field_type_id& fd) const -> bool {
+        return immune_fields.contains(fd);
+    }
+
+    // Returns enchantment_vision's null id if nothing passes
+    // Otherwise it can see it, and the value needs to be cached for use in
+    // The display function for retriving the description and tile
+    auto mon_passes_special_vision(
+        const Creature& mon, const int dist, const bool on_same_zlevel, const bool has_los) const
+        -> enchantment_vision_id;
+
+    auto operator==(const enchantment& rhs) const -> bool;
 
     static void check_consistency();
     void check(
@@ -94,12 +107,13 @@ public:
     static void finalize_all();
     void finalize();
 
-    std::vector<std::string> get_effect_string(bool is_item) const;
+    auto get_effect_string(bool is_item) const -> std::vector<std::string>;
 
 private:
     std::set<trait_id> mutations;
     std::optional<emit_id> emitter;
     std::map<efftype_id, int> ench_effects;
+    std::set<itype_id> fake_items;
 
     // values that add to the base value
     std::map<enchantment_value_id, int> values_add;
@@ -122,12 +136,14 @@ private:
 
     std::map<enchantment_flag_id, int> flags;
 
+    std::vector<enchantment_vision_id> special_visions;
+
     void add_activation(const time_duration& freq, const fake_spell& fake);
 
     // checks if the enchantments have the same active_conditions
-    bool stacks_with(const enchantment& rhs) const;
+    auto stacks_with(const enchantment& rhs) const -> bool;
 
-    int mult_bonus(enchantment_value_id value_type, int base_value) const;
+    auto mult_bonus(enchantment_value_id value_type, int base_value) const -> int;
 
     // performs cooldown and distance checks before casting enchantment spells
     void cast_enchantment_spell(

@@ -41,6 +41,7 @@
 #include "iuse_actor.h"
 #include "json.h"
 #include "sounds.h"
+#include "type_id.h"
 
 class player;
 #include "material.h"
@@ -58,9 +59,9 @@ class player;
 #include "ui.h"
 #include "units.h"
 #include "value_ptr.h"
-#include "veh_type.h"
+#include "vehicle/veh_type.h"
+#include "vehicle/wheel_dimensions.h"
 #include "vitamin.h"
-#include "wheel_dimensions.h"
 
 class player;
 struct tripoint;
@@ -690,6 +691,26 @@ void Item_factory::finalize_post( itype &obj )
         }
     }
 
+    if( !obj.magazines.empty() ) {
+        for( const auto &[mag, mags_like] : magazines_like ) {
+            for( const auto [ammotype, mags] : obj.magazines ) {
+                if( mags.contains( mag ) ) {
+                    obj.magazines[ammotype].insert( mags_like.begin(), mags_like.end() );
+                }
+            }
+        }
+    }
+    if( obj.mod && !obj.mod->magazine_adaptor.empty() ) {
+        for( const auto &[mag, mags_like] : magazines_like ) {
+            for( const auto [ammotype, mags] : obj.mod->magazine_adaptor ) {
+                if( mags.contains( mag ) ) {
+                    obj.mod->magazine_adaptor[ammotype].insert( mags_like.begin(), mags_like.end() );
+                }
+            }
+        }
+
+    }
+
     if( obj.comestible ) {
         for( const std::pair<diseasetype_id, int> elem : obj.comestible->contamination ) {
             const diseasetype_id dtype = elem.first;
@@ -944,6 +965,7 @@ void Item_factory::init()
     add_iuse( "BLECH_BECAUSE_UNCLEAN", &iuse::blech_because_unclean );
     add_iuse( "BOLTCUTTERS", &iuse::boltcutters );
     add_iuse( "C4", &iuse::c4 );
+    add_iuse( "C4_BREACHING", &iuse::c4_breaching );
     add_iuse( "TOW_ATTACH", &iuse::tow_attach );
     add_iuse( "CABLE_ATTACH", &iuse::cable_attach );
     add_iuse( "CAMERA", &iuse::camera );
@@ -1138,6 +1160,7 @@ void Item_factory::init()
     add_actor( std::make_unique<hand_crank_actor>() );
     add_actor( std::make_unique<sex_toy_actor>() );
     add_actor( std::make_unique<train_skill_actor>() );
+    // Obsolete
     add_actor( std::make_unique<iuse_music_player>() );
     add_actor( std::make_unique<iuse_prospect_pick>() );
     add_actor( std::make_unique<iuse_reveal_contents>() );
@@ -1621,6 +1644,7 @@ void Item_factory::check_definitions() const
             if( actor->type == "CABLE_ATTACH" && !vpart_id( type->id.str() ).is_valid() ) {
                 msg += string_format( "no valid vehicle part for CABLE_ATTACH action\n" );
             }
+            msg += actor->check();
         }
 
         if( type->fuel && !type->count_by_charges() ) {
@@ -2512,6 +2536,16 @@ void Item_factory::load( islot_magazine &slot, const JsonObject &jo, const std::
     assign( jo, "reliability", slot.reliability, strict, 0, 10 );
     assign( jo, "reload_time", slot.reload_time, strict, 0 );
     assign( jo, "linkage", slot.linkage, strict );
+
+    if( jo.has_string( "reloads_like" ) ) {
+        itype_id source = itype_id( jo.get_string( "reloads_like" ) );
+        if( magazines_like.contains( source ) ) {
+            magazines_like[source].insert( itype_id( jo.get_string( "id" ) ) );
+        } else {
+            magazines_like[source] = { itype_id( jo.get_string( "id" ) ) };
+
+        }
+    }
 }
 
 void Item_factory::load_magazine( const JsonObject &jo, const std::string &src )
@@ -3062,6 +3096,7 @@ void Item_factory::clear()
     gun_tools.clear();
     repair_actions.clear();
     repair_tools.clear();
+    magazines_like.clear();
     tool_subtypes.clear();
 
     item_blacklist.clear();
@@ -3527,6 +3562,7 @@ void Item_factory::emplace_usage( std::map<std::string, use_function> &container
 std::pair<std::string, use_function> Item_factory::usage_from_object( const JsonObject &obj )
 {
     auto type = obj.get_string( "type" );
+    auto internal_name = obj.get_string( "internal_name", type );
 
     if( type == "repair_item" ) {
         type = obj.get_string( "item_action_type" );
@@ -3534,6 +3570,7 @@ std::pair<std::string, use_function> Item_factory::usage_from_object( const Json
             add_actor( std::make_unique<repair_item_actor>( type ) );
             repair_actions.insert( type );
         }
+        internal_name = type;
     }
 
     use_function method = usage_from_string( type );
@@ -3543,7 +3580,10 @@ std::pair<std::string, use_function> Item_factory::usage_from_object( const Json
     }
 
     method.get_actor_ptr()->load( obj );
-    return std::make_pair( type, method );
+    if( obj.has_string( "menu_text" ) ) {
+        method.get_actor_ptr()->set_name( obj.get_string( "menu_text" ) );
+    }
+    return std::make_pair( internal_name, method );
 }
 
 use_function Item_factory::usage_from_string( const std::string &type ) const

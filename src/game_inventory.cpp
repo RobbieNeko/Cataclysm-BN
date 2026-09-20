@@ -1,5 +1,56 @@
 #include "game_inventory.h"
 
+#include "avatar.h"
+#include "avatar_action.h"
+#include "avatar_functions.h"
+#include "bionics.h"
+#include "calendar.h"
+#include "cata_utility.h"
+#include "character.h"
+#include "character_functions.h"
+#include "character_martial_arts.h"
+#include "color.h"
+#include "crafting.h"
+#include "cursesdef.h"
+#include "damage.h"
+#include "debug.h"
+#include "enums.h"
+#include "examine_item_menu.h"
+#include "flag.h"
+#include "game.h"
+#include "input.h"
+#include "inventory.h"
+#include "inventory_ui.h"
+#include "item.h"
+#include "item_category.h"
+#include "itype.h"
+#include "iuse.h"
+#include "iuse_actor.h"
+#include "map/map.h"
+#include "material.h"
+#include "npc.h"
+#include "options.h"
+#include "output.h"
+#include "player.h"
+#include "player_activity.h"
+#include "point.h"
+#include "recipe.h"
+#include "recipe_dictionary.h"
+#include "requirements.h"
+#include "ret_val.h"
+#include "salvage.h"
+#include "skill.h"
+#include "stomach.h"
+#include "string_formatter.h"
+#include "string_id.h"
+#include "string_utils.h"
+#include "translations.h"
+#include "type_id.h"
+#include "ui_manager.h"
+#include "units.h"
+#include "units_utility.h"
+#include "value_ptr.h"
+
 #include <algorithm>
 #include <bitset>
 #include <cmath>
@@ -13,58 +64,6 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
-
-#include "avatar.h"
-#include "avatar_action.h"
-#include "avatar_functions.h"
-#include "bionics.h"
-#include "calendar.h"
-#include "cata_utility.h"
-#include "crafting.h"
-#include "character.h"
-#include "character_functions.h"
-#include "character_martial_arts.h"
-#include "color.h"
-#include "cursesdef.h"
-#include "damage.h"
-#include "debug.h"
-#include "enums.h"
-#include "flag.h"
-#include "examine_item_menu.h"
-#include "game.h"
-#include "input.h"
-#include "inventory.h"
-#include "inventory_ui.h"
-#include "item.h"
-#include "itype.h"
-#include "iuse.h"
-#include "iuse_actor.h"
-#include "item_category.h"
-#include "material.h"
-#include "map.h"
-#include "npc.h"
-#include "options.h"
-#include "output.h"
-#include "player.h"
-#include "player_activity.h"
-#include "point.h"
-#include "recipe.h"
-#include "recipe_dictionary.h"
-#include "requirements.h"
-#include "ret_val.h"
-#include "skill.h"
-#include "stomach.h"
-#include "string_formatter.h"
-#include "string_id.h"
-#include "string_utils.h"
-#include "translations.h"
-#include "type_id.h"
-#include "ui_manager.h"
-#include "units.h"
-#include "units_utility.h"
-#include "value_ptr.h"
-#include "salvage.h"
-#include "inventory_ui.h"
 
 static const activity_id ACT_EAT_MENU( "ACT_EAT_MENU" );
 static const activity_id ACT_CONSUME_FOOD_MENU( "ACT_CONSUME_FOOD_MENU" );
@@ -173,7 +172,7 @@ static item *inv_internal( player &u, const inventory_selector_preset &preset,
                            const std::string &title, int radius,
                            const std::string &none_message,
                            const std::string &hint = std::string(),
-                           bool include_fake_bionics = false )
+                           bool include_fake_items = false )
 {
     inventory_pick_selector inv_s( u, preset );
 
@@ -216,8 +215,8 @@ static item *inv_internal( player &u, const inventory_selector_preset &preset,
         inv_s.add_character_items( u );
         inv_s.add_nearby_items( radius );
 
-        if( include_fake_bionics ) {
-            inv_s.add_bionics_items( u );
+        if( include_fake_items ) {
+            inv_s.add_fake_items( u );
         }
         if( has_init_filter ) {
             inv_s.set_filter( init_filter );
@@ -1562,7 +1561,7 @@ class repair_inventory_preset: public inventory_selector_preset
             return loc->made_of_any( actor->materials ) && ( !loc->count_by_charges() ||
                     loc->is_stackable() ) && ( loc->damage() > -1 ||
                                                ( loc->has_flag( flag_VARSIZE ) && !loc->has_flag( flag_FIT ) ) ) && !loc->count_by_charges() &&
-                   !loc->is_firearm() &&
+                   !loc->is_firearm() && !loc->has_flag( flag_NO_REPAIR ) &&
                    &*loc != main_tool;
         }
 

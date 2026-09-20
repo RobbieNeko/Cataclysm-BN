@@ -1,17 +1,5 @@
 #include "avatar_action.h"
 
-#include <algorithm>
-#include <climits>
-#include <cstdlib>
-#include <map>
-#include <memory>
-#include <ostream>
-#include <set>
-#include <string>
-#include <utility>
-#include <vector>
-#include <numeric>
-
 #include "action.h"
 #include "activity_actor_definitions.h"
 #include "avatar.h"
@@ -36,14 +24,14 @@
 #include "int_id.h"
 #include "inventory.h"
 #include "item.h"
-#include "item_functions.h"
 #include "item_contents.h"
-#include "iuse_actor.h"
+#include "item_functions.h"
 #include "itype.h"
+#include "iuse_actor.h"
 #include "line.h"
-#include "map.h"
+#include "map/map.h"
+#include "map/mapdata.h"
 #include "map_iterator.h"
-#include "mapdata.h"
 #include "math_defines.h"
 #include "melee.h"
 #include "messages.h"
@@ -52,7 +40,6 @@
 #include "npc.h"
 #include "options.h"
 #include "output.h"
-#include "utils/pit_trap_helpers.h"
 #include "player_activity.h"
 #include "profile.h"
 #include "projectile.h"
@@ -62,13 +49,26 @@
 #include "string_formatter.h"
 #include "translations.h"
 #include "type_id.h"
+#include "utils/pit_trap_helpers.h"
 #include "value_ptr.h"
-#include "veh_type.h"
-#include "vehicle.h"
-#include "vehicle_part.h"
-#include "vehicle_throw.h"
-#include "vehicle_grab.h"
-#include "vpart_position.h"
+#include "vehicle/veh_type.h"
+#include "vehicle/vehicle.h"
+#include "vehicle/vehicle_grab.h"
+#include "vehicle/vehicle_part.h"
+#include "vehicle/vehicle_throw.h"
+#include "vehicle/vpart_position.h"
+
+#include <algorithm>
+#include <climits>
+#include <cstdlib>
+#include <map>
+#include <memory>
+#include <numeric>
+#include <ostream>
+#include <set>
+#include <string>
+#include <utility>
+#include <vector>
 
 class player;
 
@@ -208,6 +208,7 @@ static const skill_id skill_unarmed( "unarmed" );
 
 static const trait_id trait_BRAWLER( "BRAWLER" );
 static const trait_id trait_GUNSHY( "GUNSHY" );
+static const trait_id trait_GUNNUT( "GUNNUT" );
 static const trait_id trait_BURROW( "BURROW" );
 static const trait_id trait_GRAZER( "GRAZER" );
 static const trait_id trait_RUMINANT( "RUMINANT" );
@@ -218,6 +219,8 @@ static const std::string flag_SWIMMABLE( "SWIMMABLE" );
 static const std::string flag_LADDER( "LADDER" );
 
 static const trait_flag_str_id trait_flag_MUTATION_SWIM( "MUTATION_SWIM" );
+
+static const enchantment_value_id ench_val_REACH_RANGE_UNARMED( "REACH_RANGE_UNARMED" );
 
 namespace
 {
@@ -930,7 +933,10 @@ static float rate_critter( const Creature &c )
 
 static auto attack_best_hostile( avatar &you, map &m ) -> void
 {
-    const auto reach = you.primary_weapon().reach_range( you );
+    const auto reach = you.is_armed() ?
+                       you.primary_weapon().reach_range( you ) :
+                       ( 1 + you.bonus_from_enchantments( 0, ench_val_REACH_RANGE_UNARMED ) );
+
     auto critters = ranged::targetable_creatures( you, reach );
     critters.erase( std::remove_if( critters.begin(), critters.end(), []( const Creature * c ) {
         if( !c->is_npc() ) {
@@ -1014,6 +1020,9 @@ bool avatar_action::can_fire_weapon( avatar &you, const map &m, const item &weap
     } else if( you.has_trait( trait_GUNSHY ) && weapon.is_firearm() ) {
         add_msg( m_good, _( "You refuse to use this gun." ) );
         return false;
+    } else if( you.has_trait( trait_GUNNUT ) && !weapon.is_firearm() ) {
+        add_msg( m_bad, _( "You refuse to use this primitive weapon." ) );
+        return false;
     }
 
     if( you.has_effect( effect_relax_gas ) ) {
@@ -1046,10 +1055,13 @@ bool avatar_action::can_fire_weapon( avatar &you, const map &m, const item &weap
 bool avatar_action::will_fire_turret( avatar &you, const turret_data &turret )
 {
     if( you.has_trait( trait_BRAWLER ) ) {
-        add_msg( m_bad, _( "You refuse to use this ranged weapon" ) );
+        add_msg( m_bad, _( "You refuse to use this ranged weapon." ) );
         return false;
     } else if( you.has_trait( trait_GUNSHY ) && turret.base().is_firearm() ) {
-        add_msg( m_bad, _( "You refuse to use this gun turret" ) );
+        add_msg( m_bad, _( "You refuse to use this gun turret." ) );
+        return false;
+    } else if( you.has_trait( trait_GUNNUT ) && !turret.base().is_firearm() ) {
+        add_msg( m_bad, _( "You refuse to use this primitive turret." ) );
         return false;
     }
 

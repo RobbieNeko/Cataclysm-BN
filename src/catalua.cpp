@@ -23,34 +23,32 @@
 constexpr int LUA_API_VERSION = 2;
 
 #include "action_time_scale.h"
-#include "catalua_sol.h"
-
 #include "avatar.h"
 #include "bionics.h"
 #include "catalua_console.h"
 #include "catalua_coord.h"
 #include "catalua_hooks.h"
-#include "catalua_impl.h"
 #include "catalua_icallback_actor.h"
+#include "catalua_impl.h"
 #include "catalua_readonly.h"
-#include "catalua_coord.h"
 #include "catalua_serde.h"
+#include "catalua_sol.h"
 #include "filesystem.h"
 #include "fstream_utils.h"
 #include "init.h"
 #include "item_factory.h"
 #include "json.h"
-#include "mapgen_async.h"
-#include "lua_sidebar_widgets.h"
 #include "lua_action_menu.h"
-#include "map.h"
-#include "mapgen_constructor.h"
+#include "lua_sidebar_widgets.h"
+#include "map/map.h"
+#include "mapgen/mapgen_async.h"
+#include "mapgen/mapgen_constructor.h"
 #include "messages.h"
 #include "mod_manager.h"
 #include "mutation.h"
 #include "path_info.h"
-#include "point.h"
 #include "player_activity.h"
+#include "point.h"
 #include "worldfactory.h"
 
 namespace cata
@@ -180,7 +178,7 @@ auto get_active_lua_state() -> lua_state * // *NOPAD*
     return DynamicDataLoader::get_instance().lua.get();
 }
 
-auto get_lua_callback( lua_state &state, const char *table_name,
+auto get_lua_callback( lua_state &state, const std::string table_name,
                        const std::string &callback_id ) -> sol::protected_function
 {
     const auto maybe_table = state.lua.globals()["game"][table_name].get<sol::optional<sol::table>>();
@@ -192,7 +190,7 @@ auto get_lua_callback( lua_state &state, const char *table_name,
     return maybe_table->get_or<sol::protected_function>( callback_id, sol::lua_nil );
 }
 
-auto run_lua_callback( const char *table_name, const std::string &callback_id,
+auto run_lua_callback( const std::string table_name, const std::string &callback_id,
                        const std::function<void( sol::table & )> &fill_params ) -> void
 {
     lua_state *state = get_active_lua_state();
@@ -362,6 +360,10 @@ void init_global_state_tables( lua_state &state, const std::vector<mod_id> &modl
     gt["monster_attitude_functions"] = lua.create_table();
     gt["monster_functions"] = lua.create_table();
     gt["npc_ai_functions"] = lua.create_table();
+
+    // enchanter functions
+    gt["enchanter_can_make"] = lua.create_table();
+    gt["enchanter_can_use_on"] = lua.create_table();
 
     // hooks
     cata::define_hooks( state );
@@ -749,6 +751,11 @@ auto run_hooks( std::string_view hook_name,
                 if( opts.exit_early ) {
                     break;
                 }
+            } else if( result.is<sol::table>() && opts.exit_early ) {
+                results = result.as<sol::table>();
+                if( !results.get_or( "allowed", true ) ) {
+                    break;
+                }
             }
         } catch( const std::runtime_error &e_err ) {
             debugmsg( "Failed to run hook %s[%d](%s): %s", hook_name, static_cast<int>( i ), e.mod_id.c_str(),
@@ -914,11 +921,12 @@ void reg_lua_icallback_actors( lua_state &state, Item_factory &ifactory )
                 auto on_tick = tbl.get_or<sol::function>( "on_tick", sol::lua_nil );
                 auto on_pickup = tbl.get_or<sol::function>( "on_pickup", sol::lua_nil );
                 auto on_drop = tbl.get_or<sol::function>( "on_drop", sol::lua_nil );
+                auto on_puff = tbl.get_or<sol::function>( "on_puff", sol::lua_nil );
                 ifactory.add_istate_actor(
                     itype_id( key ),
                     std::make_unique<lua_istate_actor>(
                         key, std::move( on_tick ), std::move( on_pickup ),
-                        std::move( on_drop ) ) );
+                        std::move( on_drop ), std::move( on_puff ) ) );
             } catch( std::runtime_error &e ) {
                 debugmsg( "Failed to extract istate_functions k='%s': %s", key, e.what() );
                 break;

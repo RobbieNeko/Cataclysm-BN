@@ -23,7 +23,7 @@ static auto reset_dps_rng() -> void { rng_set_engine_seed(deterministic_dps_seed
 
 // Run a large number of trials of a player attacking a monster with a given weapon,
 // and return the average damage done per second.
-static double weapon_dps_trials(avatar& attacker, monster& defender, item& weapon) {
+static auto weapon_dps_trials(avatar& attacker, monster& defender, item& weapon) -> double {
     constexpr auto trials = 250;
 
     int total_damage = 0;

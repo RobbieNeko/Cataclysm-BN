@@ -736,6 +736,11 @@
   },
   {
     "type": "construction_group",
+    "id": "build_utility_shelf",
+    "name": "Build Utility Shelf"
+  },
+  {
+    "type": "construction_group",
     "id": "build_rain_collector",
     "name": "Build Rain Collector"
   },
@@ -1233,6 +1238,11 @@
     "type": "construction_group",
     "id": "constr_wall_standard",
     "name": "Build Plastered Wooden Wall"
+  },
+  {
+    "type": "construction_group",
+    "id": "constr_wall_paintable_standard",
+    "name": "Build Dark Plastered Wooden Wall"
   },
   {
     "type": "construction_group",

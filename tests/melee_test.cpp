@@ -21,7 +21,7 @@
 #include <sstream>
 #include <string>
 
-static float brute_probability(monster& attacker, Creature& target, const size_t iters) {
+static auto brute_probability(monster& attacker, Creature& target, const size_t iters) -> float {
     // Note: not using deal_melee_attack because it trains dodge, which causes problems here
     size_t hits = 0;
     for (size_t i = 0; i < iters; i++) {
@@ -32,7 +32,7 @@ static float brute_probability(monster& attacker, Creature& target, const size_t
     return static_cast<float>(hits) / iters;
 }
 
-static float brute_probability(player& attacker, Creature& target, const size_t iters) {
+static auto brute_probability(player& attacker, Creature& target, const size_t iters) -> float {
     const item& weapon = attacker.primary_weapon();
     const attack_statblock& attack = melee::default_attack(weapon);
     size_t hits = 0;
@@ -44,7 +44,8 @@ static float brute_probability(player& attacker, Creature& target, const size_t 
     return static_cast<float>(hits) / iters;
 }
 
-static float brute_special_probability(monster& attacker, Creature& target, const size_t iters) {
+static auto brute_special_probability(monster& attacker, Creature& target, const size_t iters)
+    -> float {
     size_t hits = 0;
     for (size_t i = 0; i < iters; i++) {
         if (!mattack::dodge_check(&attacker, &target)) { hits++; }
@@ -53,7 +54,7 @@ static float brute_special_probability(monster& attacker, Creature& target, cons
     return static_cast<float>(hits) / iters;
 }
 
-static std::string full_attack_details(const player& dude) {
+static auto full_attack_details(const player& dude) -> std::string {
     const item& weapon = dude.primary_weapon();
     const attack_statblock& attack = melee::default_attack(weapon);
     std::stringstream ss;
@@ -64,7 +65,7 @@ static std::string full_attack_details(const player& dude) {
     return ss.str();
 }
 
-inline std::string percent_string(const float f) {
+inline auto percent_string(const float f) -> std::string {
     // Using stringstream for prettier precision printing
     std::stringstream ss;
     ss << 100.0f * f << "%";

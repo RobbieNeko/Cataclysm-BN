@@ -7,6 +7,7 @@
 #include "calendar.h"
 #include "catalua_coord.h"
 #include "catalua_luna.h"
+#include "hsv_color.h"
 #include "mission.h"
 #include "type_id.h"
 #include "concepts_utility.h"
@@ -50,6 +51,8 @@ class distribution_grid;
 class distribution_grid_tracker;
 class effect;
 class overmapbuffer;
+class enchantment_value;
+class enchantment_flag;
 class effect_type;
 class item;
 class item_stack;
@@ -112,6 +115,7 @@ struct explosion_data;
 struct requirement_data;
 class inventory;
 class known_magic;
+struct RGBColor;
 
 namespace units
 {
@@ -132,6 +136,9 @@ using volume = quantity<std::int64_t, volume_in_milliliter_tag>;
 
 class sound_in_decibel_tag;
 using sound = quantity<int, sound_in_decibel_tag>;
+
+class temperature_in_millidegree_celsius_tag;
+using temperature = quantity<int, temperature_in_millidegree_celsius_tag>;
 } // namespace units
 
 struct islot_container;
@@ -224,6 +231,7 @@ LUNA_VAL( uilist_entry, "UiListEntry" );
 LUNA_VAL( units::angle, "Angle" );
 LUNA_VAL( units::energy, "Energy" );
 LUNA_VAL( units::mass, "Mass" );
+LUNA_VAL( units::temperature, "Temperature" );
 LUNA_VAL( units::volume, "Volume" );
 LUNA_VAL( units::sound, "Sound" );
 LUNA_VAL( relic, "Relic" )
@@ -236,7 +244,7 @@ LUNA_VAL( explosion_data, "ExplosionData" );
 LUNA_VAL( requirement_data, "RequirementData" );
 LUNA_VAL( inventory, "Inventory" );
 LUNA_VAL( bionic, "Bionic" );
-
+LUNA_VAL( RGBColor, "RGBColor" )
 // Ids for in-game objects
 LUNA_ID( ammunition_type, "AmmunitionType" )
 LUNA_ID( ammo_effect, "AmmunitionEffect" )
@@ -244,6 +252,8 @@ LUNA_ID( activity_type, "ActivityType" )
 LUNA_ID( bionic_data, "BionicData" )
 LUNA_ID( body_part_type, "BodyPartType" )
 LUNA_ID( disease_type, "DiseaseType" )
+LUNA_ID( enchantment_value, "EnchantmentValue" )
+LUNA_ID( enchantment_flag, "EnchantmentFlag" )
 LUNA_ID( effect_type, "EffectType" )
 LUNA_ID( faction, "Faction" )
 LUNA_ID( field_type, "FieldType" )

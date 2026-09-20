@@ -103,8 +103,6 @@ class iuse_transform : public iuse_actor
         /** Tool qualities needed, e.g. "fine bolt turning 1". **/
         std::map<quality_id, int> qualities_needed;
 
-        translation menu_text;
-
         iuse_transform( const std::string &type = "transform" ) : iuse_actor( type ) {}
 
         ~iuse_transform() override = default;
@@ -113,7 +111,6 @@ class iuse_transform : public iuse_actor
         ret_val<bool> can_use( const Character &, const item &, bool,
                                const tripoint_bub_ms & ) const override;
         std::unique_ptr<iuse_actor> clone() const override;
-        std::string get_name() const override;
         void finalize( const itype_id &my_item_type ) override;
         void info( const item &, std::vector<iteminfo> & ) const override;
 };
@@ -913,6 +910,7 @@ class bandolier_actor : public iuse_actor
         std::unique_ptr<iuse_actor> clone() const override;
         void info( const item &, std::vector<iteminfo> & ) const override;
 
+        std::string check() const override;
         units::volume max_stored_volume() const;
 };
 
@@ -1322,7 +1320,7 @@ class multicooker_iuse : public iuse_actor
         int charges_to_start;
         float time_mult = 1.0f;
         float charges_per_minute;
-        std::set<itype_id> recipes;
+        std::set<recipe_id> recipes;
         std::set<std::string> subcategories;
         std::set<std::string> temporary_tools;
 

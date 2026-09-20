@@ -1,5 +1,6 @@
 #include "player_helpers.h"
 
+#include "../src/map/map.h"
 #include "avatar.h"
 #include "bionics.h"
 #include "catch/catch.hpp"
@@ -13,7 +14,6 @@
 #include "item.h"
 #include "itype.h"
 #include "make_static.h"
-#include "map.h"
 #include "map_helpers.h"
 #include "material.h"
 #include "npc.h"
@@ -29,7 +29,7 @@
 #include <memory>
 #include <vector>
 
-int get_remaining_charges(const std::string& tool_id) {
+auto get_remaining_charges(const std::string& tool_id) -> int {
     const inventory crafting_inv = g->u.crafting_inventory();
     std::vector<item*> items = crafting_inv.items_with([tool_id](const item& i) {
         return i.typeId() == itype_id(tool_id);
@@ -39,7 +39,7 @@ int get_remaining_charges(const std::string& tool_id) {
     return remaining_charges;
 }
 
-bool player_has_item_of_type(const std::string& type) {
+auto player_has_item_of_type(const std::string& type) -> bool {
 
     std::vector<item*> inv_items = g->u.inv_dump();
 
@@ -134,7 +134,7 @@ void process_activity(player& dummy) {
     } while (dummy.activity);
 }
 
-npc& spawn_npc(const tripoint_bub_ms& p, const std::string& npc_class) {
+auto spawn_npc(const tripoint_bub_ms& p, const std::string& npc_class) -> npc& { // *NOPAD*
     const string_id<npc_template> test_guy(npc_class);
     const character_id model_id = g->m.place_npc(p, test_guy, true);
     g->load_npcs();

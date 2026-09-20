@@ -1,27 +1,23 @@
 #include "start_location.h"
 
-#include <algorithm>
-#include <climits>
-#include <memory>
-
 #include "avatar.h"
 #include "bodypart.h"
 #include "calendar.h"
 #include "coordinates.h"
 #include "debug.h"
 #include "enum_conversions.h"
-#include "field_type.h"
 #include "game.h"
 #include "game_constants.h"
 #include "generic_factory.h"
 #include "int_id.h"
 #include "json.h"
-#include "map.h"
-#include "mapbuffer_registry.h"
-#include "map_extras.h"
+#include "map/field_type.h"
+#include "map/map.h"
+#include "map/mapbuffer_registry.h"
+#include "map/mapdata.h"
 #include "map_iterator.h"
-#include "mapdata.h"
-#include "mapgen_constructor.h"
+#include "mapgen/map_extras.h"
+#include "mapgen/mapgen_constructor.h"
 #include "output.h"
 #include "overmap.h"
 #include "overmap_special.h"
@@ -30,8 +26,12 @@
 #include "pldata.h"
 #include "point.h"
 #include "rng.h"
-#include "type_id_implement.h"
 #include "string_id.h"
+#include "type_id_implement.h"
+
+#include <algorithm>
+#include <climits>
+#include <memory>
 
 class item;
 
@@ -80,6 +80,13 @@ void start_location::load( const JsonObject &jo, const std::string & )
         _omt_types.emplace_back( ter, ter_match_type );
     }
     optional( jo, was_loaded, "flags", _flags, auto_flags_reader<> {} );
+
+    if( jo.has_object( "absolute_place_location" ) ) {
+        const auto &obj = jo.get_object( "absolute_place_location" );
+        absolute_place_location = point_abs_om( obj.get_int( "x" ), obj.get_int( "y" ) );
+    } else if( !was_loaded ) {
+        absolute_place_location = point_abs_om( 0, 0 );
+    }
 }
 
 void start_location::check() const
@@ -194,7 +201,7 @@ tripoint_abs_omt start_location::find_player_initial_location() const
     // Spiral out from the world origin scanning for a compatible starting location,
     // creating overmaps as necessary.
     const int radius = 3;
-    std::vector<point_abs_om> overmaps = closest_points_first( point_abs_om(), radius );
+    std::vector<point_abs_om> overmaps = closest_points_first( absolute_place_location, radius );
     // Shuffle 8 first ones after (0,0) so that (0,0) retains priority, but if not so that we don't always start at (1,0)
     std::shuffle( overmaps.begin() + 1, overmaps.begin() + 8, rng_get_engine() );
     for( const point_abs_om &omp : overmaps ) {
@@ -415,7 +422,7 @@ void start_location::burn( const tripoint_abs_omt &/*omtstart*/, const size_t co
 }
 
 void start_location::add_map_extra( const tripoint_abs_omt &omtstart,
-                                    const std::string &map_extra ) const
+                                    const string_id<map_extra> &map_extra ) const
 {
     mapgen_constructor m( MAPBUFFER_REGISTRY.get( mapbuffer_registry::primary_dimension_id() ) );
     m.load( omtstart );

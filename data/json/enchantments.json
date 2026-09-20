@@ -14,6 +14,12 @@
   },
   {
     "type": "enchantment",
+    "id": "ENCH_GAS_REMOVER_CLOUD",
+    "conditions": [ "ACTIVE" ],
+    "emitter": "emit_gas_remover_field"
+  },
+  {
+    "type": "enchantment",
     "id": "ENCH_BIO_CARBON",
     "values": [
       { "value": "ARMOR_BASH", "multiply": -0.05 },
@@ -56,5 +62,20 @@
     "id": "ENCH_INSECT_WINGS_ACTIVE",
     "conditions": [ "ACTIVE" ],
     "values": [ { "value": "MOVE_COST", "multiply": -0.25 } ]
+  },
+  {
+    "type": "enchantment",
+    "id": "ENCH_CVD_MACHINE",
+    "values": [
+      { "value": "ITEM_DAMAGE_CUT", "multiply": 0.3 },
+      { "value": "ITEM_DAMAGE_STAB", "multiply": 0.3 },
+      { "value": "ITEM_ARMOR_PENETRATION_CUT", "multiply": 0.35, "add": 10 },
+      { "value": "ITEM_ARMOR_PENETRATION_STAB", "multiply": 0.35, "add": 10 }
+    ]
+  },
+  {
+    "type": "enchantment",
+    "id": "DRONE_CAM",
+    "special_vision": [ "DRONE_CAM" ]
   }
 ]

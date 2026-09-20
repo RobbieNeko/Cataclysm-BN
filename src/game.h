@@ -1,5 +1,24 @@
 #pragma once
 
+#include "action.h"
+#include "calendar.h"
+#include "character_id.h"
+#include "coordinates.h"
+#include "creature.h"
+#include "cursesdef.h"
+#include "dimension_info.h"
+#include "enums.h"
+#include "game_constants.h"
+#include "location_vector.h"
+#include "map/mapbuffer.h"
+#include "map/mapdata.h"
+#include "map/submap_load_manager.h"
+#include "memory_fast.h"
+#include "pimpl.h"
+#include "point.h"
+#include "type_id.h"
+#include "zone_draw_options.h"
+
 #include <array>
 #include <atomic>
 #include <chrono>
@@ -18,25 +37,6 @@
 #include <unordered_set>
 #include <utility>
 #include <vector>
-
-#include "action.h"
-#include "calendar.h"
-#include "character_id.h"
-#include "coordinates.h"
-#include "creature.h"
-#include "dimension_info.h"
-#include "cursesdef.h"
-#include "enums.h"
-#include "game_constants.h"
-#include "mapdata.h"
-#include "memory_fast.h"
-#include "pimpl.h"
-#include "point.h"
-#include "submap_load_manager.h"
-#include "zone_draw_options.h"
-#include "type_id.h"
-#include "location_vector.h"
-#include "mapbuffer.h"
 
 class Character;
 class Creature_tracker;
@@ -232,7 +232,8 @@ class game : public submap_load_listener
         void draw_ter( bool draw_sounds = true );
         void draw_ter( const tripoint_bub_ms &center, bool looking = false, bool draw_sounds = true );
         auto visibility_cache_z() -> int;
-        auto refresh_player_visibility_cache_if_needed( bool player_map_cache_current = false ) -> void;
+        auto refresh_player_visibility_cache_if_needed( bool player_map_cache_current = false,
+                bool skip_lightmap = false ) -> void;
 
         class draw_callback_t
         {
@@ -959,6 +960,7 @@ class game : public submap_load_listener
         void drop_in_direction(); // Drop w/ direction  'D'
 
         void butcher(); // Butcher a corpse  'B'
+        void dissect(); // dissect a corpse
     public:
         // Places the player at the specified point; hurts feet, lists items etc.
         auto place_player( const tripoint_bub_ms &dest ) -> point_rel_sm;
@@ -977,6 +979,8 @@ class game : public submap_load_listener
         bool is_dangerous_tile( const tripoint_bub_ms &dest_loc ) const;
         std::vector<std::string> get_dangerous_tile( const tripoint_bub_ms &dest_loc ) const;
         bool prompt_dangerous_tile( const tripoint_bub_ms &dest_loc ) const;
+        bool prompt_dangerous_tile( const tripoint_bub_ms &dest_loc, std::string_view query_message,
+                                    bool allow_ledge_examine ) const;
     private:
         auto player_visibility_cache_current() const -> bool;
         void chat(); // Talk to a nearby NPC  'C'

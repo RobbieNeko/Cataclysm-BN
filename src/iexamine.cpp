@@ -19,8 +19,8 @@
 #include "action_time_scale.h"
 // TODO (https://github.com/cataclysmbn/Cataclysm-BN/issues/1612):
 // Remove that include after repair_activity_actor.
-#include "activity_handlers.h"
 #include "active_tile_data_def.h"
+#include "activity_handlers.h"
 #include "ammo.h"
 #include "avatar.h"
 #include "avatar_action.h"
@@ -35,9 +35,7 @@
 #include "catalua.h"
 #include "character.h"
 #include "character_functions.h"
-#include "data_vars.h"
-#include "detached_ptr.h"
-#include "flag.h"
+#include "cloning_utils.h"
 #include "color.h"
 #include "construction.h"
 #include "construction_group.h"
@@ -45,15 +43,19 @@
 #include "craft_command.h"
 #include "cursesdef.h"
 #include "damage.h"
+#include "data_vars.h"
 #include "debug.h"
+#include "detached_ptr.h"
+#include "dimension_info.h"
 #include "distribution_grid.h"
 #include "effect.h"
 #include "enums.h"
 #include "event.h"
 #include "event_bus.h"
-#include "field_type.h"
+#include "flag.h"
 #include "flat_set.h"
 #include "flood_fill.h"
+#include "fluid_grid.h"
 #include "fungal_effects.h"
 #include "game.h"
 #include "game_constants.h"
@@ -70,38 +72,39 @@
 #include "iuse_actor.h"
 #include "line.h"
 #include "magic/magic_teleporter_list.h"
-#include "map.h"
-#include "map_iterator.h"
-#include "map_selector.h"
+#include "map/field_type.h"
+#include "map/map.h"
+#include "map/map_selector.h"
+#include "map/mapbuffer.h"
+#include "map/mapbuffer_registry.h"
+#include "map/mapdata.h"
+#include "map/submap.h"
 #include "map/utils/map_functions.h"
 #include "map/utils/map_utils.h"
-#include "mapdata.h"
-#include "mapbuffer.h"
-#include "mapbuffer_registry.h"
+#include "map_iterator.h"
 #include "material.h"
 #include "messages.h"
-#include "submap.h"
-#include "monster.h"
 #include "mongroup.h"
+#include "monster.h"
 #include "mtype.h"
 #include "mutation.h"
 #include "npc.h"
 #include "options.h"
 #include "output.h"
+#include "overmap.h"
 #include "overmapbuffer.h"
 #include "pickup.h"
-#include "fluid_grid.h"
 #include "pimpl.h"
 #include "player.h"
 #include "player_activity.h"
 #include "pldata.h"
 #include "point.h"
 #include "recipe.h"
+#include "recipe_dictionary.h"
 #include "relic.h"
 #include "requirements.h"
 #include "rng.h"
 #include "sounds.h"
-#include "cloning_utils.h"
 #include "string_formatter.h"
 #include "string_id.h"
 #include "string_input_popup.h"
@@ -113,16 +116,13 @@
 #include "uistate.h"
 #include "units.h"
 #include "units_utility.h"
-#include "recipe_dictionary.h"
 #include "value_ptr.h"
-#include "vehicle.h"
-#include "vehicle_part.h"
-#include "vpart_position.h"
-#include "weather.h"
+#include "vehicle/veh_type.h"
+#include "vehicle/vehicle.h"
+#include "vehicle/vehicle_part.h"
+#include "vehicle/vpart_position.h"
+#include "weather/weather.h"
 #include "world_type.h"
-#include "dimension_info.h"
-#include "overmap.h"
-#include "veh_type.h"
 
 static const activity_id ACT_ATM( "ACT_ATM" );
 static const activity_id ACT_CLEAR_RUBBLE( "ACT_CLEAR_RUBBLE" );
@@ -305,7 +305,7 @@ void iexamine::nanofab( player &p, const tripoint_bub_ms &examp )
     tripoint_bub_ms spawn_point;
     map &here = get_map();
     for( const auto &valid_location : here.points_in_radius( examp, 1 ) ) {
-        if( here.ter( valid_location ) == ter_str_id( "t_nanofab_body" ) ) {
+        if( here.has_flag( "NANOFAB_BODY", valid_location ) ) {
             spawn_point = valid_location;
             table_exists = true;
             break;
@@ -431,7 +431,7 @@ void iexamine::nanoforge( player &p, const tripoint_bub_ms &examp )
     tripoint_bub_ms spawn_point;
     map &here = get_map();
     for( const auto &valid_location : here.points_in_radius( examp, 1 ) ) {
-        if( here.ter( valid_location ) == ter_str_id( "t_nanoforge_body" ) ) {
+        if( here.has_flag( "NANOFORGE_BODY", valid_location ) ) {
             spawn_point = valid_location;
             table_exists = true;
             break;
@@ -1651,7 +1651,8 @@ void iexamine::safe( player &p, const tripoint_bub_ms &examp )
     auto *prying_tool = find_best_prying_tool( p );
     const int target_diff = here.has_furn( examp ) ? here.furn( examp )->pry.pry_quality : here.ter(
                                 examp )->pry.pry_quality;
-    if( target_diff > 0 && prying_tool && !p.movement_mode_is( CMM_CROUCH ) ) {
+    if( target_diff > 0 && prying_tool && !p.movement_mode_is( CMM_CROUCH ) &&
+        !p.movement_mode_is( CMM_PRONE ) ) {
         // keep going in case we have a prying tool that can't be used against the target, so we can try lockpicking
         if( prying_tool->get_quality( quality_id( "PRY" ) ) >= target_diff ) {
             apply_prying_tool( p, prying_tool, examp );
@@ -1715,7 +1716,8 @@ void iexamine::gunsafe_el( player &p, const tripoint_bub_ms &examp )
     auto *prying_tool = find_best_prying_tool( p );
     const int target_diff = here.has_furn( examp ) ? here.furn( examp )->pry.pry_quality : here.ter(
                                 examp )->pry.pry_quality;
-    if( target_diff > 0 && prying_tool && !p.movement_mode_is( CMM_CROUCH ) ) {
+    if( target_diff > 0 && prying_tool && !p.movement_mode_is( CMM_CROUCH ) &&
+        !p.movement_mode_is( CMM_PRONE ) ) {
         // keep going in case we have a prying tool that can't be used against the target, so we can try lockpicking
         if( prying_tool->get_quality( quality_id( "PRY" ) ) >= target_diff ) {
             apply_prying_tool( p, prying_tool, examp );
@@ -1806,7 +1808,8 @@ void iexamine::locked_object( player &p, const tripoint_bub_ms &examp )
 
     // if the furniture/terrain is also lockpickable
     // try lockpicking first if we're crouched
-    if( lockpick_activity_actor::is_pickable( examp ) && p.movement_mode_is( CMM_CROUCH ) ) {
+    if( lockpick_activity_actor::is_pickable( examp ) && ( p.movement_mode_is( CMM_CROUCH ) ||
+            p.movement_mode_is( CMM_PRONE ) ) ) {
         if( pick_lock( p, examp ) ) {
             return;
         }
@@ -4119,7 +4122,11 @@ void iexamine::keg( player &p, const tripoint_bub_ms &examp )
                 }
                 detached_ptr<item> tmp = item::spawn( drink.typeId(), calendar::turn, charges_held );
                 tmp = pour_into_keg( examp, std::move( tmp ) );
-                p.use_charges( drink.typeId(), charges_held - tmp->charges );
+                if( tmp ) { // tmp->charges contains the charges left after pouring into the keg
+                    p.use_charges( drink.typeId(), charges_held - tmp->charges );
+                } else { // tmp being empty means all charges were used up
+                    p.use_charges( drink.typeId(), charges_held );
+                }
                 add_msg( _( "You fill the %1$s with %2$s." ), keg_name, drink_nname );
                 notify_contents_changed( examp );
                 p.moves -= to_moves<int>( 10_seconds );
@@ -5598,6 +5605,381 @@ void iexamine::pay_gas( player &p, const tripoint_bub_ms &examp )
     }
 }
 
+namespace
+{
+
+struct jump_over_tile_state {
+    tripoint_abs_ms examp = tripoint_abs_ms::zero();
+    tripoint_abs_ms dest = tripoint_abs_ms::zero();
+};
+
+static constexpr auto jump_over_tile_base_move_cost = 200;
+static constexpr auto jump_over_tile_min_strength = 4;
+static constexpr auto jump_over_tile_stamina_burn_ratio = 14;
+static const auto dashing_effect = efftype_id( "dashing" );
+static const auto effect_downed = efftype_id( "downed" );
+
+auto jump_over_tile_carried_weight_percentage( const player &p ) -> int
+{
+    const auto carried_weight_grams = units::to_gram( p.weight_carried() );
+    const auto carry_capacity_grams = units::to_gram( std::max( p.weight_capacity(), 1_gram ) );
+    return std::clamp( static_cast<int>( carried_weight_grams * 100 / carry_capacity_grams ), 0, 100 );
+}
+
+auto scale_jump_over_tile_cost_round_up( const int value, const int numerator,
+        const int denominator ) -> int
+{
+    return divide_round_up( value * numerator, denominator );
+}
+
+auto jump_over_tile_move_cost( const player &p ) -> int
+{
+    return p.run_cost( jump_over_tile_base_move_cost );
+}
+
+auto jump_over_tile_stamina_cost( const player &p, const int move_cost ) -> int
+{
+    const auto base_stamina_cost = scale_jump_over_tile_cost_round_up(
+                                       get_option<int>( "PLAYER_BASE_STAMINA_BURN_RATE" ) * move_cost,
+                                       jump_over_tile_stamina_burn_ratio, 100 );
+    return scale_jump_over_tile_cost_round_up(
+               base_stamina_cost, 100 + jump_over_tile_carried_weight_percentage( p ), 100 );
+}
+
+auto get_jump_over_tile_state( const player &p,
+                               const tripoint_bub_ms &examp_bub ) -> jump_over_tile_state
+{
+    const auto examp = bub_to_abs( examp_bub );
+    const auto impulse = ( examp - p.abs_pos() ).xy() * 2;
+    return {
+        .examp = examp,
+        .dest = p.abs_pos() + impulse,
+    };
+}
+
+auto jump_over_tile_has_stumble_risk( const map &here,
+                                      const tripoint_bub_ms &jumped_tile ) -> bool
+{
+    return here.has_flag( "WINDOW", jumped_tile ) || here.has_furn( jumped_tile );
+}
+
+auto jump_over_tile_bashes_window( const map &here, const player &p,
+                                   const tripoint_bub_ms &jumped_tile ) -> bool
+{
+    if( !here.impassable( jumped_tile ) || !here.has_flag( "WINDOW", jumped_tile ) ||
+        !here.is_bashable_ter( jumped_tile ) ) {
+        return false;
+    }
+
+    const auto &bash = here.ter( jumped_tile ).obj().bash;
+    if( !bash.ter_set ) {
+        return false;
+    }
+
+    return ( bash.ter_set->movecost > 0 ||
+             bash.ter_set->has_flag( TFLAG_THIN_OBSTACLE ) ||
+             bash.ter_set->has_flag( TFLAG_SMALL_PASSAGE ) ) &&
+           here.bash_rating( p.get_str(), jumped_tile ) > 0;
+}
+
+auto jump_over_tile_can_cross_impassable( const map &here, const player &p,
+        const tripoint_bub_ms &jumped_tile ) -> bool
+{
+    return here.has_flag( flag_CLIMB_SIMPLE, jumped_tile ) ||
+           jump_over_tile_bashes_window( here, p, jumped_tile );
+}
+
+auto jump_over_tile_can_land_on_ledge( mapbuffer &buffer,
+                                       const tripoint_abs_ms &landing_tile ) -> bool
+{
+    const auto tile_reader = buffer.make_abs_tile_reader();
+    const auto landing = tile_reader.get_tile( landing_tile );
+    if( !landing ) {
+        return false;
+    }
+
+    if( landing->get_trap() != tr_ledge && landing->get_ter_t().trap != tr_ledge ) {
+        return false;
+    }
+
+    return buffer.valid_move( landing_tile, landing_tile + tripoint_rel_ms::below(),
+    { .flying = true } );
+}
+
+auto bash_window_for_jump( map &here, const player &p,
+                           const tripoint_bub_ms &jumped_tile ) -> bool
+{
+    const auto bash = bash_params{
+        .strength = std::max( p.get_str(), 1 ),
+        .silent = false,
+        .destroy = false,
+        .bash_floor = false,
+        .roll = static_cast<float>( rng_float( 0, 1.0f ) ),
+        .bashing_from_above = false,
+        .caused_by_player = p.is_avatar(),
+    };
+    const auto bash_result = here.bash( jumped_tile, bash );
+    return bash_result.success && !here.impassable( jumped_tile );
+}
+
+auto jump_over_tile_window_cut_bodyparts( const player &p ) -> std::vector<bodypart_id>
+{
+    static const auto risky_bodyparts = std::array{
+        bodypart_id( "hand_l" ), bodypart_id( "hand_r" ),
+        bodypart_id( "arm_l" ), bodypart_id( "arm_r" ),
+        bodypart_id( "leg_l" ), bodypart_id( "leg_r" ),
+        bodypart_id( "torso" )
+    };
+    namespace ranges = std::ranges;
+    using namespace std::views;
+
+    return risky_bodyparts
+    | filter( [&p]( const bodypart_id & bp ) {
+        return !p.wearing_something_on( bp );
+    } )
+    | ranges::to<std::vector>();
+}
+
+auto maybe_cut_from_smashing_window( player &p,
+                                     const std::string &obstacle_name ) -> void
+{
+    const auto exposed_bodyparts = jump_over_tile_window_cut_bodyparts( p );
+    if( exposed_bodyparts.empty() ) {
+        return;
+    }
+
+    if( one_in( 3 ) || x_in_y( 1 + p.dex_cur / 2.0, 40 ) ||
+        ( p.mutation_value( "movecost_obstacle_modifier" ) <= 0.5f && !one_in( 4 ) ) ||
+        ( p.has_trait( trait_id( "THICKSKIN" ) ) && one_in( 8 ) ) ) {
+        return;
+    }
+
+    const auto bp = random_entry( exposed_bodyparts );
+    const auto damaged_bp = bp->main_part.id();
+    if( p.deal_damage( nullptr, bp, damage_instance( DT_CUT, rng( 1, 10 ) ) ).total_damage() > 0 ) {
+        add_msg( m_bad, _( "You smash through the %1$s and cut your %2$s on the broken glass!" ),
+                 obstacle_name, body_part_name_accusative( damaged_bp ) );
+    }
+}
+
+auto maybe_cut_from_sharp_jump_terrain( player &p, map &here,
+                                        const tripoint_bub_ms &sharp_tile ) -> void
+{
+    if( !here.has_flag( "SHARP", sharp_tile ) || here.veh_at( sharp_tile ) ) {
+        return;
+    }
+
+    if( one_in( 3 ) || x_in_y( 1 + p.dex_cur / 2.0, 40 ) ||
+        ( p.mutation_value( "movecost_obstacle_modifier" ) <= 0.5f && !one_in( 4 ) ) ||
+        ( p.has_trait( trait_id( "THICKSKIN" ) ) && one_in( 8 ) ) ) {
+        return;
+    }
+
+    const auto bp = p.get_random_body_part();
+    const auto damaged_bp = bp->main_part.id();
+    if( p.deal_damage( nullptr, bp, damage_instance( DT_CUT, rng( 1, 10 ) ) ).total_damage() > 0 ) {
+        add_msg( m_bad, _( "You cut your %1$s on the %2$s as you leap over it!" ),
+                 body_part_name_accusative( damaged_bp ),
+                 here.has_flag_ter( "SHARP", sharp_tile ) ? here.tername( sharp_tile ) : here.furnname(
+                     sharp_tile ) );
+        if( one_in( 2 ) && !p.is_immune_effect( effect_bleed ) ) {
+            p.add_effect( effect_bleed, rng( 2_minutes, 5_minutes ), bp.id() );
+        }
+    }
+}
+
+auto jump_over_tile_stumble_roll( const player &p ) -> bool
+{
+    if( p.has_trait( trait_id( "PARKOUR" ) ) ) {
+        return false;
+    }
+
+    auto climb = p.dex_cur;
+    if( p.has_trait( trait_BADKNEES ) ) {
+        climb /= 2;
+    }
+    if( p.mutation_value( "movecost_obstacle_modifier" ) != 0.0f ) {
+        climb = static_cast<int>( climb / p.mutation_value( "movecost_obstacle_modifier" ) );
+    }
+    return one_in( std::max( climb, 1 ) );
+}
+
+auto apply_jump_stumble_fall_damage( player &p ) -> void
+{
+    static const auto stumble_bps = std::array{
+        bodypart_id( "hand_l" ), bodypart_id( "hand_r" ),
+        bodypart_id( "leg_l" ), bodypart_id( "leg_r" ),
+    };
+
+    for( const auto &bp : stumble_bps ) {
+        p.deal_damage( nullptr, bp, damage_instance( DT_BASH, rng( 1, 2 ) ) );
+    }
+}
+
+auto confirm_dangerous_jump_landing( const player &p,
+                                     const tripoint_abs_ms &dest ) -> bool
+{
+    if( !p.is_avatar() ) {
+        return true;
+    }
+
+    if( get_option<std::string>( "DANGEROUS_TERRAIN_WARNING_PROMPT" ) == "IGNORE" ) {
+        return true;
+    }
+
+    return g->prompt_dangerous_tile( abs_to_bub( dest ), _( "Really jump into %s?" ), false );
+}
+
+auto confirm_crash_through_window( const player &p,
+                                   const std::string &obstacle_name ) -> bool
+{
+    if( !p.is_avatar() ) {
+        return true;
+    }
+
+    return query_yn( _( "Crash through the %s?" ), obstacle_name );
+}
+
+auto can_jump_over_tile_impl( const player &p, const tripoint_bub_ms &examp_bub,
+                              const bool show_messages ) -> bool
+{
+    const auto jump_state = get_jump_over_tile_state( p, examp_bub );
+    const auto dir = jump_state.examp - p.abs_pos();
+    if( jump_state.examp == p.abs_pos() || dir.z() != 0 ||
+        std::abs( dir.x() ) > 1 || std::abs( dir.y() ) > 1 ) {
+        return false;
+    }
+
+    if( !iexamine::can_start_jump_over_tile( p, show_messages ) ) {
+        return false;
+    }
+
+    auto &buffer = p.get_mapbuffer();
+    auto &here = get_map();
+    const auto jumped_tile = abs_to_bub( jump_state.examp );
+    if( here.impassable( jumped_tile ) &&
+        !jump_over_tile_can_cross_impassable( here, p, jumped_tile ) ) {
+        if( show_messages ) {
+            add_msg( m_warning, _( "You cannot jump through the %s." ),
+                     here.obstacle_name( jumped_tile ) );
+        }
+        return false;
+    }
+
+    if( const auto blocking_creature = buffer.creature_at( jump_state.examp ) ) {
+        if( blocking_creature->get_size() >= p.get_size() ) {
+            if( show_messages ) {
+                add_msg( m_warning, _( "You cannot jump over %s." ), blocking_creature->disp_name() );
+            }
+            return false;
+        }
+    }
+
+    const auto landing_tile = abs_to_bub( jump_state.dest );
+    if( here.impassable( landing_tile ) &&
+        !jump_over_tile_can_land_on_ledge( buffer, jump_state.dest ) ) {
+        if( show_messages ) {
+            add_msg( m_warning, _( "You cannot land there - the %s is blocking the way." ),
+                     here.obstacle_name( landing_tile ) );
+        }
+        return false;
+    }
+
+    if( const auto blocking_creature = buffer.creature_at( jump_state.dest ) ) {
+        if( show_messages ) {
+            add_msg( m_warning, _( "You cannot jump over an obstacle - there is %s blocking the way." ),
+                     blocking_creature->disp_name() );
+        }
+        return false;
+    }
+
+    return true;
+}
+
+} // namespace
+
+auto iexamine::can_start_jump_over_tile( const player &p, const bool show_messages ) -> bool
+{
+    if( p.get_str() < jump_over_tile_min_strength ) {
+        if( show_messages ) {
+            add_msg( m_warning, _( "You are too weak to jump over an obstacle." ) );
+        }
+        return false;
+    }
+
+    const auto stamina_cost = jump_over_tile_stamina_cost( p, jump_over_tile_move_cost( p ) );
+    if( p.get_stamina() < stamina_cost ) {
+        if( show_messages ) {
+            add_msg( m_warning, _( "You're too exhausted to jump over an obstacle." ) );
+        }
+        return false;
+    }
+
+    return true;
+}
+
+auto iexamine::can_jump_over_tile( const player &p, const tripoint_bub_ms &examp ) -> bool
+{
+    return can_jump_over_tile_impl( p, examp, false );
+}
+
+auto iexamine::jump_over_tile( player &p, const tripoint_bub_ms &examp ) -> bool
+{
+    if( p.in_vehicle ) {
+        if( !character_funcs::can_fly( p ) &&
+            !query_yn( _( "Do you really want to jump off the vehicle?" ) ) ) {
+            return false;
+        }
+    }
+
+    if( !can_jump_over_tile_impl( p, examp, true ) ) {
+        return false;
+    }
+
+    const auto jump_state = get_jump_over_tile_state( p, examp );
+    if( !confirm_dangerous_jump_landing( p, jump_state.dest ) ) {
+        return false;
+    }
+
+    if( p.in_vehicle ) {
+        get_map().unboard_vehicle( p.bub_pos() );
+    }
+
+    const auto move_cost = jump_over_tile_move_cost( p );
+    const auto stamina_cost = jump_over_tile_stamina_cost( p, move_cost );
+    auto &here = get_map();
+    const auto jumped_tile = abs_to_bub( jump_state.examp );
+    const auto jumped_obstacle_name = here.name( jumped_tile );
+    const auto bashed_window = jump_over_tile_bashes_window( here, p, jumped_tile );
+    if( bashed_window && !confirm_crash_through_window( p, jumped_obstacle_name ) ) {
+        return false;
+    }
+    const auto stumbled = ( bashed_window || jump_over_tile_has_stumble_risk( here, jumped_tile ) ) &&
+                          jump_over_tile_stumble_roll( p );
+    p.mod_moves( -move_cost );
+    p.mod_stamina( -stamina_cost, false );
+    if( bashed_window ) {
+        if( !bash_window_for_jump( here, p, jumped_tile ) ) {
+            add_msg( m_warning, _( "You fail to crash through the %s." ), jumped_obstacle_name );
+            return false;
+        }
+        add_msg( m_info, _( "You crash through the %s." ), jumped_obstacle_name );
+        maybe_cut_from_smashing_window( p, jumped_obstacle_name );
+    } else {
+        add_msg( m_info, _( "You leap across." ) );
+        maybe_cut_from_sharp_jump_terrain( p, here, jumped_tile );
+    }
+    p.setpos( jump_state.dest );
+    if( stumbled ) {
+        add_msg( m_bad, _( "You misjudge the leap past %s and crash to the ground." ),
+                 jumped_obstacle_name );
+        apply_jump_stumble_fall_damage( p );
+        p.add_effect( effect_downed, rng( 2_turns, 3_turns ), bodypart_str_id::NULL_ID(), 0, true );
+    }
+    here.creature_on_trap( p, false );
+    return true;
+}
+
 void iexamine::ledge( player &p, const tripoint_bub_ms &examp_bub )
 {
     const auto examp = bub_to_abs( examp_bub );
@@ -5658,24 +6040,7 @@ void iexamine::ledge( player &p, const tripoint_bub_ms &examp_bub )
     cmenu.query();
     switch( cmenu.ret ) {
         case ledge_action::jump_over: {
-            const auto impulse = dir * 2;
-            const auto dest = p.abs_pos() + impulse;
-            if( p.get_str() < 4 ) {
-                add_msg( m_warning, _( "You are too weak to jump over an obstacle." ) );
-            } else if( 100 * p.weight_carried() / p.weight_capacity() > 25 ) {
-                add_msg( m_warning, _( "You are too burdened to jump over an obstacle." ) );
-            } else if( !buffer.valid_move( examp, dest, { .flying = true } ) ) {
-                add_msg( m_warning, _( "You cannot jump over an obstacle - something is blocking the way." ) );
-            } else if( const auto blocking_creature = buffer.creature_at( dest ) ) {
-                add_msg( m_warning, _( "You cannot jump over an obstacle - there is %s blocking the way." ),
-                         blocking_creature->disp_name() );
-            } else if( const auto dest_tile = tile_reader.get_tile( dest );
-                       dest_tile && dest_tile->get_ter_t().trap == tr_ledge ) {
-                add_msg( m_warning, _( "You are not going to jump over an obstacle only to fall down." ) );
-            } else {
-                add_msg( m_info, _( "You jump over an obstacle." ) );
-                p.setpos( dest );
-            }
+            iexamine::jump_over_tile( p, examp_bub );
             break;
         }
         case ledge_action::climb_down: {
@@ -8055,7 +8420,7 @@ void iexamine::multicooker( player &p, const tripoint_bub_ms &pos )
 
         for( const auto &r : g->u.get_learned_recipes() ) {
             if( vars->get( "CATEGORYIDS", std::set<std::string>() ).contains( r->subcategory ) ||
-                vars->get( "RECIPEIDS", std::set<std::string>() ).contains( r->result().str() ) ) {
+                vars->get( "RECIPEIDS", std::set<std::string>() ).contains( r->ident().str() ) ) {
                 dishes.push_back( r );
                 const bool can_make = r->deduped_requirements().can_make_with_inventory(
                                           crafting_inv, r->get_component_filter() );
@@ -8139,6 +8504,7 @@ void iexamine::multicooker( player &p, const tripoint_bub_ms &pos )
         }
     }
 }
+
 /**
  * Given then name of one of the above functions, returns the matching function
  * pointer. If no match is found, defaults to iexamine::none but prints out a
@@ -8245,6 +8611,7 @@ iexamine_function iexamine_function_from_string( const std::string &function_nam
             { "migo_nerve_cluster", &iexamine::migo_nerve_cluster },
             { "cardreader_plutgen", &iexamine::cardreader_plutgen },
             { "multicooker", &iexamine::multicooker },
+            { "enchanter", &iexamine::enchanter },
         }
     };
 

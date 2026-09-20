@@ -3,6 +3,7 @@
 #include "assign.h"
 #include "debug.h"
 #include "generic_factory.h"
+#include "generic_readers.h"
 #include "type_id_implement.h"
 
 #include <optional>
@@ -20,8 +21,8 @@ void enchantment_flag::load_enchantment_flags(const JsonObject& jo, const std::s
 
 void enchantment_flag::load(const JsonObject& jo, const std::string& src) {
     mandatory(jo, was_loaded, "info", info);
-    optional(jo, was_loaded, "conflicts", conflicts);
-    optional(jo, was_loaded, "parents", parents);
+    optional(jo, was_loaded, "conflicts", conflicts, auto_flags_reader<enchantment_flag_id>{});
+    optional(jo, was_loaded, "parents", parents, auto_flags_reader<enchantment_flag_id>{});
 }
 
 void enchantment_flag::check() const {
@@ -36,13 +37,13 @@ void enchantment_flag::check() const {
 void enchantment_flag::check_consistency() { all_enchantment_flags.check(); }
 
 
-std::vector<enchantment_flag> enchantment_flag::get_all() {
+auto enchantment_flag::get_all() -> std::vector<enchantment_flag> {
     return all_enchantment_flags.get_all();
 }
 
 void enchantment_flag::reset() { all_enchantment_flags.reset(); }
 
-std::set<enchantment_flag_id> enchantment_flag::get_parents() const {
+auto enchantment_flag::get_parents() const -> std::set<enchantment_flag_id> {
     auto res = std::set<enchantment_flag_id>();
     if (!parents.empty()) {
         for (auto parent : parents) {

@@ -120,7 +120,7 @@ TEST_CASE("load_tool_use_action", "[item_factory]") {
     file.close();
 }
 
-const itype* get_item(Item_factory& test_factory, const std::string& name) {
+auto get_item(Item_factory& test_factory, const std::string& name) -> const itype* { // *NOPAD*
     std::vector<const itype*> test_items = test_factory.find([&name](const itype& item) {
         return item.get_id() == itype_id(name);
     });

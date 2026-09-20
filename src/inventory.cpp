@@ -1,48 +1,47 @@
 #include "inventory.h"
 
+#include "avatar.h"
+#include "calendar.h"
+#include "character.h"
+#include "damage.h"
+#include "debug.h"
+#include "diary.h"
+#include "distribution_grid.h"
+#include "enchantments/enchantment.h"
+#include "enums.h"
+#include "flag.h"
+#include "flat_set.h"
+#include "game.h"
+#include "iexamine.h"
+#include "inventory_ui.h" // auto inventory blocking
+#include "locations.h"
+#include "map/map.h"
+#include "map/mapdata.h"
+#include "map_iterator.h"
+#include "material.h"
+#include "messages.h" //for rust message
+#include "npc.h"
+#include "options.h"
+#include "player.h"
+#include "point.h"
+#include "rng.h"
+#include "translations.h"
+#include "type_id.h"
+#include "vehicle/veh_type.h"
+#include "vehicle/vehicle.h"
+#include "vehicle/vehicle_part.h"
+#include "vehicle/vpart_position.h"
+
 #include <algorithm>
 #include <climits>
 #include <cmath>
 #include <cstdint>
 #include <cstdlib>
-#include <algorithm>
 #include <iterator>
 #include <memory>
 #include <optional>
 #include <ranges>
 #include <unordered_set>
-
-#include "avatar.h"
-#include "debug.h"
-#include "diary.h"
-#include "distribution_grid.h"
-#include "enchantments/enchantment.h"
-#include "game.h"
-#include "iexamine.h"
-#include "locations.h"
-#include "map.h"
-#include "map_iterator.h"
-#include "mapdata.h"
-#include "messages.h" //for rust message
-#include "npc.h"
-#include "options.h"
-#include "translations.h"
-#include "vehicle.h"
-#include "vehicle_part.h"
-#include "veh_type.h"
-#include "vpart_position.h"
-#include "calendar.h"
-#include "character.h"
-#include "damage.h"
-#include "enums.h"
-#include "flag.h"
-#include "player.h"
-#include "rng.h"
-#include "material.h"
-#include "type_id.h"
-#include "flat_set.h"
-#include "point.h"
-#include "inventory_ui.h" // auto inventory blocking
 
 static const itype_id itype_aspirin( "aspirin" );
 static const itype_id itype_battery( "battery" );
@@ -1063,7 +1062,12 @@ enchantment inventory::get_active_enchantment_cache( const Character &owner ) co
     enchantment temp_cache;
     for( const std::vector<item *> &elem : items ) {
         for( const item * const &check_item : elem ) {
-            for( const enchantment &ench : check_item->get_enchantments() ) {
+            for( const enchantment &ench : check_item->get_enchantments( true ) ) {
+                if( ench.is_active( owner, *check_item ) ) {
+                    temp_cache.force_add( ench );
+                }
+            }
+            for( const enchantment &ench : check_item->get_enchantments( false ) ) {
                 if( ench.is_active( owner, *check_item ) ) {
                     temp_cache.force_add( ench );
                 }

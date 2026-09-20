@@ -1,23 +1,25 @@
+#include "../src/map/map.h"
 #include "catch/catch.hpp"
 #include "enchantments/enchantment.h"
 #include "item.h"
 #include "magic/magic.h"
-#include "map.h"
 #include "map_helpers.h"
 #include "options.h"
 #include "player.h"
 #include "player_helpers.h"
 #include "state_helpers.h"
+#include "weather/weather.h"
 
 static trait_id trait_CARNIVORE("CARNIVORE");
 static efftype_id effect_debug_clairvoyance("debug_clairvoyance");
 
 static void advance_turn(Character& guy) {
     guy.process_turn();
+    guy.process_items();
     calendar::turn += 1_turns;
 }
 
-static item& give_item(Character& guy, const std::string& item_id) {
+static auto give_item(Character& guy, const std::string& item_id) -> item& { // *NOPAD*
     detached_ptr<item> det = item::spawn(item_id);
     item& ret = *det;
     guy.i_add(std::move(det));
@@ -25,7 +27,7 @@ static item& give_item(Character& guy, const std::string& item_id) {
     return ret;
 }
 
-static item& wear_item(Character& guy, const std::string& item_id) {
+static auto wear_item(Character& guy, const std::string& item_id) -> item& { // *NOPAD*
     detached_ptr<item> det = item::spawn(item_id);
     item& ret = *det;
     guy.wear_item(std::move(det), false);
@@ -443,7 +445,7 @@ TEST_CASE("Mana pool", "[magic][enchantment][mana]") {
     for (const mana_test_case& it : mana_test_data) { tests_mana_pool_section(it); }
 }
 
-static float measure_stamina_gain_rate(Character& guy) {
+static auto measure_stamina_gain_rate(Character& guy) -> float {
     int gained_total = 0;
     // Stamina regen rate is supposed to decrease over time as character gains stamina,
     // so we measure 100 times on same level instead of doing update_stamina( 100 )
@@ -721,7 +723,7 @@ TEST_CASE("Item enchantments modify item damage", "[magic][enchantment]") {
     }
 }
 
-static int calc_damage_absorb(Character& guy, damage_type dt, int amount) {
+static auto calc_damage_absorb(Character& guy, damage_type dt, int amount) -> int {
     static const bodypart_id torso("torso");
     damage_instance dmg(dt, amount);
     guy.absorb_hit(torso, dmg);
@@ -890,5 +892,39 @@ TEST_CASE("Skill enchantments", "[magic][enchantment][skill]") {
 
         REQUIRE(guy.get_skill_level(skill_id("barter")) == 6);
         REQUIRE(guy.get_skill_level(skill_id("speech")) == 2);
+    }
+}
+
+TEST_CASE("Climate Control enchantments", "[magic][enchantment]") {
+    clear_all_state();
+    Character& guy = get_player_character();
+    clear_character(*guy.as_player(), true);
+
+    REQUIRE(guy.temp_corrected_by_climate_control(BODYTEMP_COLD, bodypart_id("hand_l"))
+            == BODYTEMP_COLD);
+
+    SECTION("One climate control heating item") {
+        // This is pretty much cross-path parent enchantment testing here
+        wear_item(guy, "test_relic_socks_of_hand_climate");
+
+        REQUIRE(guy.temp_corrected_by_climate_control(BODYTEMP_COLD, bodypart_id("hand_l"))
+                == BODYTEMP_COLD + 1_c_delta);
+    }
+
+    SECTION("Two climate control heating items") {
+        // This is pretty much cross-path parent enchantment testing here
+        wear_item(guy, "test_relic_socks_of_hand_climate");
+        wear_item(guy, "test_relic_socks_of_hand_cold_climate");
+
+        REQUIRE(guy.temp_corrected_by_climate_control(BODYTEMP_COLD, bodypart_id("hand_l"))
+                == BODYTEMP_COLD + 2_c_delta);
+    }
+
+    SECTION("Base enchantments dont stack") {
+        // This is pretty much cross-path parent enchantment testing here
+        wear_item(guy, "test_relic_socks_of_climate");
+
+        REQUIRE(guy.temp_corrected_by_climate_control(BODYTEMP_COLD, bodypart_id("hand_l"))
+                == BODYTEMP_COLD + 1_c_delta);
     }
 }

@@ -1,14 +1,14 @@
+#include "../src/map/map.h"
+#include "../src/vehicle/vehicle_part.h"
 #include "catch/catch.hpp"
 #include "coordinates.h"
 #include "game_constants.h"
-#include "map.h"
 #include "map_helpers.h"
 #include "state_helpers.h"
 #include "type_id.h"
 #include "units.h"
-#include "veh_type.h"
-#include "vehicle.h"
-#include "vehicle_part.h"
+#include "vehicle/veh_type.h"
+#include "vehicle/vehicle.h"
 
 #include <ranges>
 

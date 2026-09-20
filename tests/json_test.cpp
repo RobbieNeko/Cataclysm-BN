@@ -614,7 +614,7 @@ TEST_CASE("serialize_optional", "[json]") {
 // Float comparison woes
 template <typename T>
     requires std::is_floating_point_v<T>
-static bool approximatelyEqual(T a, T b, T eps, const unsigned ulps) {
+static auto approximatelyEqual(T a, T b, T eps, const unsigned ulps) -> bool {
     using limits = std::numeric_limits<T>;
 
     if (std::isnan(a) || std::isnan(b)) { return false; }
@@ -639,7 +639,7 @@ static bool approximatelyEqual(T a, T b, T eps, const unsigned ulps) {
 
 template <typename T>
     requires std::is_integral_v<T>
-constexpr static bool approximatelyEqual(T a, T b, T eps, const unsigned) {
+constexpr static auto approximatelyEqual(T a, T b, T eps, const unsigned) -> bool {
     if (b > a) { std::swap(a, b); }
     return static_cast<T>(a - b) <= eps;
 }

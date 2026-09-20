@@ -1,19 +1,12 @@
 #include "monexamine.h"
 
-#include <climits>
-#include <map>
-#include <memory>
-#include <string>
-#include <utility>
-#include <vector>
-
 #include "avatar.h"
 #include "avatar_action.h"
 #include "bodypart.h"
 #include "calendar.h"
+#include "cata_utility.h"
 #include "catalua_hooks.h"
 #include "catalua_icallback_actor.h"
-#include "cata_utility.h"
 #include "character.h"
 #include "debug.h"
 #include "enums.h"
@@ -22,7 +15,7 @@
 #include "item.h"
 #include "itype.h"
 #include "iuse.h"
-#include "map.h"
+#include "map/map.h"
 #include "material.h"
 #include "messages.h"
 #include "monster.h"
@@ -39,6 +32,13 @@
 #include "ui.h"
 #include "units.h"
 #include "value_ptr.h"
+
+#include <climits>
+#include <map>
+#include <memory>
+#include <string>
+#include <utility>
+#include <vector>
 
 
 static const quality_id qual_shear( "SHEAR" );
@@ -101,7 +101,9 @@ auto compatible_reload_ammo( const avatar &you, const monster &z,
 {
     auto ammo_options = std::vector<monster_ammo_option> {};
     for( const auto &compatible_ammo_id : z.ammo_slot_items( ammo_id ) ) {
-        const auto available_ammo = you.charges_of( compatible_ammo_id );
+        const auto available_ammo = compatible_ammo_id->count_by_charges()
+                                    ? you.charges_of( compatible_ammo_id )
+                                    : you.amount_of( compatible_ammo_id );
         if( available_ammo <= 0 ) {
             continue;
         }
@@ -337,7 +339,11 @@ auto reload_monster_weapons( avatar &you, monster &z ) -> void
 
     const auto reload_amount = std::min( reload_option_iter->missing_ammo, selected_ammo_iter->amount );
     z.ammo[selected_ammo] += reload_amount;
-    you.use_charges( selected_ammo, reload_amount );
+    if( selected_ammo->count_by_charges() ) {
+        you.use_charges( selected_ammo, reload_amount );
+    } else {
+        you.use_amount( selected_ammo, reload_amount );
+    }
     add_msg( vgettext( "You load %1$d x %2$s round into the %3$s.",
                        "You load %1$d x %2$s rounds into the %3$s.", reload_amount ),
              reload_amount, selected_ammo->nname( reload_amount ), z.get_name() );
@@ -381,14 +387,36 @@ auto unload_monster_weapons( avatar &you, monster &z ) -> void
         return;
     }
 
-    auto unloaded_ammo = item::spawn( selected_ammo, calendar::turn, loaded_ammo_iter->amount );
-    unloaded_ammo = you.i_add_or_drop( std::move( unloaded_ammo ) );
-    if( unloaded_ammo ) {
-        add_msg( m_info, _( "You can't unload the %s right now." ), z.get_name() );
-        return;
+    auto unloaded_amount = 0;
+    if( selected_ammo->count_by_charges() ) {
+        auto unloaded_ammo = item::spawn( selected_ammo, calendar::turn, loaded_ammo_iter->amount );
+        unloaded_ammo = you.i_add_or_drop( std::move( unloaded_ammo ) );
+        if( unloaded_ammo ) {
+            add_msg( m_info, _( "You can't unload the %s right now." ), z.get_name() );
+            return;
+        }
+        unloaded_amount = loaded_ammo_iter->amount;
+    } else {
+        for( auto i = 0; i < loaded_ammo_iter->amount; ++i ) {
+            auto unloaded_ammo = item::spawn( selected_ammo, calendar::turn, item::solitary_tag() );
+            unloaded_ammo = you.i_add_or_drop( std::move( unloaded_ammo ) );
+            if( unloaded_ammo ) {
+                add_msg( m_info, _( "You can't unload the %s right now." ), z.get_name() );
+                break;
+            }
+            ++unloaded_amount;
+        }
     }
 
-    z.ammo.erase( selected_ammo );
+    if( unloaded_amount > 0 ) {
+        z.ammo[selected_ammo] -= unloaded_amount;
+        if( z.ammo[selected_ammo] <= 0 ) {
+            z.ammo.erase( selected_ammo );
+        }
+    }
+    if( unloaded_amount != loaded_ammo_iter->amount ) {
+        return;
+    }
     add_msg( vgettext( "You unload %1$d x %2$s round from the %3$s.",
                        "You unload %1$d x %2$s rounds from the %3$s.", loaded_ammo_iter->amount ),
              loaded_ammo_iter->amount, selected_ammo->nname( loaded_ammo_iter->amount ),
@@ -1478,7 +1506,9 @@ void monexamine::deactivate_pet( monster &z )
     if( !z.has_flag( MF_INTERIOR_AMMO ) ) {
         for( auto &ammodef : z.ammo ) {
             if( ammodef.second > 0 ) {
-                here.spawn_item( z.bub_pos(), ammodef.first, 1, ammodef.second, calendar::turn );
+                const bool count_by_charges = item::spawn_temporary( ammodef.first )->count_by_charges();
+                here.spawn_item( z.bub_pos(), ammodef.first, count_by_charges ? 1 : ammodef.second,
+                                 count_by_charges ? ammodef.second : 0, calendar::turn );
             }
         }
     }

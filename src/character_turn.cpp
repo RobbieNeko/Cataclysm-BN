@@ -5,17 +5,15 @@
 #include "avatar.h"
 #include "bionics.h"
 #include "calendar.h"
-#include "distribution_grid.h"
-#include "mapbuffer.h"
-#include "mapbuffer_registry.h"
 #include "catalua_hooks.h"
 #include "catalua_sol.h"
+#include "character.h"
 #include "character_effects.h"
 #include "character_functions.h"
-#include "character_stat.h"
 #include "character_martial_arts.h"
-#include "character.h"
+#include "character_stat.h"
 #include "creature.h"
+#include "distribution_grid.h"
 #include "enchantments/enchantment.h"
 #include "flag.h"
 #include "flag_trait.h"
@@ -23,25 +21,28 @@
 #include "handle_liquid.h"
 #include "itype.h"
 #include "iuse.h"
-#include "mutation.h"
-#include "overmapbuffer.h"
 #include "make_static.h"
+#include "map/mapbuffer.h"
+#include "map/mapbuffer_registry.h"
+#include "map/submap.h"
 #include "map_iterator.h"
 #include "morale.h"
+#include "mutation.h"
+#include "overmapbuffer.h"
 #include "player.h"
 #include "player_activity.h"
+#include "profile.h"
 #include "rng.h"
-#include "submap.h"
 #include "trap.h"
 #include "type_id.h"
 #include "units_temperature.h"
-#include "veh_type.h"
-#include "vehicle.h"
-#include "vehicle_part.h"
-#include "vpart_position.h"
-#include "weather_gen.h"
-#include "weather.h"
-#include "profile.h"
+#include "vehicle/veh_type.h"
+#include "vehicle/vehicle.h"
+#include "vehicle/vehicle_part.h"
+#include "vehicle/vpart_position.h"
+#include "weather/weather.h"
+#include "weather/weather_gen.h"
+
 #include <algorithm>
 
 static const trait_id trait_ACIDBLOOD( "ACIDBLOOD" );
@@ -79,6 +80,7 @@ static const trait_id trait_DEBUG_STORAGE( "DEBUG_STORAGE" );
 
 static const trait_flag_str_id trait_flag_MUTATION_FLIGHT( "MUTATION_FLIGHT" );
 
+static const efftype_id effect_bleed( "bleed" );
 static const efftype_id effect_bloodworms( "bloodworms" );
 static const efftype_id effect_brainworms( "brainworms" );
 static const efftype_id effect_darkness( "darkness" );
@@ -103,6 +105,7 @@ static const efftype_id effect_stim( "stim" );
 static const efftype_id effect_tapeworm( "tapeworm" );
 static const efftype_id effect_thirsty( "thirsty" );
 
+static const skill_id skill_firstaid( "firstaid" );
 static const skill_id skill_swimming( "swimming" );
 static const skill_id skill_traps( "traps" );
 
@@ -219,7 +222,6 @@ void Character::process_turn()
     if( activity->targets.empty() ) {
         drop_invalid_inventory();
     }
-    process_items();
     // Didn't just pick something up
     last_item = itype_id( "null" );
 
@@ -913,12 +915,12 @@ static bool needs_elec_charges( item *it )
     }
 }
 
-void Character::process_items()
+void Character::process_items( int turns )
 {
     ZoneScoped;
 
-    auto process_item = [this]( detached_ptr<item> &&ptr ) {
-        return item::process( std::move( ptr ), as_player(), bub_pos(), false );
+    auto process_item = [this, &turns]( detached_ptr<item> &&ptr ) {
+        return item::process( std::move( ptr ), as_player(), bub_pos(), false, turns );
     };
     if( primary_weapon().needs_processing() ) {
         primary_weapon().attempt_detach( process_item );
@@ -947,7 +949,7 @@ void Character::process_items()
         item &it = inv.find_item( index );
         if( it.has_flag( flag_IS_UPS ) ) {
             ch_UPS += std::min( it.ammo_remaining() * it.type->tool->ups_eff_mult,
-                                it.type->tool->ups_recharge_rate );
+                                it.type->tool->ups_recharge_rate * turns );
         }
         if( it.has_flag( flag_USE_UPS ) && needs_elec_charges( &it ) ) {
             active_held_items.push_back( index );
@@ -960,7 +962,7 @@ void Character::process_items()
         }
         if( w->has_flag( flag_IS_UPS ) ) {
             ch_UPS += std::min( w->ammo_remaining() * w->type->tool->ups_eff_mult,
-                                w->type->tool->ups_recharge_rate );
+                                w->type->tool->ups_recharge_rate * turns );
         }
         if( !update_required && w->encumbrance_update_ ) {
             update_required = true;
@@ -972,7 +974,7 @@ void Character::process_items()
         set_check_encumbrance( false );
     }
     if( has_active_bionic( bionic_id( "bio_ups" ) ) ) {
-        ch_UPS += std::min( units::to_kilojoule( get_power_level() ), 10 );
+        ch_UPS += std::min( units::to_kilojoule( get_power_level() ), 10 * turns );
     }
     int ch_UPS_used = 0;
     if( weapon_active && ch_UPS_used < ch_UPS ) {
@@ -1077,7 +1079,7 @@ void update_body_wetness( Character &who, const w_point &weather )
         int drying_chance = pr.second.get_drench_capacity();
         // Body temperature affects duration of wetness
         // Note: Using temp_conv rather than temp_cur, to better approximate environment
-        int temp_conv = pr.second.get_temp_conv();
+        const auto temp_conv = pr.second.get_temp_conv();
         if( temp_conv >= BODYTEMP_SCORCHING ) {
             drying_chance *= 2;
         } else if( temp_conv >= BODYTEMP_VERY_HOT ) {
@@ -1178,6 +1180,29 @@ void do_pause( Character &who )
             who.add_msg_player_or_npc( m_warning,
                                        _( "You attempt to put out the fire on you!" ),
                                        _( "<npcname> attempts to put out the fire on them!" ) );
+        }
+    } else if( who.has_effect( effect_bleed ) ) {
+        // Try to staunch bleeding if we're not busy being set on fire.
+        // Todo: possibly convert it to only affect one bodypart at a time in exchange for more effectiveness?
+        time_duration total_removed = 0_turns;
+        time_duration total_left = 0_turns;
+        for( const body_part bp : all_body_parts ) {
+            effect &eff = who.get_effect( effect_bleed, convert_bp( bp ) );
+            if( eff.is_null() ) {
+                continue;
+            }
+
+            total_left += eff.get_duration();
+            const time_duration dur_removed = 5_turns + 10_turns * who.get_skill_level( skill_firstaid );
+            eff.mod_duration( -dur_removed );
+            total_removed += dur_removed;
+        }
+
+        if( total_removed > 0_turns ) {
+            who.add_msg_player_or_npc( m_warning,
+                                       _( "You put pressure on your bleeding wounds." ),
+                                       _( "<npcname> puts pressure on their bleeding wounds." ) );
+            who.practice( skill_firstaid, 1, 2 );
         }
     }
 

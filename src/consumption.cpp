@@ -1,41 +1,33 @@
-#include "avatar_functions.h"
-#include "npc.h"
-#include "pickup.h"
-#include "player.h" // IWYU pragma: associated
 #include "consumption.h" // IWYU pragma: associated
-#include "character.h"
-
-#include <algorithm>
-#include <array>
-#include <cstdlib>
-#include <memory>
-#include <optional>
-#include <string>
-#include <tuple>
 
 #include "activity_handlers.h"
 #include "addiction.h"
 #include "avatar.h"
+#include "avatar_functions.h"
 #include "bionics.h"
 #include "calendar.h"
 #include "cata_utility.h"
+#include "character.h"
 #include "craft_command.h"
 #include "debug.h"
 #include "enchantments/enchantment.h"
 #include "enums.h"
-#include "flat_set.h"
 #include "flag.h"
+#include "flat_set.h"
 #include "game.h"
 #include "item_contents.h"
 #include "itype.h"
-#include "map.h"
+#include "map/map.h"
 #include "material.h"
 #include "messages.h"
 #include "monster.h"
 #include "morale_types.h"
 #include "mtype.h"
 #include "mutation.h"
+#include "npc.h"
 #include "options.h"
+#include "pickup.h"
+#include "player.h" // IWYU pragma: associated
 #include "pldata.h"
 #include "recipe.h"
 #include "recipe_dictionary.h"
@@ -48,7 +40,15 @@
 #include "type_id.h"
 #include "units.h"
 #include "vitamin.h"
-#include "weather.h"
+#include "weather/weather.h"
+
+#include <algorithm>
+#include <array>
+#include <cstdlib>
+#include <memory>
+#include <optional>
+#include <string>
+#include <tuple>
 
 static const std::string comesttype_DRINK( "DRINK" );
 static const std::string comesttype_FOOD( "FOOD" );

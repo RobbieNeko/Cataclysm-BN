@@ -1,23 +1,5 @@
 #include "sounds.h"
 
-#include <algorithm>
-#include <array>
-#include <bitset>
-#include <chrono>
-#include <cmath>
-#include <cstdint>
-#include <cstdlib>
-#include <cstring>
-#include <memory>
-#include <optional>
-#include <ostream>
-#include <set>
-#include <system_error>
-#include <unordered_map>
-#include <utility>
-#include <vector>
-#include <queue>
-
 #include "active_tile_data.h"
 #include "avatar.h"
 #include "calendar.h"
@@ -33,19 +15,23 @@
 #include "item.h"
 #include "itype.h"
 #include "line.h"
-#include "map.h"
-#include "mapbuffer.h"
+#include "map/map.h"
+#include "map/mapbuffer.h"
+#include "map/mapdata.h"
+#include "map/submap.h"
 #include "map_iterator.h"
-#include "mapdata.h"
 #include "messages.h"
 #include "monfaction.h"
 #include "monster.h"
+#include "mtype.h"
 #include "npc.h"
+#include "omdata.h"
 #include "overmapbuffer.h"
 #include "overmapbuffer_registry.h"
 #include "player.h"
 #include "player_activity.h"
 #include "point.h"
+#include "profile.h"
 #include "rng.h"
 #include "safemode_ui.h"
 #include "string_formatter.h"
@@ -55,15 +41,30 @@
 #include "type_id.h"
 #include "units.h"
 #include "units_angle.h"
-#include "veh_type.h"
-#include "vehicle.h"
-#include "vehicle_part.h"
-#include "vpart_position.h"
-#include "weather.h"
-#include "profile.h"
-#include "omdata.h"
-#include "submap.h"
-#include "mtype.h"
+#include "vehicle/veh_type.h"
+#include "vehicle/vehicle.h"
+#include "vehicle/vehicle_part.h"
+#include "vehicle/vpart_position.h"
+#include "weather/weather.h"
+
+#include <algorithm>
+#include <array>
+#include <atomic>
+#include <bitset>
+#include <chrono>
+#include <cmath>
+#include <cstdint>
+#include <cstdlib>
+#include <cstring>
+#include <memory>
+#include <optional>
+#include <ostream>
+#include <queue>
+#include <set>
+#include <system_error>
+#include <unordered_map>
+#include <utility>
+#include <vector>
 
 #if defined(SDL_SOUND)
 #   include <thread>
@@ -952,7 +953,7 @@ void map::batch_flood_fill_sounds()
             if( flooded_sound.origin.z() != z ) {
                 // We still floodfill these sounds out later, just when we get to the right z-level.
                 continue;
-            } else if( flooded_sound.volume < 7 ) {
+            } else if( flooded_sound.volume < 7 || !inbounds( flooded_sound.origin ) ) {
                 num_invalidated_sounds++;
                 continue;
             } else {
@@ -2686,7 +2687,7 @@ void sounds::process_sound_markers( Character *who )
         }
         loudest_vol = std::max( loudest_vol, tile_vol );
 
-        if( tile_vol >= MAXIMUM_VOLUME_ATMOSPHERE || tile_vol > dBspl_to_mdBspl( element.sound.volume ) ) {
+        if( tile_vol > MAXIMUM_VOLUME_ATMOSPHERE || tile_vol > dBspl_to_mdBspl( element.sound.volume ) ) {
             // Dont count impossibly loud sounds.
             debugmsg( "Player given impossibly loud sound! Sound with description [ %1s ] from %i:%i:%i with an origin volume of %i dB, tile volume of %i mdB, distance %i at %i:%i:%i is louder than possible.",
                       element.sound.description, element.sound.origin.x(), element.sound.origin.y(),
@@ -3401,32 +3402,9 @@ void sfx::generate_gun_sound( const tripoint_bub_ms &source, const item &firing,
         }
     }
 
-    play_variant_sound( selected_sound, weapon_id.str(), heard_volume, angle, 0.8, 1.2 );
+    play_variant_sound( selected_sound, weapon_id.str(), heard_volume, angle, 0.8, 1.2, true );
     start_sfx_timestamp = std::chrono::high_resolution_clock::now();
 }
-
-namespace sfx
-{
-struct sound_thread {
-    sound_thread( const tripoint_bub_ms &source, const tripoint_bub_ms &target, bool hit, bool targ_mon,
-                  const std::string &material );
-
-    bool hit;
-    bool targ_mon;
-    std::string material;
-
-    skill_id weapon_skill;
-    int weapon_volume;
-    // volume and angle for calls to play_variant_sound
-    units::angle ang_src;
-    int vol_src;
-    int vol_targ;
-    units::angle ang_targ;
-
-    // Operator overload required for thread API.
-    void operator()() const;
-};
-} // namespace sfx
 
 void sfx::generate_melee_sound( const tripoint_bub_ms &source, const tripoint_bub_ms &target,
                                 bool hit,
@@ -3436,36 +3414,16 @@ void sfx::generate_melee_sound( const tripoint_bub_ms &source, const tripoint_bu
     if( test_mode ) {
         return;
     }
-    // If creating a new thread for each invocation is to much, we have to consider a thread
-    // pool or maybe a single thread that works continuously, but that requires a queue or similar
-    // to coordinate its work.
-    try {
-        std::thread the_thread( sound_thread( source, target, hit, targ_mon, material ) );
-        try {
-            if( the_thread.joinable() ) {
-                the_thread.detach();
-            }
-        } catch( std::system_error &err ) {
-            dbg( DL::Error ) << "Failed to detach melee sound thread: std::system_error: " << err.what();
-        }
-    } catch( std::system_error &err ) {
-        // not a big deal, just skip playing the sound.
-        dbg( DL::Error ) << "Failed to create melee sound thread: std::system_error: " << err.what();
-    }
-}
-
-sfx::sound_thread::sound_thread( const tripoint_bub_ms &source, const tripoint_bub_ms &target,
-                                 const bool hit,
-                                 const bool targ_mon, const std::string &material )
-    : hit( hit )
-    , targ_mon( targ_mon )
-    , material( material )
-{
-    // This is function is run in the main thread.
-    // Take melee strikes at 80dB
     const player *p = g->critter_at<npc>( source );
     const int heard_volume = get_heard_volume( source, 80 );
 
+    skill_id weapon_skill;
+    int weapon_volume;
+    // volume and angle for calls to play_variant_sound
+    units::angle ang_src;
+    int vol_src;
+    int vol_targ;
+    units::angle ang_targ;
     if( !p ) {
         p = &g->u;
         // sound comes from the same place as the player is, calculation of angle wouldn't work
@@ -3480,15 +3438,7 @@ sfx::sound_thread::sound_thread( const tripoint_bub_ms &source, const tripoint_b
     ang_targ = get_heard_angle( target );
     weapon_skill = p->primary_weapon().melee_skill();
     weapon_volume = p->primary_weapon().volume() / units::legacy_volume_factor;
-}
 
-// Operator overload required for thread API.
-void sfx::sound_thread::operator()() const
-{
-    // This is function is run in a separate thread. One must be careful and not access game data
-    // that might change (e.g. g->u.weapon, the character could switch weapons while this thread
-    // runs).
-    std::this_thread::sleep_for( std::chrono::milliseconds( rng( 1, 2 ) ) );
     std::string variant_used;
 
     static const skill_id skill_bashing( "bashing" );
@@ -3516,17 +3466,11 @@ void sfx::sound_thread::operator()() const
     if( hit ) {
         if( targ_mon ) {
             if( material == "steel" ) {
-                std::this_thread::sleep_for( std::chrono::milliseconds( rng( weapon_volume * 12,
-                                             weapon_volume * 16 ) ) );
                 play_variant_sound( "melee_hit_metal", variant_used, vol_targ, ang_targ, 0.8, 1.2 );
             } else {
-                std::this_thread::sleep_for( std::chrono::milliseconds( rng( weapon_volume * 12,
-                                             weapon_volume * 16 ) ) );
                 play_variant_sound( "melee_hit_flesh", variant_used, vol_targ, ang_targ, 0.8, 1.2 );
             }
         } else {
-            std::this_thread::sleep_for( std::chrono::milliseconds( rng( weapon_volume * 9,
-                                         weapon_volume * 12 ) ) );
             play_variant_sound( "melee_hit_flesh", variant_used, vol_targ, ang_targ, 0.8, 1.2 );
         }
     }
@@ -3952,7 +3896,7 @@ void sfx::load_sound_effects( const JsonObject & ) { }
 void sfx::load_sound_effect_preload( const JsonObject & ) { }
 void sfx::load_playlist( const JsonObject & ) { }
 void sfx::play_variant_sound( const std::string &, const std::string &, int, units::angle, double,
-                              double ) { }
+                              double, const bool ) { }
 void sfx::play_variant_sound( const std::string &, const std::string &, int, bool ) { }
 void sfx::play_ambient_variant_sound( const std::string &, const std::string &, int, channel, int,
                                       double, int ) { }

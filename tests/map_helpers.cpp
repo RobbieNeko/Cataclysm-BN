@@ -1,20 +1,20 @@
 #include "map_helpers.h"
 
+#include "../src/map/map.h"
+#include "../src/map/mapdata.h"
+#include "../src/map/submap.h"
 #include "avatar.h"
 #include "calendar.h"
 #include "catch/catch.hpp"
 #include "coordinates.h"
 #include "distribution_grid.h"
-#include "field.h"
 #include "game.h"
 #include "game_constants.h"
-#include "map.h"
+#include "map/field.h"
+#include "map/mapbuffer.h"
 #include "map_iterator.h"
-#include "mapbuffer.h"
-#include "mapdata.h"
 #include "npc.h"
 #include "overmapbuffer.h"
-#include "submap.h"
 #include "type_id.h"
 
 #include <algorithm>
@@ -142,7 +142,8 @@ auto move_player_out_of_the_way() -> void {
             g_half_mapsize_x + SEEX - 1, g_half_mapsize_y + SEEY - 1, g->u.abs_pos().z())));
 }
 
-monster& spawn_test_monster(const std::string& monster_type, const tripoint_bub_ms& start) {
+auto spawn_test_monster(const std::string& monster_type, const tripoint_bub_ms& start)
+    -> monster& { // *NOPAD*
     monster* const added = g->place_critter_at(mtype_id(monster_type), start);
     REQUIRE(added);
     return *added;

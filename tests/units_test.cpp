@@ -9,14 +9,17 @@
 #include "units.h"
 #include "units_serde.h"
 #include "units_utility.h"
+#include "weather/weather.h"
 
+#include <array>
 #include <cstdint>
 #include <limits>
+#include <ranges>
 #include <sstream>
 #include <string>
 #include <vector>
 
-static units::volume parse_volume_quantity(const std::string& json) {
+static auto parse_volume_quantity(const std::string& json) -> units::volume {
     std::istringstream buffer(json);
     JsonIn jsin(buffer);
     return read_from_json_string<units::volume>(jsin, units::volume_units);
@@ -54,6 +57,48 @@ TEST_CASE("units_have_correct_ratios", "[units]") {
     CHECK(1_c == units::from_celsius(1));
 }
 
+
+TEST_CASE("body_temperature_units_preserve_legacy_body_temperature_scale", "[units][bodytemp]") {
+    const auto thresholds = std::to_array<std::pair<units::temperature, int>>({
+        {BODYTEMP_FREEZING, 500},
+        {BODYTEMP_VERY_COLD, 2000},
+        {BODYTEMP_COLD, 3500},
+        {BODYTEMP_NORM, 5000},
+        {BODYTEMP_HOT, 6500},
+        {BODYTEMP_VERY_HOT, 8000},
+        {BODYTEMP_SCORCHING, 9500},
+    });
+
+    for (const auto& [temperature, legacy] : thresholds) {
+        CAPTURE(legacy);
+        CHECK(units::to_legacy_bodypart_temp(temperature) == legacy);
+        CHECK(units::from_legacy_bodypart_temp(legacy) == temperature);
+    }
+
+    const auto hot_delta = BODYTEMP_HOT - BODYTEMP_NORM;
+    CHECK(units::to_legacy_bodypart_temp_delta(hot_delta) == 1500);
+    CHECK(units::from_legacy_bodypart_temp_delta(1500) == hot_delta);
+    CHECK(BODYTEMP_NORM + units::from_legacy_bodypart_temp_delta(1500) == BODYTEMP_HOT);
+    CHECK(units::from_legacy_bodypart_temp(5250) == 37.5_c);
+    CHECK(units::to_legacy_bodypart_temp(37.5_c) == 5250);
+    for (const auto legacy : std::views::iota(-10000, 15001)) {
+        CAPTURE(legacy);
+        CHECK(units::to_legacy_bodypart_temp(units::from_legacy_bodypart_temp(legacy)) == legacy);
+        CHECK(units::to_legacy_bodypart_temp_delta(units::from_legacy_bodypart_temp_delta(legacy))
+              == legacy);
+    }
+}
+
+TEST_CASE("fahrenheit_deltas_preserve_fractional_celsius", "[units][bodytemp]") {
+    CHECK(1_f_delta == units::from_millidegree_celsius_delta(555));
+    CHECK(units::from_fahrenheit_delta(-1) == units::from_millidegree_celsius_delta(-555));
+    CHECK(9_f_delta == 5_c_delta);
+    CHECK(units::from_fahrenheit_delta(0) == 0_c_delta);
+    CHECK(units::to_fahrenheit_delta(2.5_c_delta) == 4);
+    CHECK(units::to_fahrenheit_delta<double>(2.5_c_delta) == Approx(4.5));
+    CHECK(units::to_millidegree_celsius_delta(units::from_fahrenheit_delta(0.9)) == Approx(500));
+}
+
 TEST_CASE("large_volume_json_round_trip", "[units][volume]") {
     const auto large_volume = units::from_milliliter(
         static_cast<std::int64_t>(std::numeric_limits<int>::max()) + 1);
@@ -66,7 +111,7 @@ TEST_CASE("large_volume_json_round_trip", "[units][volume]") {
     CHECK(parse_volume_quantity(serialized_volume) == large_volume);
 }
 
-static units::energy parse_energy_quantity(const std::string& json) {
+static auto parse_energy_quantity(const std::string& json) -> units::energy {
     std::istringstream buffer(json);
     JsonIn jsin(buffer);
     return read_from_json_string<units::energy>(jsin, units::energy_units);
@@ -101,8 +146,9 @@ TEST_CASE("sound parsing from JSON", "[units]") {
         legacy_sound = assign_sound_quantity("{ \"volume\": 2 }");
     });
     CHECK(warning.find("legacy sound volume values used") != std::string::npos);
+    // Legacy sounds increased by 50 so it's above ambient and thus audible
     CHECK(legacy_sound
-          == units::from_decibel(approximate_dB_volume_from_legacy_tile_distance_vol(2)));
+          == units::from_decibel(approximate_dB_volume_from_legacy_tile_distance_vol(2) + 50));
 }
 
 TEST_CASE("energy parsing from JSON", "[units]") {
@@ -120,7 +166,7 @@ TEST_CASE("energy parsing from JSON", "[units]") {
     CHECK(parse_energy_quantity("\"1 kJ -4 J\"") == 1_kJ - 4_J);
 }
 
-static time_duration parse_time_duration(const std::string& json) {
+static auto parse_time_duration(const std::string& json) -> time_duration {
     std::istringstream buffer(json);
     JsonIn jsin(buffer);
     return read_from_json_string<time_duration>(jsin, time_duration::units);
@@ -143,7 +189,7 @@ TEST_CASE("time_duration parsing from JSON", "[units]") {
           == 1_turns - 4_minutes + 1_hours - 4_days);
 }
 
-static units::angle parse_angle(const std::string& json) {
+static auto parse_angle(const std::string& json) -> units::angle {
     std::istringstream buffer(json);
     JsonIn jsin(buffer);
     return read_from_json_string<units::angle>(jsin, units::angle_units);

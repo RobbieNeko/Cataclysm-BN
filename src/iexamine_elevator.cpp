@@ -1,24 +1,24 @@
-#include <algorithm>
-#include <optional>
-
-#include "utils/algo.h"
 #include "catalua_coord.h"
 #include "catalua_hooks.h"
+#include "coordinates.h"
+#include "flood_fill.h"
 #include "game.h"
 #include "iexamine.h"
-#include "mapdata.h"
-#include "flood_fill.h"
-#include "output.h"
+#include "map/map.h"
+#include "map/mapdata.h"
 #include "omdata.h"
+#include "output.h"
 #include "overmapbuffer.h"
 #include "player.h"
-#include "coordinates.h"
-#include "map.h"
 #include "point.h"
-#include "ui.h"
-#include "vpart_range.h"
-#include "vehicle_part.h"
 #include "point_rotate.h"
+#include "ui.h"
+#include "utils/algo.h"
+#include "vehicle/vehicle_part.h"
+#include "vehicle/vpart_range.h"
+
+#include <algorithm>
+#include <optional>
 
 namespace
 {

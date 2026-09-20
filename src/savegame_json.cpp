@@ -1,10 +1,102 @@
 // Associated headers here are the ones for which their only non-inline
 // functions are serialization functions.  This allows IWYU to check the
 // includes in such headers.
+#include "active_item_cache.h"
+#include "activity_actor.h"
+#include "assign.h"
+#include "auto_pickup.h"
+#include "avatar.h"
+#include "bionics.h"
+#include "bodypart.h"
+#include "calendar.h"
+#include "cata_cartesian_product.h"
+#include "cata_io.h"
+#include "cata_utility.h"
+#include "cata_variant.h"
+#include "character.h"
+#include "character_encumbrance.h"
+#include "character_id.h"
+#include "character_martial_arts.h"
+#include "clone_ptr.h"
+#include "clzones.h"
+#include "computer.h"
+#include "construction.h"
+#include "consumption.h"
 #include "coordinates.h"
+#include "craft_command.h"
+#include "creature.h"
+#include "creature_tracker.h"
+#include "debug.h"
+#include "drop_token.h"
+#include "effect.h"
+#include "enum_conversions.h"
 #include "enums.h" // IWYU pragma: associated
+#include "event.h"
+#include "faction.h"
+#include "flag.h"
+#include "flat_set.h"
+#include "game.h"
+#include "game_constants.h"
+#include "int_id.h"
+#include "inventory.h"
+#include "item.h"
+#include "item_contents.h"
+#include "item_factory.h"
+#include "itype.h"
+#include "json.h"
+#include "kill_tracker.h"
+#include "lru_cache.h"
+#include "magic/magic.h"
+#include "magic/magic_teleporter_list.h"
+#include "map/field.h"
+#include "map/field_type.h"
+#include "map/map.h"
+#include "map/mapdata.h"
+#include "map/submap.h"
+#include "map_memory.h"
+#include "mattack_common.h"
+#include "mission.h"
+#include "monster.h"
+#include "morale.h"
+#include "morale_types.h"
+#include "mtype.h"
+#include "mutation.h"
+#include "newcharacter.h"
+#include "npc.h"
+#include "npc_class.h"
 #include "npc_favor.h" // IWYU pragma: associated
+#include "options.h"
+#include "overmapbuffer.h"
+#include "pickup_token.h"
+#include "pimpl.h"
+#include "player.h"
+#include "player_activity.h"
 #include "pldata.h" // IWYU pragma: associated
+#include "point.h"
+#include "profession.h"
+#include "recipe.h"
+#include "recipe_dictionary.h"
+#include "relic.h"
+#include "requirements.h"
+#include "rng.h"
+#include "scenario.h"
+#include "skill.h"
+#include "stats_tracker.h"
+#include "stomach.h"
+#include "string_id.h"
+#include "text_snippets.h"
+#include "tileray.h"
+#include "trait_group.h"
+#include "uistate.h"
+#include "units.h"
+#include "value_ptr.h"
+#include "vehicle/veh_type.h"
+#include "vehicle/vehicle.h"
+#include "vehicle/vehicle_part.h"
+#include "vehicle/vpart_position.h"
+#include "vehicle/vpart_range.h"
+#include "vitamin.h"
+#include "world_type.h"
 
 #include <algorithm>
 #include <array>
@@ -20,107 +112,14 @@
 #include <numeric>
 #include <optional>
 #include <ranges>
-#include <span>
 #include <set>
+#include <span>
 #include <sstream>
 #include <stack>
 #include <unordered_map>
 #include <unordered_set>
 #include <utility>
 #include <vector>
-
-#include "active_item_cache.h"
-#include "activity_actor.h"
-#include "assign.h"
-#include "auto_pickup.h"
-#include "avatar.h"
-#include "bionics.h"
-#include "bodypart.h"
-#include "calendar.h"
-#include "cata_cartesian_product.h"
-#include "cata_io.h"
-#include "cata_variant.h"
-#include "cata_utility.h"
-#include "character.h"
-#include "character_encumbrance.h"
-#include "character_id.h"
-#include "character_martial_arts.h"
-#include "clone_ptr.h"
-#include "clzones.h"
-#include "computer.h"
-#include "construction.h"
-#include "consumption.h"
-#include "craft_command.h"
-#include "creature.h"
-#include "creature_tracker.h"
-#include "debug.h"
-#include "drop_token.h"
-#include "effect.h"
-#include "enum_conversions.h"
-#include "event.h"
-#include "faction.h"
-#include "field.h"
-#include "field_type.h"
-#include "flag.h"
-#include "flat_set.h"
-#include "game.h"
-#include "game_constants.h"
-#include "int_id.h"
-#include "inventory.h"
-#include "item.h"
-#include "world_type.h"
-#include "item_contents.h"
-#include "item_factory.h"
-#include "itype.h"
-#include "json.h"
-#include "kill_tracker.h"
-#include "lru_cache.h"
-#include "magic/magic.h"
-#include "magic/magic_teleporter_list.h"
-#include "map.h"
-#include "map_memory.h"
-#include "mapdata.h"
-#include "mattack_common.h"
-#include "mission.h"
-#include "monster.h"
-#include "morale.h"
-#include "morale_types.h"
-#include "mtype.h"
-#include "mutation.h"
-#include "newcharacter.h"
-#include "npc.h"
-#include "npc_class.h"
-#include "options.h"
-#include "overmapbuffer.h"
-#include "pickup_token.h"
-#include "pimpl.h"
-#include "player.h"
-#include "player_activity.h"
-#include "point.h"
-#include "profession.h"
-#include "recipe.h"
-#include "recipe_dictionary.h"
-#include "relic.h"
-#include "requirements.h"
-#include "rng.h"
-#include "scenario.h"
-#include "skill.h"
-#include "stats_tracker.h"
-#include "stomach.h"
-#include "string_id.h"
-#include "submap.h"
-#include "text_snippets.h"
-#include "tileray.h"
-#include "trait_group.h"
-#include "units.h"
-#include "uistate.h"
-#include "value_ptr.h"
-#include "veh_type.h"
-#include "vehicle.h"
-#include "vehicle_part.h"
-#include "vitamin.h"
-#include "vpart_position.h"
-#include "vpart_range.h"
 
 static const efftype_id effect_riding( "riding" );
 
@@ -572,8 +571,8 @@ void Character::load( const JsonObject &data )
             for( size_t bp_iter = 0; bp_iter < num_bp; bp_iter++ ) {
                 body_part bp_token = static_cast<body_part>( bp_iter );
                 auto &part = get_part( convert_bp( bp_token ) );
-                part.set_temp_cur( temp_cur_old[bp_iter] );
-                part.set_temp_conv( temp_conv_old[bp_iter] );
+                part.set_temp_cur( units::from_legacy_bodypart_temp( temp_cur_old[bp_iter] ) );
+                part.set_temp_conv( units::from_legacy_bodypart_temp( temp_conv_old[bp_iter] ) );
                 part.set_frostbite_timer( frostbite_timer_old[bp_iter] );
             }
         }
@@ -4638,6 +4637,9 @@ void submap::load( JsonIn &jsin, const std::string &member_name, int version,
                 --remaining;
             }
             ter[sm_ms.x()][sm_ms.y()] = iid;
+            if( iid->trap != tr_null ) {
+                trap_cache.push_back( sm_ms );
+            }
         }
         if( remaining ) {
             debugmsg( "Mapbuffer terrain data is corrupt, tile data remaining." );

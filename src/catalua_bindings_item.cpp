@@ -1,35 +1,34 @@
+#include "ammo.h"
+#include "ammo_effect.h"
+#include "artifact.h"
+#include "avatar.h"
 #include "catalua_bindings.h"
-
-#include <ranges>
-
 #include "catalua_bindings_utils.h"
 #include "catalua_luna.h"
 #include "catalua_luna_doc.h"
-
-#include "artifact.h"
-#include "avatar.h"
-#include "itype.h"
-#include "mtype.h"
-#include "material.h"
-#include "faction.h"
 #include "character.h"
-#include "martialarts.h"
-#include "relic.h"
-#include "vitamin.h"
-#include "gun_mode.h"
-#include "mod_manager.h"
-#include "ammo_effect.h"
-#include "mongroup.h"
 #include "disease.h"
-#include "skill.h"
-#include "ammo.h"
-#include "flag.h"
-#include "emit.h"
-#include "fault.h"
-#include "recipe.h"
-#include "explosion.h"
 #include "enum_conversions.h"
+#include "explosion.h"
+#include "faction.h"
+#include "fault.h"
+#include "flag.h"
+#include "gun_mode.h"
+#include "hsv_color.h"
+#include "itype.h"
+#include "map/emit.h"
+#include "martialarts.h"
+#include "material.h"
+#include "mod_manager.h"
+#include "mongroup.h"
+#include "mtype.h"
+#include "recipe.h"
+#include "relic.h"
+#include "skill.h"
 #include "translations.h"
+#include "vitamin.h"
+
+#include <ranges>
 
 namespace
 {
@@ -401,6 +400,7 @@ void reg_item( sol::state &lua )
         SET_FX( is_tainted );
         SET_FX( is_soft );
         SET_FX( is_reloadable );
+        luna::set_fx( ut, "has_use", []( item & it, std::string use ) { return it.get_use( use ); } );
         DOC( "DEPRECATED: Items are no longer filthy" );
         luna::set_fx( ut, "is_filthy", []() { return false; } );
         SET_FX( is_active );
@@ -562,6 +562,10 @@ void reg_item( sol::state &lua )
         luna::set_fx( ut, "set_var_tri", []( UT_CLASS & c, const std::string & name, const tripoint & val )
         {
             c.set_var( name, val );
+        } );
+        luna::set_fx( ut, "set_var_col", []( UT_CLASS & c, const std::string & name, const RGBColor & val )
+        {
+            c.set_var<RGBColor>( name, val );
         } );
         SET_FX( attack_cost );
         SET_FX( stamina_cost );

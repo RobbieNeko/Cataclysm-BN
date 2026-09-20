@@ -30,7 +30,7 @@
 #include "game.h"
 #include "item.h"
 #include "line.h"
-#include "map.h"
+#include "map/map.h"
 #include "map_iterator.h"
 #include "messages.h"
 #include "monster.h"
@@ -43,8 +43,8 @@
 #include "trap.h"
 #include "type_id.h"
 #include "units.h"
+#include "vehicle/vpart_position.h"
 #include "visitable.h"
-#include "vpart_position.h"
 
 static const ammo_effect_str_id ammo_effect_ACT_ON_RANGED_HIT( "ACT_ON_RANGED_HIT" );
 static const ammo_effect_str_id ammo_effect_BOUNCE( "BOUNCE" );
@@ -179,7 +179,7 @@ void drop_or_embed_projectile( dealt_projectile_attack &attack )
         }
         if( proj.has_effect( ammo_effect_ACT_ON_RANGED_HIT ) ) {
             // Don't drop if it exploded
-            drop = item::process( std::move( drop ), nullptr, attack.end_point, true );
+            drop = item::process( std::move( drop ), nullptr, attack.end_point, true, 1 );
         }
 
         map &here = get_map();

@@ -1,18 +1,5 @@
 #include "handle_liquid.h"
 
-#include <algorithm>
-#include <climits>
-#include <cstddef>
-#include <functional>
-#include <iterator>
-#include <list>
-#include <memory>
-#include <optional>
-#include <ostream>
-#include <set>
-#include <string>
-#include <vector>
-
 #include "action.h"
 #include "avatar.h"
 #include "cata_utility.h"
@@ -25,7 +12,7 @@
 #include "item.h"
 #include "item_contents.h"
 #include "line.h"
-#include "map.h"
+#include "map/map.h"
 #include "map_iterator.h"
 #include "messages.h"
 #include "monster.h"
@@ -34,10 +21,23 @@
 #include "translations.h"
 #include "type_id.h"
 #include "ui.h"
-#include "vehicle.h"
-#include "vehicle_part.h"
-#include "vpart_position.h"
-#include "vpart_range.h"
+#include "vehicle/vehicle.h"
+#include "vehicle/vehicle_part.h"
+#include "vehicle/vpart_position.h"
+#include "vehicle/vpart_range.h"
+
+#include <algorithm>
+#include <climits>
+#include <cstddef>
+#include <functional>
+#include <iterator>
+#include <list>
+#include <memory>
+#include <optional>
+#include <ostream>
+#include <set>
+#include <string>
+#include <vector>
 
 static void serialize_liquid_source( player_activity &act, vehicle &veh,
                                      int part_id )

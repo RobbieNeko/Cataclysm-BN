@@ -1,20 +1,20 @@
+#include "../src/map/map.h"
+#include "../src/vehicle/vehicle_part.h"
+#include "../src/vehicle/vpart_position.h"
 #include "avatar.h"
 #include "bodypart.h"
 #include "calendar.h"
 #include "catch/catch.hpp"
 #include "coordinates.h"
 #include "game.h"
-#include "map.h"
 #include "map_helpers.h"
 #include "player_helpers.h"
 #include "state_helpers.h"
 #include "string_formatter.h"
 #include "test_statistics.h"
 #include "type_id.h"
-#include "vehicle.h"
-#include "vehicle_part.h"
-#include "vpart_position.h"
-#include "vpart_range.h"
+#include "vehicle/vehicle.h"
+#include "vehicle/vpart_range.h"
 
 #include <cstdio>
 #include <memory>
@@ -45,7 +45,7 @@ static void clear_game_drag(const ter_id& terrain) {
     here.build_map_cache(0, true);
 }
 
-static vehicle* setup_drag_test(const vproto_id& veh_id) {
+static auto setup_drag_test(const vproto_id& veh_id) -> vehicle* { // *NOPAD*
     const tripoint_bub_ms map_starting_point(60, 60, 0);
     vehicle* veh_ptr = get_map().add_vehicle(veh_id, map_starting_point, -90_degrees, 0, 0);
 
@@ -74,8 +74,9 @@ static vehicle* setup_drag_test(const vproto_id& veh_id) {
 // Spawn a vehicle
 // calculate c_air_drag and c_rolling_resistance
 // return whether they're within 5% of expected values
-static bool test_water_drag(
-    const vproto_id& veh_id, const double expected_c_water = 0, const bool test_results = false) {
+static auto test_water_drag(
+    const vproto_id& veh_id, const double expected_c_water = 0, const bool test_results = false)
+    -> bool {
     vehicle* veh_ptr = setup_drag_test(veh_id);
     if (veh_ptr == nullptr) { return false; }
 
@@ -96,9 +97,10 @@ static bool test_water_drag(
     get_map().destroy_vehicle(veh_ptr);
     return valid;
 }
-static bool test_drag(
+static auto test_drag(
     const vproto_id& veh_id, const double expected_c_air = 0, const double expected_c_rr = 0,
-    const int expected_safe = 0, const int expected_max = 0, const bool test_results = false) {
+    const int expected_safe = 0, const int expected_max = 0, const bool test_results = false)
+    -> bool {
     vehicle* veh_ptr = setup_drag_test(veh_id);
     if (veh_ptr == nullptr) { return false; }
 

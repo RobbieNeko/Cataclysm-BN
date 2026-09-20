@@ -479,7 +479,7 @@ doc_gen_func.impl = function()
 ---@field prev any @result of the previous hook call in the chain, nil for the first call
 ---@field [string] any
 
----@alias HookCallback fun(params: HookParams): HookResult
+---@alias HookCallback fun(params: HookParams): HookResult|boolean|nil
 
 ---@class HookConfig
 ---@field fn HookCallback @function to call

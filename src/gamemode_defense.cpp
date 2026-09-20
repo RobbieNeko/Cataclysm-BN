@@ -1,13 +1,7 @@
 #include "gamemode_defense.h" // IWYU pragma: associated
 
-#include <cassert>
-#include <cstddef>
-#include <memory>
-#include <ostream>
-#include <set>
-
-#include "action_time_scale.h"
 #include "action.h"
+#include "action_time_scale.h"
 #include "avatar.h"
 #include "color.h"
 #include "construction.h"
@@ -19,9 +13,9 @@
 #include "item.h"
 #include "item_group.h"
 #include "iteminfo_query.h"
-#include "map.h"
-#include "mapbuffer_registry.h"
-#include "mapgen_constructor.h"
+#include "map/map.h"
+#include "map/mapbuffer_registry.h"
+#include "mapgen/mapgen_constructor.h"
 #include "messages.h"
 #include "mongroup.h"
 #include "monster.h"
@@ -40,7 +34,13 @@
 #include "string_utils.h"
 #include "translations.h"
 #include "ui_manager.h"
-#include "weather.h"
+#include "weather/weather.h"
+
+#include <cassert>
+#include <cstddef>
+#include <memory>
+#include <ostream>
+#include <set>
 
 static const skill_id skill_barter( "barter" );
 
