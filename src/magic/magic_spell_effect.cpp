@@ -107,8 +107,9 @@ static void build_line(
     std::set<tripoint_bub_ms>& result) {
     auto last_point = source;
     while (between_or_on(point_zero, delta, delta_perp, line.get())) {
-        if (!test(source + line.get(), last_point)) { break; }
+        // Ordered intentionally so that the first point to fail the test is still included in the affected area (i.e. it hits the wall)
         result.emplace(source + line.get());
+        if (!test(source + line.get(), last_point)) { break; }
         last_point = source + line.get();
         line.next();
     }
@@ -160,7 +161,9 @@ static auto in_spell_aoe(
     for (const tripoint_bub_ms& pt : trajectory) {
         if ((here.impassable(pt) && !here.has_flag("THIN_OBSTACLE", pt))
             || here.obstructed_by_vehicle_rotation(pt, last_point)) {
-            return false;
+            // We desire the spell to *hit* the wall, not stop short of it.
+            // Therefore, if the obstruction is the end of the line, then we do consider it to be in the AOE
+            return pt == end;
         }
         last_point = pt;
     }
@@ -204,6 +207,8 @@ static auto spell_effect_cone_range_override(
                     && (here.passable(tp) || here.has_flag("THIN_OBSTACLE", tp)))) {
                 targets.emplace(tp);
             } else {
+                // We want it to hit the wall, not stop short, so we still include this point but not any further
+                targets.emplace(tp);
                 break;
             }
             last_point = tp;
